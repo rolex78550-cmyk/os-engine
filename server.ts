@@ -14,7 +14,16 @@ dotenv.config();
 const app = express();
 
 // Body parsing middleware
-app.use(express.json());
+// We need the RAW body for webhook HMAC signature verification.
+// express.json() normally discards the raw buffer, so we use the
+// `verify` hook to stash it on `req.rawBody` before parsing.
+app.use(
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf && buf.length ? buf.toString("utf8") : "";
+    },
+  })
+);
 
 // ----- CORS & JSON headers for all API routes -----
 app.use('/api', (req, res, next) => {
@@ -1073,40 +1082,70 @@ app.post("/api/subscription/activate", async (req, res) => {
 app.post("/api/dodo/checkout", async (req, res) => {
   try {
     const { amount = 4.99, currency = "USD", planType = "monthly", uid, email, name } = req.body;
+
+    // ── ENV VALIDATION: fail fast with a clear, actionable error ──
     const apiKey = process.env.DODO_PAYMENTS_API_KEY;
+    if (!apiKey || apiKey.trim() === "" || apiKey.includes("placeholder")) {
+      console.error("[DodoCheckout] ❌ DODO_PAYMENTS_API_KEY is not set.");
+      return res.status(500).json({
+        error: "Dodo Payments is not configured on the server. Set DODO_PAYMENTS_API_KEY in your environment variables.",
+        missing_env: ["DODO_PAYMENTS_API_KEY"],
+        fix: "Add DODO_PAYMENTS_API_KEY to Vercel → Project → Settings → Environment Variables, then redeploy."
+      });
+    }
+
+    const envProductIdKey = `DODO_PRODUCT_ID_${String(planType).toUpperCase()}`;
+    const productId = process.env[envProductIdKey] || process.env.DODO_PRODUCT_ID;
+    if (!productId || productId.startsWith("prod_")) {
+      // prod_monthly / prod_yearly / prod_lifetime are placeholders, not real Dodo product IDs.
+      console.error(`[DodoCheckout] ❌ ${envProductIdKey} is not set or is a placeholder (${productId}).`);
+      return res.status(500).json({
+        error: `Dodo product ID for plan "${planType}" is not configured.`,
+        missing_env: [envProductIdKey],
+        fix: `Add ${envProductIdKey} (a real Dodo product ID like pdt_xxxxx) in your environment variables, then redeploy.`
+      });
+    }
 
     const origin = req.headers.origin || "https://localhost:3000";
     const returnUrl = `${origin}/?payment=success&provider=dodo&plan=${planType}&uid=${uid || ''}`;
 
-    // Get product ID from environment variables or use fallback
-    const envProductIdKey = `DODO_PRODUCT_ID_${String(planType).toUpperCase()}`;
-    const productId = process.env[envProductIdKey] || process.env.DODO_PRODUCT_ID || `prod_${planType}`;
+    // Determine mode from the actual API key prefix, NOT from a Vite env var
+    // (VITE_* vars are only available in the frontend bundle, never on the server).
+    const isTest = apiKey.startsWith("test_") || process.env.DODO_PAYMENTS_MODE === "test";
+    const host = isTest ? "test.dodopayments.com" : "live.dodopayments.com";
+    console.log(`[DodoCheckout] Mode: ${isTest ? "test" : "live"} → ${host}`);
 
-    if (apiKey && !apiKey.includes("placeholder")) {
-      const isTest = process.env.VITE_DODO_PAYMENTS_MODE === "test" || apiKey.startsWith("test_");
-      const host = isTest ? "test.dodopayments.com" : "live.dodopayments.com";
+    // Payload strictly conforming to Dodo Payments API documentation
+    const payload = {
+      product_cart: [
+        {
+          product_id: productId,
+          quantity: 1,
+          ...(amount ? { amount: Math.round(Number(amount) * 100) } : {})
+        }
+      ],
+      customer: {
+        email: email || "customer@example.com",
+        name: name || "Customer",
+      },
+      return_url: returnUrl,
+      metadata: {
+        uid: uid || "",
+        planType: planType || "monthly",
+      },
+    };
 
-      // Payload strictly conforming to Dodo Payments API documentation
-      const payload = {
-        product_cart: [
-          {
-            product_id: productId,
-            quantity: 1,
-            ...(amount ? { amount: Math.round(Number(amount) * 100) } : {})
-          }
-        ],
-        customer: {
-          email: email || "customer@example.com",
-          name: name || "Customer",
-        },
-        return_url: returnUrl,
-        metadata: {
-          uid: uid || "",
-          planType: planType || "monthly",
-        },
-      };
+    let response = await fetch(`https://${host}/checkouts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
-      let response = await fetch(`https://${host}/checkouts`, {
+    if (!response.ok) {
+      response = await fetch(`https://${host}/v1/checkouts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1114,40 +1153,23 @@ app.post("/api/dodo/checkout", async (req, res) => {
         },
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        response = await fetch(`https://${host}/v1/checkouts`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && (data.checkout_url || data.url || data.payment_link || data.checkout_id || data.id)) {
-        return res.json({
-          checkout_id: data.checkout_id || data.id,
-          checkout_url: data.checkout_url || data.url || data.payment_link,
-          payment_id: data.payment_id || `dodo_pay_${Date.now()}`,
-        });
-      }
-
-      console.warn("[DodoCheckout] API session response issue:", response.status, data);
     }
 
-    // Static Payment Link according to Dodo Payments documentation:
-    // https://checkout.dodopayments.com/buy/{productid}?quantity=1&redirect_url={return_url}&email={email}&fullName={name}
-    const staticCheckoutUrl = `https://checkout.dodopayments.com/buy/${productId}?quantity=1&redirect_url=${encodeURIComponent(returnUrl)}&email=${encodeURIComponent(email || '')}&fullName=${encodeURIComponent(name || 'Customer')}`;
+    const data = await response.json().catch(() => ({}));
 
-    return res.json({
-      checkout_id: `chk_demo_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      checkout_url: staticCheckoutUrl,
-      payment_id: `dodo_pay_demo_${Date.now()}`,
-      is_test_mode: true
+    if (response.ok && (data.checkout_url || data.url || data.payment_link || data.checkout_id || data.id)) {
+      return res.json({
+        checkout_id: data.checkout_id || data.id,
+        checkout_url: data.checkout_url || data.url || data.payment_link,
+        payment_id: data.payment_id || `dodo_pay_${Date.now()}`,
+      });
+    }
+
+    console.warn("[DodoCheckout] API session response issue:", response.status, data);
+    return res.status(502).json({
+      error: "Dodo Payments API returned an unexpected response. Check server logs.",
+      dodo_status: response.status,
+      dodo_response: data
     });
   } catch (err: any) {
     console.error("[DodoCheckout] Error:", err?.message || err);
@@ -1210,22 +1232,73 @@ app.post("/api/dodo/activate", async (req, res) => {
 // In-memory set for fast webhook deduplication
 const processedDodoWebhookEvents = new Set<string>();
 
+/**
+ * Verify a Dodo Payments webhook signature using HMAC-SHA256.
+ * The signature is sent in the `x-dodo-signature` header as either:
+ *   - a raw hex digest, OR
+ *   - a Svix-style "v1,<hex>" string (Svix is the underlying transport).
+ * Returns true if the signature is valid OR if no secret is configured
+ * (in which case we log a loud warning and accept the request —
+ *  this lets local dev work but MUST be set in production).
+ */
+function verifyDodoWebhookSignature(rawBody: string, signatureHeader: string | undefined, secret: string | undefined): boolean {
+  if (!secret || secret.trim() === "") {
+    console.warn("[DodoWebhook] ⚠️ DODO_PAYMENTS_WEBHOOK_SECRET is not set. Webhook is UNAUTHENTICATED — anyone can forge events. Set this env var in production.");
+    return true; // fail-open for dev; production must set the secret
+  }
+  if (!signatureHeader) {
+    console.error("[DodoWebhook] ❌ Missing signature header.");
+    return false;
+  }
+
+  // Extract the raw hex digest (strip "v1," prefix if Svix-style)
+  const sig = signatureHeader.startsWith("v1,") ? signatureHeader.slice(3) : signatureHeader;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("hex");
+
+  // timing-safe comparison
+  const expectedBuf = Buffer.from(expected, "hex");
+  let sigBuf: Buffer;
+  try {
+    sigBuf = Buffer.from(sig, "hex");
+  } catch {
+    return false;
+  }
+  if (expectedBuf.length !== sigBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, sigBuf);
+}
+
 // API Route: Dodo Webhook
 app.post("/api/dodo/webhook", async (req, res) => {
   try {
+    // IMPORTANT: we need the raw body for HMAC verification.
+    // express.json() has already parsed req.body, so we reconstruct
+    // the raw body from the original stream buffer if available,
+    // otherwise we re-serialize (acceptable as long as the signing
+    // side and our verification side agree on canonicalization).
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
     const event = req.body;
     const eventId = event?.id || event?.event_id || event?.data?.payment_id || event?.data?.id;
     const eventType = event?.type || event?.event || "unknown";
 
     console.log(`[DodoWebhook] Received event (${eventType}) with ID:`, eventId);
 
-    // Webhook secret verification
-    const webhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_SECRET || "whsec_MUkVaDum6SIpgA5N5x6RdJ1rlrCZKmKt";
-    const incomingSignature = req.headers["x-dodo-signature"] || req.headers["webhook-signature"] || req.headers["webhook-secret"] || req.headers["svix-signature"];
+    // ── SIGNATURE VERIFICATION (HMAC-SHA256) ──
+    const webhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_SECRET;
+    const incomingSignature =
+      (req.headers["x-dodo-signature"] as string | undefined) ||
+      (req.headers["webhook-signature"] as string | undefined) ||
+      (req.headers["svix-signature"] as string | undefined);
 
-    if (incomingSignature) {
-      console.log("[DodoWebhook] Signature received from header:", incomingSignature);
+    const signatureValid = verifyDodoWebhookSignature(rawBody, incomingSignature, webhookSecret);
+    if (!signatureValid) {
+      console.error("[DodoWebhook] ❌ Signature verification FAILED. Rejecting event.");
+      return res.status(401).json({ error: "Invalid signature" });
     }
+    console.log("[DodoWebhook] ✅ Signature verified.");
 
     // Deduplication check
     if (eventId) {
