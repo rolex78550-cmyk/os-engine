@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Premium manifestation user profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subscriptionStatus": { "type": "string", "enum": ["free", "premium"] },
+        "alignment": { "type": "number" },
+        "streak": { "type": "number" },
+        "belief": { "type": "number" },
+        "emotion": { "type": "number" },
+        "action": { "type": "number" },
+        "coherenceHistory": { "type": "array", "items": { "type": "number" } }
+      },
+      "required": ["userId", "name", "email", "subscriptionStatus"]
+    },
+    "Desire": {
+      "title": "Manifestation Desire",
+      "description": "Active intentions being manifested",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "progress": { "type": "number" },
+        "expectedReality": { "type": "string" },
+        "category": { "type": "string" },
+        "icon": { "type": "string" },
+        "beliefLevel": { "type": "number" },
+        "emotionalState": { "type": "number" },
+        "consistencyScore": { "type": "number" },
+        "creationDate": { "type": "string" }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "JournalEntry": {
+      "title": "Manifestation Journal",
+      "description": "Daily scripting and alignment entries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdTime": { "type": "string" },
+        "type": { "type": "string" },
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "coherenceScore": { "type": "number" },
+            "primaryFrequency": { "type": "string" },
+            "coherenceAnalysis": { "type": "string" },
+            "recalibrationText": { "type": "string" }
+          }
+        }
+      },
+      "required": ["id", "userId", "text", "createdTime"]
+    },
+    "Ritual": {
+      "title": "Daily Ritual",
+      "description": "Tracking daily alignment actions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "label": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "timeOfDay": { "type": "string" }
+      },
+      "required": ["id", "userId", "label", "completed"]
+    },
+    "VisionItem": {
+      "title": "Vision Item",
+      "description": "Vision board manifestations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "vibe": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "AcademyProgress": {
+      "title": "Academy Progress",
+      "description": "User's academic path progress",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "progress": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "completed"]
+    },
+    "ActionPlan": {
+      "title": "Action Plan",
+      "description": "Daily power action steps",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "done": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "text", "done"]
+    },
+    "CommunityPost": {
+      "title": "Community Post",
+      "description": "Sovereigns community feed posts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "likes": { "type": "number" },
+        "likedBy": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "text", "likes"]
+    },
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "RPG leaderboard entries",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "playerName": { "type": "string" },
+        "playerScore": { "type": "number" },
+        "monthlyScore": { "type": "number" },
+        "rank": { "type": "string" },
+        "equippedTitle": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "playerName", "playerScore"]
+    },
+    "Payment": {
+      "title": "Payment Log",
+      "description": "Subscription payments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "planType": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "planType"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Private profile of the user"
+    },
+    "users/{userId}/desires/{desireId}": {
+      "schema": "Desire",
+      "description": "User's individual desires"
+    },
+    "users/{userId}/journal/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User's journal entries"
+    },
+    "users/{userId}/rituals/{ritualId}": {
+      "schema": "Ritual",
+      "description": "User's daily rituals"
+    },
+    "users/{userId}/vision_board/{itemId}": {
+      "schema": "VisionItem",
+      "description": "User's vision board images"
+    },
+    "users/{userId}/academy_progress/{id}": {
+      "schema": "AcademyProgress",
+      "description": "User's progress in academy courses"
+    },
+    "users/{userId}/action_plans/{id}": {
+      "schema": "ActionPlan",
+      "description": "User's daily action plans"
+    },
+    "users/{userId}/streak_events/{id}": {
+      "schema": "object",
+      "description": "User's daily streak logs"
+    },
+    "users/{userId}/xp_transactions/{id}": {
+      "schema": "object",
+      "description": "XP points logs"
+    },
+    "users/{userId}/coin_transactions/{id}": {
+      "schema": "object",
+      "description": "Coins ledger logs"
+    },
+    "users/{userId}/rewards_claimed/{id}": {
+      "schema": "object",
+      "description": "RPG rewards unlocked"
+    },
+    "community_posts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Shared posts from players"
+    },
+    "leaderboard/{userId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Global user ranking score"
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Transactions log"
+    }
+  }
+}

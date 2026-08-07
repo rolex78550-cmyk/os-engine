@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Goal Orb Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(circle at 50% 0%,#0c0a08 0%,#050403 45%,#000 100%);color:#ECE4D4;font-family:'Inter',sans-serif;min-height:100vh}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#837A6D}
+  .brass{color:#C9A961}.sage{color:#8FA98E}
+  .serif{font-family:'Playfair Display',serif}
+  .figure{font-family:'Playfair Display',serif;font-weight:800;color:#ECE4D4;letter-spacing:-.03em}
+  /* orb keyframes */
+  @keyframes tumble{from{transform:rotateX(-12deg) rotateY(0)}to{transform:rotateX(-12deg) rotateY(360deg)}}
+  @keyframes rspin1{from{transform:rotateX(72deg) rotateZ(0)}to{transform:rotateX(72deg) rotateZ(360deg)}}
+  @keyframes rspin2{from{transform:rotateX(72deg) rotateZ(0)}to{transform:rotateX(72deg) rotateZ(-360deg)}}
+  @keyframes rspin3{from{transform:rotateX(20deg) rotateY(30deg) rotateZ(0)}to{transform:rotateX(20deg) rotateY(30deg) rotateZ(360deg)}}
+  @keyframes rspin4{from{transform:rotateY(90deg) rotateZ(0)}to{transform:rotateY(90deg) rotateZ(360deg)}}
+  @keyframes coreb{0%,100%{transform:translate(-50%,-50%) scale(1);box-shadow:0 0 30px 4px rgba(201,169,97,.35),0 0 70px 18px rgba(201,169,97,.18),inset 0 0 18px 4px rgba(255,250,240,.4)}50%{transform:translate(-50%,-50%) scale(1.06);box-shadow:0 0 45px 8px rgba(201,169,97,.5),0 0 100px 30px rgba(201,169,97,.28),inset 0 0 26px 6px rgba(255,250,240,.6)}}
+  @keyframes particle{0%{transform:translate3d(0,0,0);opacity:0}20%{opacity:.7}80%{opacity:.7}100%{transform:translate3d(var(--px),var(--py),0);opacity:0}}
+  @keyframes scan{from{transform:translate(-50%,-50%) rotateX(72deg) rotateZ(0)}to{transform:translate(-50%,-50%) rotateX(72deg) rotateZ(360deg)}}
+  .scene{position:relative;width:100%;height:360px;overflow:hidden}
+  .orb-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:900px}
+  .orb{position:relative;width:320px;height:320px;transform-style:preserve-3d;animation:tumble 30s linear infinite}
+  .ring{position:absolute;left:50%;top:50%;border-radius:50%;border:1px solid rgba(201,169,97,.28);box-shadow:0 0 12px rgba(201,169,97,.10);transform-style:preserve-3d}
+  .node{position:absolute;width:7px;height:7px;border-radius:50%;background:#ECE4D4;box-shadow:0 0 10px 2px rgba(201,169,97,.7)}
+  .scanring{position:absolute;left:50%;top:50%;width:260px;height:260px;margin-left:0;margin-top:0;border-radius:50%;border:1px solid transparent;border-top-color:rgba(201,169,97,.8);border-right-color:rgba(201,169,97,.4);transform-style:preserve-3d;animation:scan 4s linear infinite}
+  .core{position:absolute;left:50%;top:50%;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF8EC 0%,#E8D9B8 30%,#C9A961 70%,#8A7544 100%);animation:coreb 4s ease-in-out infinite;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .p{position:absolute;border-radius:50%;background:#C9A961;box-shadow:0 0 6px rgba(201,169,97,.6);animation:particle linear infinite}
+  .readout{position:absolute;top:14px}.l{left:16px}.r{right:16px;text-align:right}
+  .name{position:absolute;left:0;right:0;text-align:center;bottom:8px}
+  .hint{text-align:center;color:rgba(236,228,212,.35);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;padding:0 0 10px}
+</style>
+</head>
+<body>
+<div class="hint">3D GOAL SIMULATION · rotates continuously · sits at the top of the blueprint page</div>
+<div class="scene">
+  <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(201,169,97,.10) 0%,transparent 55%)"></div>
+
+  <!-- particles -->
+  <div style="position:absolute;inset:0">
+    <span class="p" style="left:30%;top:60%;width:3px;height:3px;--px:20px;--py:-60px;animation-duration:6s;animation-delay:0s"></span>
+    <span class="p" style="left:70%;top:55%;width:2px;height:2px;--px:-25px;--py:-70px;animation-duration:7s;animation-delay:1s"></span>
+    <span class="p" style="left:50%;top:70%;width:3.5px;height:3.5px;--px:15px;--py:-80px;animation-duration:8s;animation-delay:2s"></span>
+    <span class="p" style="left:25%;top:45%;width:2px;height:2px;--px:30px;--py:-50px;animation-duration:6.5s;animation-delay:3s"></span>
+    <span class="p" style="left:75%;top:40%;width:2.5px;height:2.5px;--px:-20px;--py:-65px;animation-duration:7.5s;animation-delay:0.5s"></span>
+    <span class="p" style="left:45%;top:35%;width:2px;height:2px;--px:-15px;--py:-55px;animation-duration:9s;animation-delay:4s"></span>
+  </div>
+
+  <div class="orb-wrap">
+    <div class="orb">
+      <!-- rings -->
+      <div class="ring" style="width:260px;height:260px;margin-left:-130px;margin-top:-130px;animation:rspin1 18s linear infinite">
+        <span class="node" style="left:130px;top:-3.5px;animation:rspin1 18s linear infinite"></span>
+        <span class="node" style="left:130px;top:-3.5px;animation:rspin1 18s linear infinite;animation-delay:6s"></span>
+        <span class="node" style="left:130px;top:-3.5px;animation:rspin1 18s linear infinite;animation-delay:12s"></span>
+      </div>
+      <div class="ring" style="width:200px;height:200px;margin-left:-100px;margin-top:-100px;animation:rspin2 13s linear infinite">
+        <span class="node" style="left:100px;top:-3.5px;animation:rspin2 13s linear infinite"></span>
+        <span class="node" style="left:100px;top:-3.5px;animation:rspin2 13s linear infinite;animation-delay:6.5s"></span>
+      </div>
+      <div class="ring" style="width:316px;height:316px;margin-left:-158px;margin-top:-158px;animation:rspin3 26s linear infinite">
+        <span class="node" style="left:158px;top:-3.5px;animation:rspin3 26s linear infinite"></span>
+        <span class="node" style="left:158px;top:-3.5px;animation:rspin3 26s linear infinite;animation-delay:13s"></span>
+      </div>
+      <div class="ring" style="width:160px;height:160px;margin-left:-80px;margin-top:-80px;animation:rspin4 9s linear infinite">
+        <span class="node" style="left:80px;top:-3.5px;animation:rspin4 9s linear infinite"></span>
+      </div>
+      <!-- scan -->
+      <div class="scanring"></div>
+      <!-- guide -->
+      <div class="ring" style="width:130px;height:130px;margin-left:-65px;margin-top:-65px;border:1px dashed rgba(201,169,97,.18);box-shadow:none"></div>
+      <!-- core -->
+      <div class="core">💰</div>
+    </div>
+  </div>
+
+  <div class="readout l"><p class="eyebrow" style="font-size:9px;margin-bottom:2px">Projection</p><p class="figure" style="font-size:22px;color:#C9A961">72<span style="font-size:11px;color:#837A6D">%</span></p></div>
+  <div class="readout r"><p class="eyebrow" style="font-size:9px;margin-bottom:2px">Status</p><p class="eyebrow sage" style="font-size:10px">● Tracking</p></div>
+  <div class="name"><p class="eyebrow" style="margin-bottom:4px">◇ Goal Simulation</p><p class="serif" style="font-size:13px;font-weight:600;color:#ECE4D4">Manifest ₹5,000,000 Startup Capital</p></div>
+</div>
+</body>
+</html>

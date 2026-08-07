@@ -1,0 +1,8 @@
+{
+  "name": "Menifest OS",
+  "description": "A luxury, mobile-first manifestation and alignment dashboard with active desires, spatial metrics, ritual trackers, energy charts, and real-time AI-powered manifestation guidance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

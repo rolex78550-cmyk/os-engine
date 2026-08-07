@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Atelier Dossier — Goal Blueprint</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@400;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#050403;color:#ECE4D4;font-family:'Inter',sans-serif;min-height:100vh;padding:30px 16px}
+  .wrap{max-width:680px;margin:0 auto}
+  /* goal card (the listed goal, before expand) */
+  .goal-card{position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(10px);transition:all .5s;margin-bottom:12px}
+  .goal-card.expanded{box-shadow:0 30px 80px rgba(0,0,0,.6);transform:scale(1.005)}
+  .accent{position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(#8b5cf6,#22d3ee);opacity:.4}
+  .goal-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px}
+  .goal-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+  .gicon{width:52px;height:52px;border-radius:16px;background:linear-gradient(145deg,rgba(245,158,11,.12),rgba(255,255,255,.02));border:1px solid rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:26px}
+  .gtitle{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+  .gcat{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#a78bfa;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);padding:2px 8px;border-radius:6px}
+  .btn-ai{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:8px 12px;border-radius:10px;background:linear-gradient(145deg,rgba(139,92,246,.1),rgba(255,255,255,.02));border:1px solid rgba(139,92,246,.25);color:#c4b5fd;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .btn-ai:hover{border-color:rgba(139,92,246,.5)}
+  /* expand region */
+  .expand{overflow:hidden;transition:height .5s cubic-bezier(.22,1,.36,1)}
+  .expand-inner{padding:0 22px 22px}
+  .bp-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 4px}
+  .bp-bar span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(245,158,11,.6);font-weight:700}
+  /* DOSSIER */
+  .dossier{background:#0A0908;border:1px solid #38322C;border-radius:20px;overflow:hidden;position:relative}
+  .masthead{padding:26px 30px 20px;border-bottom:1px solid #38322C}
+  .masthead-top{display:flex;justify-content:space-between;margin-bottom:14px}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#837A6D}
+  .brass{color:#C9A961}
+  .sage{color:#8FA98E}
+  .serif{font-family:'Playfair Display',serif}
+  .goalname{font-family:'Playfair Display',serif;font-size:26px;line-height:1.15;font-weight:700;color:#ECE4D4;letter-spacing:-.02em;margin-bottom:16px}
+  .metrics{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 22px}
+  .metrics .sep{color:#38322C}
+  .figure{font-family:'Playfair Display',serif;font-weight:800;color:#ECE4D4;letter-spacing:-.03em;font-size:20px}
+  .mlabel{font-size:11px;color:#837A6D;margin-left:6px}
+  .mval{font-size:13px;font-weight:600;color:#ECE4D4}
+  .tabs{display:flex;gap:24px;padding:0 30px;border-bottom:1px solid #38322C;overflow-x:auto}
+  .tab{font-size:11px;letter-spacing:.06em;color:#837A6D;padding:12px 2px;position:relative;cursor:pointer;white-space:nowrap;transition:color .3s}
+  .tab.active{color:#ECE4D4}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:#C9A961}
+  .body{padding:28px 30px}
+  .ch{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+  .chnum{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#8A7544}
+  .chtitle{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#ECE4D4}
+  .task{display:flex;gap:16px;padding:12px 0;border-top:1px solid #38322C}
+  .task:first-child{border-top:none}
+  .tnum{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#8A7544;min-width:28px;padding-top:2px}
+  .trow{display:flex;justify-content:space-between;gap:12px;margin-bottom:4px}
+  .ttitle{font-size:13px;font-weight:600;color:#ECE4D4}
+  .tpri{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em}
+  .tdesc{font-size:12px;line-height:1.6;color:#837A6D}
+  .tmeta{display:flex;gap:12px;margin-top:6px}
+  .tmeta span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase}
+  /* constellation */
+  .const{position:relative;height:340px;border-radius:12px;border:1px solid #38322C;background:#0A0908;overflow:hidden}
+  .gridbg{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(131,122,109,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(131,122,109,.1) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(circle at center,#000 0%,transparent 80%);-webkit-mask-image:radial-gradient(circle at center,#000 0%,transparent 80%)}
+  .legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+  .legend span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#837A6D;display:flex;align-items:center;gap:6px}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .pullquote{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;line-height:1.6;color:#ECE4D4;border-left:2px solid #C9A961;padding-left:16px}
+  .note{text-align:center;color:rgba(236,228,212,.35);font-size:11px;margin-top:20px}
+  /* hint */
+  .hint{text-align:center;color:rgba(236,228,212,.4);font-size:12px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hint">↓ TAP "AI" ON THE GOAL — BLUEPRINT UNFOLDS IN-PLACE</div>
+
+  <!-- collapsed goal -->
+  <div class="goal-card" id="card">
+    <div class="accent"></div>
+    <div class="goal-head">
+      <div class="goal-left">
+        <div class="gicon">💰</div>
+        <div>
+          <div class="gtitle">Manifest ₹5,000,000 Startup Capital</div>
+          <span class="gcat">Wealth</span>
+        </div>
+      </div>
+      <button class="btn-ai" id="toggle" onclick="toggle()">✦ AI</button>
+    </div>
+
+    <!-- EXPAND REGION -->
+    <div class="expand" id="expand" style="height:0">
+      <div class="expand-inner">
+        <div class="bp-bar">
+          <span>✦ Blueprint Active</span>
+          <span style="color:#837A6D" onclick="toggle()">Collapse ↑</span>
+        </div>
+
+        <!-- DOSSIER -->
+        <div class="dossier">
+          <div class="masthead">
+            <div class="masthead-top">
+              <span class="eyebrow">⊘ Strategic Dossier</span>
+              <span class="eyebrow sage">◆ Authored by Gemini</span>
+            </div>
+            <div class="goalname">Manifest ₹5,000,000 Startup Capital</div>
+            <div class="metrics">
+              <span><span class="figure">72</span><span class="mlabel">% success</span></span>
+              <span class="sep">·</span>
+              <span><span class="mval">Advanced</span><span class="mlabel">difficulty</span></span>
+              <span class="sep">·</span>
+              <span><span class="mval">90 days</span></span>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="tab" onclick="setTab(this,'map')">Topology</div>
+            <div class="tab active" onclick="setTab(this,'tasks')">Directives</div>
+            <div class="tab" onclick="setTab(this,'mind')">Protocol</div>
+            <div class="tab" onclick="setTab(this,'an')">Analysis</div>
+          </div>
+
+          <div class="body" id="tasks">
+            <div class="ch"><span class="chnum">01</span><span class="chtitle">Daily Directives</span></div>
+            <div class="task">
+              <span class="tnum">01</span>
+              <div style="flex:1">
+                <div class="trow"><span class="ttitle">Morning Alignment</span><span class="tpri" style="color:#C98B6B">● High</span></div>
+                <div class="tdesc">Visualize your goal as already achieved for 5 minutes.</div>
+                <div class="tmeta"><span class="brass">+15 xp</span><span style="color:#837A6D">◷ 5 min</span></div>
+              </div>
+            </div>
+            <div class="task">
+              <span class="tnum">02</span>
+              <div style="flex:1">
+                <div class="trow"><span class="ttitle">Core Action</span><span class="tpri" style="color:#C98B6B">● High</span></div>
+                <div class="tdesc">Take one tangible step toward your goal.</div>
+                <div class="tmeta"><span class="brass">+30 xp</span><span style="color:#837A6D">◷ 30 min</span></div>
+              </div>
+            </div>
+            <div class="task">
+              <span class="tnum">03</span>
+              <div style="flex:1">
+                <div class="trow"><span class="ttitle">Evening Review</span><span class="tpri" style="color:#8A7544">● Medium</span></div>
+                <div class="tdesc">Write three things you did today toward your goal.</div>
+                <div class="tmeta"><span class="brass">+10 xp</span><span style="color:#837A6D">◷ 10 min</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="body" id="map" style="display:none">
+            <div class="ch"><span class="chnum">FIG</span><span class="chtitle">Topology</span></div>
+            <div class="const">
+              <div class="gridbg"></div>
+              <svg width="100%" height="100%" viewBox="0 0 340 340" style="position:absolute">
+                <!-- lines -->
+                <line x1="170" y1="170" x2="260" y2="110" stroke="#ECE4D4" stroke-width="0.8" opacity="0.32"/>
+                <line x1="170" y1="170" x2="80" y2="110" stroke="#ECE4D4" stroke-width="0.8" opacity="0.32"/>
+                <line x1="170" y1="170" x2="260" y2="230" stroke="#ECE4D4" stroke-width="0.8" opacity="0.32"/>
+                <line x1="170" y1="170" x2="80" y2="230" stroke="#ECE4D4" stroke-width="0.8" opacity="0.32"/>
+                <line x1="260" y1="110" x2="310" y2="80" stroke="#ECE4D4" stroke-width="0.6" opacity="0.15"/>
+                <line x1="80" y1="230" x2="30" y2="270" stroke="#ECE4D4" stroke-width="0.6" opacity="0.15"/>
+                <!-- pillars -->
+                <circle cx="260" cy="110" r="5" fill="#837A6D"/><circle cx="260" cy="110" r="9" fill="none" stroke="#837A6D" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="80" cy="110" r="5" fill="#837A6D"/><circle cx="80" cy="110" r="9" fill="none" stroke="#837A6D" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="260" cy="230" r="5" fill="#837A6D"/>
+                <circle cx="80" cy="230" r="5" fill="#837A6D"/>
+                <circle cx="310" cy="80" r="3.5" fill="#837A6D" opacity="0.6"/>
+                <circle cx="30" cy="270" r="3.5" fill="#837A6D" opacity="0.6"/>
+                <!-- core -->
+                <circle cx="170" cy="170" r="13" fill="none" stroke="#C9A961" stroke-width="0.6" opacity="0.5"/>
+                <circle cx="170" cy="170" r="11" fill="none" stroke="#837A6D" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="170" cy="170" r="7" fill="#C9A961"/>
+              </svg>
+              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,22px)"><span class="serif" style="font-size:13px;font-weight:600;color:#ECE4D4">Goal Core</span></div>
+            </div>
+            <div class="legend">
+              <span><span class="dot" style="background:#C9A961"></span> Core</span>
+              <span><span class="dot" style="background:#837A6D"></span> Pillar</span>
+              <span><span class="dot" style="background:#837A6D;opacity:.6"></span> Step</span>
+            </div>
+          </div>
+
+          <div class="body" id="mind" style="display:none">
+            <div class="ch"><span class="chnum">01</span><span class="chtitle">Identity Shift</span></div>
+            <blockquote class="pullquote">Become the person who has already achieved this goal — move, decide, and spend as them today.</blockquote>
+          </div>
+
+          <div class="body" id="an" style="display:none">
+            <div class="ch"><span class="chnum">02</span><span class="chtitle">Milestone Timeline</span></div>
+            <div class="task"><span class="tnum">01</span><div style="flex:1"><div class="trow"><span class="ttitle">Foundation</span><span class="eyebrow">◷ 7d</span></div><div class="tdesc">Set up systems and clear intentions.</div></div></div>
+            <div class="task"><span class="tnum">02</span><div style="flex:1"><div class="trow"><span class="ttitle">Momentum</span><span class="eyebrow">◷ 30d</span></div><div class="tdesc">Build daily consistency.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">Editorial × Architectural · warm carbon canvas · single brass accent</div>
+</div>
+
+<script>
+function toggle(){
+  var ex=document.getElementById('expand'), card=document.getElementById('card'), btn=document.getElementById('toggle');
+  if(ex.style.height==='0px'||ex.style.height===''){ex.style.height=ex.scrollHeight+'px';card.classList.add('expanded');btn.textContent='✦ Close';}
+  else{ex.style.height='0px';card.classList.remove('expanded');btn.textContent='✦ AI';}
+}
+function setTab(el,id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  ['tasks','map','mind','an'].forEach(x=>document.getElementById(x).style.display='none');document.getElementById(id).style.display='block';
+}
+</script>
+</body>
+</html>

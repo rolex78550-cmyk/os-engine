@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blueprint Page — overlay above goals</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@400;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#000;color:#ECE4D4;font-family:'Inter',sans-serif;min-height:100vh}
+  .page{padding:30px 16px 60px;max-width:780px;margin:0 auto;position:relative}
+  .hint{text-align:center;color:rgba(236,228,212,.45);font-size:12px;margin-bottom:20px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em}
+  /* goal list (the underlying goals page) */
+  .goal-card{position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(10px);margin-bottom:12px}
+  .goal-card.active{box-shadow:0 0 0 1px rgba(245,158,11,.4)}
+  .accent{position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(#8b5cf6,#22d3ee);opacity:.4}
+  .goal-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px}
+  .goal-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+  .gicon{width:52px;height:52px;border-radius:16px;background:linear-gradient(145deg,rgba(245,158,11,.12),rgba(255,255,255,.02));border:1px solid rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:26px}
+  .gtitle{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+  .gcat{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#a78bfa;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);padding:2px 8px;border-radius:6px}
+  .btn-ai{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:8px 14px;border-radius:10px;background:linear-gradient(145deg,rgba(245,158,11,.12),rgba(255,255,255,.02));border:1px solid rgba(245,158,11,.25);color:#fcd34d;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .btn-ai:hover{border-color:rgba(245,158,11,.5)}
+  .section-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;font-weight:700;margin-bottom:10px;padding:0 4px}
+  /* FULL-PAGE OVERLAY */
+  .overlay{position:fixed;inset:0;z-index:200;overflow-y:auto;background:radial-gradient(circle at 50% 0%,#0c0a08 0%,#050403 45%,#000 100%);display:none;animation:fadeIn .3s ease}
+  .overlay.show{display:block}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+  .topbar{position:sticky;top:0;z-index:10;backdrop-filter:blur(16px);background:rgba(5,4,3,.82);border-bottom:1px solid #38322C}
+  .topbar-inner{max-width:760px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .back{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:#837A6D;cursor:pointer;background:none;border:none}
+  .back:hover{color:#fff}
+  .back .arr{color:#C9A961}
+  .goalid{display:flex;align-items:center;gap:10px;min-width:0;flex:1;justify-content:center}
+  .goalid .gi{font-size:18px}
+  .goalid .gn{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#ECE4D4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .xbtn{width:36px;height:36px;border-radius:10px;border:1px solid #38322C;background:none;color:#837A6D;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .xbtn:hover{color:#fff;transform:scale(1.05)}
+  .page-content{max-width:760px;margin:0 auto;padding:32px 16px 80px;animation:riseIn .4s cubic-bezier(.22,1,.36,1)}
+  /* DOSSIER */
+  .dossier{background:#0A0908;border:1px solid #38322C;border-radius:20px;overflow:hidden}
+  .masthead{padding:28px 30px 22px;border-bottom:1px solid #38322C}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#837A6D}
+  .sage{color:#8FA98E}.brass{color:#C9A961}
+  .serif{font-family:'Playfair Display',serif}
+  .mh-top{display:flex;justify-content:space-between;margin-bottom:14px}
+  .goalname{font-family:'Playfair Display',serif;font-size:28px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#ECE4D4;margin-bottom:18px}
+  .metrics{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 22px}
+  .sep{color:#38322C}
+  .figure{font-family:'Playfair Display',serif;font-weight:800;color:#ECE4D4;font-size:20px}
+  .mlabel{font-size:11px;color:#837A6D;margin-left:6px}
+  .mval{font-size:13px;font-weight:600;color:#ECE4D4}
+  .tabs{display:flex;gap:24px;padding:0 30px;border-bottom:1px solid #38322C;overflow-x:auto}
+  .tab{font-size:11px;letter-spacing:.06em;color:#837A6D;padding:13px 2px;position:relative;cursor:pointer;white-space:nowrap;transition:color .3s}
+  .tab.active{color:#ECE4D4}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:#C9A961}
+  .body{padding:28px 30px}
+  .ch{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+  .chnum{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#8A7544}
+  .chtitle{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#ECE4D4}
+  .task{display:flex;gap:16px;padding:12px 0;border-top:1px solid #38322C}
+  .tnum{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#8A7544;min-width:28px;padding-top:2px}
+  .trow{display:flex;justify-content:space-between;gap:12px;margin-bottom:4px}
+  .ttitle{font-size:13px;font-weight:600;color:#ECE4D4}
+  .tpri{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em}
+  .tdesc{font-size:12px;line-height:1.6;color:#837A6D}
+  .tmeta{display:flex;gap:12px;margin-top:6px}
+  .tmeta span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="page" id="goalspage">
+  <div class="hint">↓ TAP "AI" → BLUEPRINT PAGE OPENS AS SEPARATE FULLSCREEN OVERLAY ABOVE</div>
+  <div class="section-label">Active Goals · 2 Tracking</div>
+
+  <div class="goal-card" id="card">
+    <div class="accent"></div>
+    <div class="goal-head">
+      <div class="goal-left">
+        <div class="gicon">💰</div>
+        <div><div class="gtitle">Manifest ₹5,000,000 Startup Capital</div><span class="gcat">Wealth</span></div>
+      </div>
+      <button class="btn-ai" onclick="openBP('💰','Manifest ₹5,000,000 Startup Capital')">✦ AI</button>
+    </div>
+  </div>
+
+  <div class="goal-card">
+    <div class="accent"></div>
+    <div class="goal-head">
+      <div class="goal-left">
+        <div class="gicon">🏡</div>
+        <div><div class="gtitle">Ground My Serene Mountain Sanctuary</div><span class="gcat">Lifestyle</span></div>
+      </div>
+      <button class="btn-ai" onclick="openBP('🏡','Ground My Serene Mountain Sanctuary')">✦ AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FULL-PAGE OVERLAY ═══ -->
+<div class="overlay" id="overlay">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <button class="back" onclick="closeBP()"><span class="arr">←</span><span>Goals</span></button>
+      <div class="goalid"><span class="gi" id="ovIcon">💰</span><span class="gn" id="ovName">Manifest Capital</span></div>
+      <button class="xbtn" onclick="closeBP()">✕</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="dossier">
+      <div class="masthead">
+        <div class="mh-top"><span class="eyebrow">⊘ Strategic Dossier</span><span class="eyebrow sage">◆ Authored by Gemini</span></div>
+        <div class="goalname" id="ovGoalName">Manifest ₹5,000,000 Startup Capital</div>
+        <div class="metrics">
+          <span><span class="figure">72</span><span class="mlabel">% success</span></span>
+          <span class="sep">·</span>
+          <span><span class="mval">Advanced</span><span class="mlabel">difficulty</span></span>
+          <span class="sep">·</span>
+          <span><span class="mval">90 days</span></span>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab" onclick="setTab(this,'tasks')">Topology</div>
+        <div class="tab active" onclick="setTab(this,'tasks')">Directives</div>
+        <div class="tab" onclick="setTab(this,'tasks')">Protocol</div>
+        <div class="tab" onclick="setTab(this,'tasks')">Analysis</div>
+      </div>
+      <div class="body">
+        <div class="ch"><span class="chnum">01</span><span class="chtitle">Daily Directives</span></div>
+        <div class="task"><span class="tnum">01</span><div style="flex:1"><div class="trow"><span class="ttitle">Morning Alignment</span><span class="tpri" style="color:#C98B6B">● High</span></div><div class="tdesc">Visualize your goal as already achieved for 5 minutes.</div><div class="tmeta"><span class="brass">+15 xp</span><span style="color:#837A6D">◷ 5 min</span></div></div></div>
+        <div class="task"><span class="tnum">02</span><div style="flex:1"><div class="trow"><span class="ttitle">Core Action</span><span class="tpri" style="color:#C98B6B">● High</span></div><div class="tdesc">Take one tangible step toward your goal.</div><div class="tmeta"><span class="brass">+30 xp</span><span style="color:#837A6D">◷ 30 min</span></div></div></div>
+        <div class="task"><span class="tnum">03</span><div style="flex:1"><div class="trow"><span class="ttitle">Evening Review</span><span class="tpri" style="color:#8A7544">● Medium</span></div><div class="tdesc">Write three things you did today toward your goal.</div><div class="tmeta"><span class="brass">+10 xp</span><span style="color:#837A6D">◷ 10 min</span></div></div></div>
+      </div>
+    </div>
+    <div style="text-align:center;color:rgba(236,228,212,.3);font-size:11px;margin-top:24px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em">Scroll · this is a separate full page above the goals</div>
+  </div>
+</div>
+
+<script>
+function openBP(icon,name){
+  document.getElementById('ovIcon').textContent=icon;
+  document.getElementById('ovName').textContent=name;
+  document.getElementById('ovGoalName').textContent=name;
+  document.getElementById('overlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeBP(){document.getElementById('overlay').classList.remove('show');document.body.style.overflow='';}
+function setTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+</script>
+</body>
+</html>

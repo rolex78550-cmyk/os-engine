@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#000000" />
+
+  <!-- Prevent aggressive mobile caching of index.html -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <title>Menifest OS — Ultimate Manifestation & Alignment OS</title>
+  <meta name="description" content="Menifest OS is the world's first AI-powered manifestation operating system. Align your subconscious, track your reality streaks, and materialize your desires with the Menifest OS engine." />
+  <link rel="canonical" href="https://menifestos.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://menifestos.com/" />
+  <meta property="og:title" content="Menifest OS — Ultimate Manifestation & Alignment OS" />
+  <meta property="og:description" content="Transform your reality with Menifest OS. AI-driven rituals, subconscious analysis, and quantum alignment." />
+  <meta property="og:image" content="https://menifestos.com/og-image.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://menifestos.com/" />
+  <meta property="twitter:title" content="Menifest OS — Ultimate Manifestation & Alignment OS" />
+  <meta property="twitter:description" content="Transform your reality with Menifest OS. AI-driven rituals, subconscious analysis, and quantum alignment." />
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Menifest OS",
+    "url": "https://menifestos.com",
+    "description": "AI-powered manifestation and habit tracking platform for reality alignment.",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Web",
+    "author": {
+      "@type": "Organization",
+      "name": "Menifest OS"
+    }
+  }
+  </script>
+  
+  <!-- Critical performance: preconnect + dns-prefetch -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  
+  <!-- Optimized font loading (only what we actually use) -->
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&display=swap" 
+    rel="stylesheet"
+    media="print"
+    onload="this.media='all'"
+  >
+  <noscript>
+    <link 
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&display=swap" 
+      rel="stylesheet"
+    >
+  </noscript>
+
+  <!-- Performance hints -->
+  <link rel="modulepreload" href="/src/main.tsx" />
+
+  <style>
+    /* Critical CSS for instant paint */
+    body { 
+      background: #000; 
+      color: #fff; 
+      font-family: 'Inter', system-ui, sans-serif; 
+      margin: 0; 
+    }
+    #root { min-height: 100vh; }
+    .loading-skeleton {
+      background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite linear;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1710471103627722');
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <!-- Meta Pixel noscript fallback -->
+  <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1710471103627722&ev=PageView&noscript=1"></noscript>
+</body>
+</html>

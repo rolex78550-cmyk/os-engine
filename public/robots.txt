@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://menifestos.com/sitemap.xml

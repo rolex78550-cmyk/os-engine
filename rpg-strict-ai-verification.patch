@@ -1,0 +1,863 @@
+From bd16a909646a5509625aa1a385696fcd9f603167 Mon Sep 17 00:00:00 2001
+From: rolex78550-cmyk <rolex78550-cmyk@github.com>
+Date: Sun, 12 Jul 2026 08:48:38 +0000
+Subject: [PATCH] feat: Strict Gemini AI image + text verification for RPG
+ Adrenaline Quests
+
+- Implemented ruthless per-task image content analysis in /api/manifestation/quest-verify
+- Only award XP/coins/rank on verified === true (no more fake uploads)
+- Full Free Fire / Solo Leveling anime HUD UI overhaul (neon, dramatic cards, modal, toasts)
+- Task-specific strict verification prompts (boxing, gym, skill learning, goal work, money action)
+- Daily persistent completed state + clear AI rejection feedback
+- Production functional proof-required flow
+---
+ server.ts                             |  83 +++-
+ src/components/RPGAdrenalineTasks.tsx | 570 ++++++++++++++++++--------
+ src/components/RPGProgression.tsx     |  12 +-
+ 3 files changed, 469 insertions(+), 196 deletions(-)
+
+diff --git a/server.ts b/server.ts
+index b27b2e5..6bd31dc 100644
+--- a/server.ts
++++ b/server.ts
+@@ -769,34 +769,61 @@ Response Mime Type: application/json.`;
+ });
+ 
+ // API Route: Verify a daily quest completion via AI analysis (Multi-modal)
++// STRICT IMAGE + TEXT VERIFICATION — used by RPG Adrenaline Quests
+ app.post("/api/manifestation/quest-verify", async (req, res) => {
+   try {
+     const { questTitle, proofText, questCategory, imageBase64 } = req.body;
+ 
+     const client = getGeminiClient();
+-    const model = "gemini-3.5-flash";
+-
+-    let prompt = `You are the "Quantum Integrity Oracle" for Manifestation OS.
+-The user is attempting to verify a daily quest: "${questTitle}" (${questCategory}).
+-Their submitted text proof is: "${proofText}"
++    if (!client) {
++      return res.json({
++        verified: false,
++        verificationFeedback: "AI service offline. Please upload clear real proof later.",
++        verificationScore: 0,
++        isSimulation: true
++      });
++    }
+ 
+-Analyze if this proof reflects a genuine, intentional action or mindset shift. 
+-If an image is provided, cross-reference the text with what is visible in the image.
+-Response format: JSON with:
+-1. "verified" (boolean) - only true if the proof feels authentic and matches the objective.
+-2. "feedback" (1-2 sentences in a sophisticated, mystical yet sharp tone).
+-3. "vibrationalScore" (number 1-100).
++    const model = "gemini-3.5-flash";
+ 
+-Response Mime Type: application/json.`;
++    // EXTREMELY STRICT PROMPT — MUST ANALYZE IMAGE CONTENT
++    const prompt = `You are a RUTHLESS REAL-WORLD PROOF AUDITOR for Manifestation OS.
++
++Quest to verify: "${questTitle}" (Category: ${questCategory}).
++
++User's submitted text note:
++"""
++${proofText || "(no text)"}
++"""
++
++CRITICAL RULES — FOLLOW EXACTLY:
++1. The attached PHOTO (if provided) MUST VISIBLY SHOW the user ACTIVELY PERFORMING the EXACT real-life task described.
++2. You MUST analyze the IMAGE PIXELS for evidence. Cross-reference image content with the user's text note and the task name.
++3. REJECT IMMEDIATELY (verified = false) for ANY of these:
++   - No image uploaded
++   - Image is unrelated (selfie without activity, food, memes, random room, screenshot, pet, car, landscape, generic photo)
++   - Image does not show the user performing the task (no boxing gloves/punching, no gym weights, no laptop with skill practice, no 2hr focused work, no outreach/selling action)
++   - The photo looks staged, old, fake, or does not match the described task
++   - Text note is vague, copy-pasted, or does not match the photo
++4. Only return verified = true if you are >95% confident that BOTH the image AND text prove the user genuinely did the SPECIFIC task TODAY.
++5. Return ONLY clean JSON. Be direct and brutal in feedback.
++
++Return EXACTLY this JSON structure:
++{
++  "verified": boolean,
++  "verificationFeedback": "1-2 sentences. Sharp, honest, no fluff. Explain exactly why accepted or rejected.",
++  "verificationScore": number (0-100)
++}`;
+ 
+     let contents: any[] = [{ role: "user", parts: [{ text: prompt }] }];
+ 
+     if (imageBase64) {
+       // Add image to contents for multimodal analysis
++      const base64Data = imageBase64.split(",")[1] || imageBase64;
+       contents[0].parts.push({
+         inlineData: {
+           mimeType: "image/jpeg",
+-          data: imageBase64.split(",")[1] || imageBase64
++          data: base64Data
+         }
+       });
+     }
+@@ -806,13 +833,30 @@ Response Mime Type: application/json.`;
+       contents,
+       config: {
+         responseMimeType: "application/json",
+-        temperature: 0.4,
++        temperature: 0.2,   // very low for strictness
++        topP: 0.9,
+       },
+     });
+ 
+     const resultText = response.text || "{}";
+-    const cleanedJson = JSON.parse(resultText);
+-    res.json({ ...cleanedJson, isSimulation: false });
++    let cleanedJson;
++    try {
++      cleanedJson = JSON.parse(resultText);
++    } catch {
++      cleanedJson = {};
++    }
++
++    // Normalize to consistent keys used by frontend
++    const verified = cleanedJson.verified === true;
++    const feedback = cleanedJson.verificationFeedback || cleanedJson.feedback || 
++      (verified ? "Proof accepted by the Oracle." : "Image does not show the required real task.");
++
++    res.json({
++      verified,
++      verificationFeedback: feedback,
++      verificationScore: cleanedJson.verificationScore || (verified ? 92 : 28),
++      isSimulation: false
++    });
+   } catch (error: any) {
+     const isQuota = error?.message?.includes("quota") || error?.status === "RESOURCE_EXHAUSTED" || JSON.stringify(error).includes("429");
+     if (isQuota) {
+@@ -821,10 +865,11 @@ Response Mime Type: application/json.`;
+       console.error("Quest verification error:", error);
+     }
+ 
++    // Safe strict fallback: REJECT when error
+     res.json({
+-      verified: true,
+-      feedback: "The Oracle is currently blind to visual layers, but your textual frequency resonates. Synced via fallback protocols.",
+-      vibrationalScore: 77,
++      verified: false,
++      verificationFeedback: "Verification system error. Please re-upload a clear photo showing you actually doing the task.",
++      verificationScore: 0,
+       isSimulation: true
+     });
+   }
+diff --git a/src/components/RPGAdrenalineTasks.tsx b/src/components/RPGAdrenalineTasks.tsx
+index 846197e..cb9f3db 100644
+--- a/src/components/RPGAdrenalineTasks.tsx
++++ b/src/components/RPGAdrenalineTasks.tsx
+@@ -1,14 +1,15 @@
+-import React, { useState } from "react";
++import React, { useState, useEffect } from "react";
+ import { motion, AnimatePresence } from "motion/react";
+ import { 
+-  Shield, Dumbbell, Target, Camera, Check, Flame, Zap, Lock 
++  Shield, Dumbbell, Target, Camera, Check, Flame, Zap, Loader2, X, AlertTriangle, Award 
+ } from "lucide-react";
+ import { useRPG } from "../hooks/useRPG";
+ import { useFirebase } from "./FirebaseProvider";
+ import { useAppLogic } from "../hooks/useAppLogic";
+ 
+-// 🔥 FREE FIRE + ANIME STYLE ADRENALINE QUESTS
+-// Dark, Neon, Intense, Dramatic
++// 🔥 FREE FIRE + SOLO LEVELING ANIME / CYBERPUNK STYLE
++// Dark black base, intense neon (cyan #22d3ee, purple #a855f7, red #ef4444, orange #f97316)
++// Dramatic HUD typography, strong borders, glows, high-contrast game UI
+ 
+ interface AdrenalineTask {
+   id: string;
+@@ -18,7 +19,7 @@ interface AdrenalineTask {
+   coins: number;
+   rankBoost: number;
+   difficulty: "HARD" | "EXTREME";
+-  proofType: "photo" | "video" | "both";
++  proofType: "photo" | "both";
+   timeRequired: string;
+   futureValue: string;
+   icon: React.ReactNode;
+@@ -28,255 +29,478 @@ interface AdrenalineTask {
+ const ADRENALINE_TASKS: AdrenalineTask[] = [
+   {
+     id: "self_defence",
+-    title: "SELF DEFENSE",
+-    description: "Learn boxing, karate or any self defense skill",
++    title: "SELF DEFENCE",
++    description: "Learn boxing, karate or martial arts. Show actual training.",
+     xp: 85, coins: 55, rankBoost: 8,
+     difficulty: "HARD", proofType: "both", timeRequired: "60-90 MIN",
+     futureValue: "Real protection skill + unbreakable confidence",
+-    icon: <Shield className="w-5 h-5" />, color: "#ef4444"
++    icon: <Shield className="w-6 h-6" />, color: "#ef4444"
+   },
+   {
+     id: "boxing_karate",
+     title: "COMBAT TRAINING",
+     description: "Boxing / Karate / Muay Thai intense session",
+     xp: 70, coins: 45, rankBoost: 6,
+-    difficulty: "HARD", proofType: "photo", timeRequired: "45+ MIN",
++    difficulty: "HARD", proofType: "both", timeRequired: "45+ MIN",
+     futureValue: "Discipline + real fighting power",
+-    icon: <Target className="w-5 h-5" />, color: "#f97316"
++    icon: <Target className="w-6 h-6" />, color: "#f97316"
+   },
+   {
+     id: "gym_workout",
+     title: "GYM CRUSH",
+     description: "Heavy weight training with progressive overload",
+     xp: 55, coins: 35, rankBoost: 4,
+-    difficulty: "HARD", proofType: "photo", timeRequired: "60+ MIN",
++    difficulty: "HARD", proofType: "both", timeRequired: "60+ MIN",
+     futureValue: "Physical dominance = mental dominance",
+-    icon: <Dumbbell className="w-5 h-5" />, color: "#22c55e"
++    icon: <Dumbbell className="w-6 h-6" />, color: "#22c55e"
+   },
+   {
+     id: "skill_learning",
+     title: "MONEY SKILL",
+-    description: "Learn high income skill (editing, coding, sales, trading)",
++    description: "Learn a high-income skill (editing, coding, sales, trading)",
+     xp: 95, coins: 65, rankBoost: 10,
+     difficulty: "EXTREME", proofType: "both", timeRequired: "90+ MIN",
+-    futureValue: "This skill will make you money in future",
+-    icon: <Flame className="w-5 h-5" />, color: "#a855f7"
++    futureValue: "Direct future income skill",
++    icon: <Flame className="w-6 h-6" />, color: "#a855f7"
+   },
+   {
+     id: "goal_2hours",
+-    title: "DEEP WORK",
++    title: "DEEP GOAL WORK",
+     description: "2 hours focused work ONLY on your main goal",
+     xp: 65, coins: 40, rankBoost: 5,
+-    difficulty: "HARD", proofType: "photo", timeRequired: "2 HOURS",
++    difficulty: "HARD", proofType: "both", timeRequired: "2 HOURS",
+     futureValue: "Direct progress on your actual dreams",
+-    icon: <Target className="w-5 h-5" />, color: "#3b82f6"
++    icon: <Target className="w-6 h-6" />, color: "#3b82f6"
+   },
+   {
+     id: "money_action",
+     title: "MONEY ACTION",
+-    description: "Do something that can bring actual money (outreach, sell, content)",
++    description: "Real money-making action (outreach, selling, content creation)",
+     xp: 110, coins: 75, rankBoost: 12,
+     difficulty: "EXTREME", proofType: "both", timeRequired: "60+ MIN",
+-    futureValue: "Direct path to making real money",
+-    icon: <Zap className="w-5 h-5" />, color: "#eab308"
++    futureValue: "This builds real wealth",
++    icon: <Zap className="w-6 h-6" />, color: "#eab308"
+   }
+ ];
+ 
+-interface ProofModalProps {
+-  task: AdrenalineTask;
+-  onClose: () => void;
+-  onSubmit: (taskId: string, proof: { photo?: string; note: string }) => void;
+-}
++// Strict task-specific verification rules for Gemini (injected into proofText)
++const getStrictVerificationRules = (task: AdrenalineTask): string => {
++  const base = `STRICT AI VERIFICATION PROTOCOL — MANDATORY IMAGE + TEXT ANALYSIS:
++- You are a ruthless real-world proof auditor. Be EXTREMELY STRICT.
++- The uploaded PHOTO MUST CLEARLY SHOW the user ACTIVELY PERFORMING the exact task.
++- Cross-reference every detail in the PHOTO against the user's NOTE and the task definition.
++- REJECT (verified=false) immediately if:
++  • Image is unrelated (selfie, food, random room, memes, screenshots without task, animals, etc.)
++  • No visible user performing the specific action
++  • No clear evidence of the described activity (e.g. no gloves/punching for combat, no weights for gym, no laptop/coding for skill learning)
++- Only return verified=true if you are 95%+ confident the photo shows genuine real-life execution of THIS task.
++`;
++
++  switch (task.id) {
++    case "self_defence":
++    case "boxing_karate":
++      return base + `- SPECIFIC FOR "${task.title}": Photo must show user in martial arts training — punching bag, boxing gloves, kicking pads, karate stance, sparring, blocking, throwing punches/kicks in a gym/dojo/training space. User must be visibly training combat skills.`;
++    case "gym_workout":
++      return base + `- SPECIFIC FOR "${task.title}": Photo must show intense gym session — lifting heavy dumbbells/barbells, bench press, squats, treadmill running, sweat, gym equipment, progressive overload in action. User actively weight training or cardio.`;
++    case "skill_learning":
++      return base + `- SPECIFIC FOR "${task.title}": Photo must show high-value skill acquisition — laptop with code, Figma, Premiere Pro, trading platform/charts, sales script notes, video editing timeline, practicing a monetizable skill. Focused deliberate practice.`;
++    case "goal_2hours":
++      return base + `- SPECIFIC FOR "${task.title}": Photo must prove deep 2-hour focused work — computer screen with goal documents, writing in notebook, spreadsheets, planning boards, coding for goal, no distractions visible. Evidence of sustained concentration.`;
++    case "money_action":
++      return base + `- SPECIFIC FOR "${task.title}": Photo must show real revenue-generating action — cold outreach DMs/emails, sales calls, content filming (camera setup), posting sales content, selling products, client meetings, affiliate links, money transfer proof.`;
++    default:
++      return base + `- SPECIFIC FOR "${task.title}": Image must visibly prove the user completed the described real-life action with clear evidence.`;
++  }
++};
+ 
+-function ProofModal({ task, onClose, onSubmit }: ProofModalProps) {
++export default function RPGAdrenalineTasks() {
++  const { user } = useFirebase();
++  const logic = useAppLogic();
++  const { recordXPGain, refresh } = useRPG(logic.profile, {});
++
++  const [selectedTask, setSelectedTask] = useState<AdrenalineTask | null>(null);
+   const [photo, setPhoto] = useState<string | null>(null);
+   const [note, setNote] = useState("");
+-  const [loading, setLoading] = useState(false);
++  const [isVerifying, setIsVerifying] = useState(false);
++  const [completed, setCompleted] = useState<string[]>(() => {
++    try {
++      const key = getTodayKey();
++      const saved = localStorage.getItem(key);
++      return saved ? JSON.parse(saved) : [];
++    } catch {
++      return [];
++    }
++  });
++  const [reward, setReward] = useState<any>(null);
++  const [verificationResult, setVerificationResult] = useState<any>(null);
++
++  // Persist completed tasks for TODAY only (across refreshes)
++  function getTodayKey() {
++    const d = new Date();
++    return `rpg_adrenaline_completed_${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
++  }
+ 
+-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
++  useEffect(() => {
++    try {
++      const key = getTodayKey();
++      localStorage.setItem(key, JSON.stringify(completed));
++    } catch (e) {}
++  }, [completed]);
++
++  const resetModal = () => {
++    setSelectedTask(null);
++    setPhoto(null);
++    setNote("");
++    setVerificationResult(null);
++    setIsVerifying(false);
++  };
++
++  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+-    if (file) {
+-      const reader = new FileReader();
+-      reader.onloadend = () => setPhoto(reader.result as string);
+-      reader.readAsDataURL(file);
+-    }
++    if (!file) return;
++    const reader = new FileReader();
++    reader.onloadend = () => {
++      setPhoto(reader.result as string);
++      setVerificationResult(null); // allow fresh verification
++    };
++    reader.readAsDataURL(file);
++  };
++
++  const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
++    setNote(e.target.value);
++    setVerificationResult(null); // allow fresh verification
+   };
+ 
+-  const submit = () => {
+-    if ((task.proofType !== "photo") && !note.trim() && !photo) {
+-      alert("Proof chahiye bhai");
++  // Real Gemini AI Verification — STRICT image + text analysis
++  const verifyWithAI = async () => {
++    if (!selectedTask) return;
++
++    if (!photo || !note.trim()) {
++      alert("PHOTO PROOF + DETAILED NOTE REQUIRED.\n\nUpload a real photo of you doing the task + describe exactly what you did.");
+       return;
+     }
+-    setLoading(true);
+-    setTimeout(() => {
+-      onSubmit(task.id, { photo: photo || undefined, note });
+-      setLoading(false);
+-      onClose();
+-    }, 700);
+-  };
+ 
+-  return (
+-    <div className="fixed inset-0 bg-black/95 z-[250] flex items-end sm:items-center justify-center">
+-      <div className="bg-[#111113] w-full sm:max-w-md border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl p-6">
+-        <div className="flex justify-between items-center mb-4">
+-          <div className="font-bold text-xl tracking-tighter" style={{color: task.color}}>{task.title}</div>
+-          <button onClick={onClose} className="text-white/50">✕</button>
+-        </div>
+-
+-        <div className="text-sm text-white/70 mb-4">{task.description}</div>
+-
+-        <div className="bg-black/60 border border-white/10 rounded-2xl p-4 mb-5 text-xs">
+-          <span className="text-orange-400 font-bold">FUTURE VALUE:</span><br />
+-          {task.futureValue}
+-        </div>
+-
+-        {(task.proofType === "photo" || task.proofType === "both") && (
+-          <div className="mb-4">
+-            <div className="text-xs text-white/40 mb-2">UPLOAD PROOF</div>
+-            {photo ? (
+-              <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400">
+-                <img src={photo} className="w-full h-44 object-cover" />
+-                <button onClick={() => setPhoto(null)} className="absolute top-2 right-2 bg-black px-3 py-1 text-xs rounded">REMOVE</button>
+-              </div>
+-            ) : (
+-              <label className="block border-2 border-dashed border-white/20 rounded-2xl h-36 flex flex-col items-center justify-center cursor-pointer active:bg-white/5">
+-                <Camera className="mb-2 text-white/40" />
+-                <span className="text-sm text-white/60">Upload Photo / Video</span>
+-                <input type="file" accept="image/*,video/*" className="hidden" onChange={handlePhoto} />
+-              </label>
+-            )}
+-          </div>
+-        )}
++    setIsVerifying(true);
++    setVerificationResult(null);
+ 
+-        {task.proofType === "both" && (
+-          <textarea 
+-            value={note} 
+-            onChange={e => setNote(e.target.value)} 
+-            placeholder="Kya kiya? Short note..." 
+-            className="w-full bg-black border border-white/10 rounded-2xl p-4 text-sm h-20 mb-5" 
+-          />
+-        )}
++    const strictRules = getStrictVerificationRules(selectedTask);
++    const strictProofText = `${note.trim()}\n\n${strictRules}\n\nUser note: "${note.trim()}"\nTask ID: ${selectedTask.id}`;
+ 
+-        <button 
+-          onClick={submit} 
+-          disabled={loading}
+-          className="w-full py-4 font-bold rounded-2xl text-lg active:scale-[0.985] transition-all"
+-          style={{background: task.color, color: "black"}}
+-        >
+-          {loading ? "VERIFYING..." : "SUBMIT PROOF + CLAIM REWARD"}
+-        </button>
+-        
+-        <div className="text-center mt-3 text-xs text-white/40">
+-          +{task.xp} XP • +{task.coins} COINS • +{task.rankBoost} RANK
+-        </div>
+-      </div>
+-    </div>
+-  );
+-}
++    try {
++      const res = await fetch("/api/manifestation/quest-verify", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({
++          questTitle: selectedTask.title,
++          questCategory: selectedTask.id,
++          proofText: strictProofText,
++          imageBase64: photo,
++        }),
++      });
+ 
+-export default function RPGAdrenalineTasks() {
+-  const { user } = useFirebase();
+-  const logic = useAppLogic();
+-  const { recordXPGain, refresh } = useRPG(logic.profile, {});
++      const raw = await res.json();
+ 
+-  const [selected, setSelected] = useState<AdrenalineTask | null>(null);
+-  const [done, setDone] = useState<string[]>([]);
+-  const [reward, setReward] = useState<any>(null);
++      // Normalize response (server may return "feedback" or "verificationFeedback")
++      const verified = raw.verified === true || raw.verified === "true";
++      const feedback = raw.verificationFeedback || raw.feedback || raw.verificationScore || 
++        (verified ? "Proof accepted by the Oracle." : "The proof does not match the task.");
++
++      const normalized = {
++        ...raw,
++        verified,
++        verificationFeedback: feedback,
++      };
++
++      setVerificationResult(normalized);
+ 
+-  const handleSubmit = async (id: string, proof: any) => {
+-    const task = ADRENALINE_TASKS.find(t => t.id === id);
+-    if (!task) return;
++      if (verified) {
++        // SUCCESS — ONLY award on real AI verification
++        const totalXP = selectedTask.xp;
+ 
+-    setDone(prev => [...prev, id]);
++        const currentLevel = logic.profile?.level || 1;
++        const currentTotalXp = logic.profile?.totalXp || 0;
++        const newLevel = Math.max(currentLevel, Math.floor((currentTotalXp + totalXP) / 100) + 1);
++        const leveledUp = newLevel > currentLevel;
+ 
+-    const totalXP = task.xp;
+-    const currentLevel = logic.profile.level || 1;
+-    const newLevel = Math.max(currentLevel, Math.floor(((logic.profile.totalXp || 0) + totalXP) / 100) + 1);
++        await recordXPGain(totalXP, newLevel, leveledUp);
+ 
+-    await recordXPGain(totalXP, newLevel, newLevel > currentLevel);
++        const newCompleted = [...completed, selectedTask.id];
++        setCompleted(newCompleted);
+ 
+-    setReward({
+-      title: task.title,
+-      xp: task.xp,
+-      coins: task.coins,
+-      rank: task.rankBoost
+-    });
++        setReward({
++          title: selectedTask.title,
++          xp: selectedTask.xp,
++          coins: selectedTask.coins,
++          rank: selectedTask.rankBoost,
++          feedback: feedback,
++        });
+ 
+-    setTimeout(() => {
+-      setReward(null);
+-      setSelected(null);
+-      refresh();
+-    }, 2500);
++        // Dramatic anime success close
++        setTimeout(() => {
++          setReward(null);
++          resetModal();
++          refresh();
++        }, 3100);
++      } else {
++        // AI REJECTED — show in-modal feedback, do NOT award
++        setIsVerifying(false);
++      }
++    } catch (err) {
++      console.error("Verification error:", err);
++      const errorResult = {
++        verified: false,
++        verificationFeedback: "SYSTEM ERROR: AI verification failed to connect. Check connection and try again with a clearer photo.",
++      };
++      setVerificationResult(errorResult);
++      setIsVerifying(false);
++    }
++  };
++
++  const handleRetry = () => {
++    setVerificationResult(null);
++    setPhoto(null);
++    setNote("");
+   };
+ 
+   return (
+-    <div className="space-y-3">
+-      {ADRENALINE_TASKS.map(task => {
+-        const isDone = done.includes(task.id);
++    <div className="space-y-5">
++      {ADRENALINE_TASKS.map((task) => {
++        const isDone = completed.includes(task.id);
+         return (
+-          <div 
++          <div
+             key={task.id}
+-            onClick={() => !isDone && setSelected(task)}
+-            className={`rounded-3xl p-5 border-2 transition-all ${isDone ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-zinc-900 active:scale-[0.985]'}`}
++            onClick={() => !isDone && setSelectedTask(task)}
++            className={`group relative overflow-hidden rounded-3xl border-2 p-5 transition-all active:scale-[0.985] cursor-pointer ${
++              isDone 
++                ? "border-emerald-500/70 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.25)]" 
++                : "border-white/10 bg-[#0a0a0f] hover:border-[#22d3ee] hover:shadow-[0_0_35px_rgba(34,211,238,0.25)]"
++            }`}
+           >
+-            <div className="flex justify-between">
+-              <div className="flex items-center gap-3">
+-                <div style={{color: task.color}}>{task.icon}</div>
+-                <div>
+-                  <div className="font-black tracking-tight text-lg">{task.title}</div>
+-                  <div className="text-xs text-white/50">{task.timeRequired}</div>
+-                </div>
+-              </div>
+-              <div className={`text-xs px-3 py-1 rounded-full border font-bold ${task.difficulty === "EXTREME" ? "border-red-500 text-red-400" : "border-orange-500 text-orange-400"}`}>
+-                {task.difficulty}
+-              </div>
+-            </div>
++            {/* Neon accent bar (Free Fire HUD style) */}
++            <div 
++              className="absolute left-0 top-0 bottom-0 w-1.5" 
++              style={{ backgroundColor: isDone ? "#10b981" : task.color }}
++            />
+ 
+-            <div className="text-sm text-white/70 my-3">{task.description}</div>
++            <div className="flex items-start gap-4 pl-2">
++              <div 
++                className="text-4xl mt-1 flex-shrink-0 drop-shadow-[0_0_12px_currentColor]" 
++                style={{ color: task.color }}
++              >
++                {task.icon}
++              </div>
++              
++              <div className="flex-1 min-w-0">
++                <div className="flex items-center justify-between mb-1">
++                  <div className="font-black text-2xl tracking-[-1.5px] text-white group-hover:text-[#22d3ee] transition-colors">
++                    {task.title}
++                  </div>
++                  <div 
++                    className={`text-[10px] px-3 py-0.5 rounded-full border font-black tracking-[1px] ${task.difficulty === "EXTREME" 
++                      ? "border-red-500 text-red-400 bg-red-500/10" 
++                      : "border-orange-500 text-orange-400 bg-orange-500/10"}`}
++                  >
++                    {task.difficulty}
++                  </div>
++                </div>
++                
++                <div className="text-sm text-white/75 leading-snug">{task.description}</div>
+ 
+-            <div className="flex items-center gap-2 text-xs mb-4">
+-              <div className="bg-black/60 px-2.5 py-1 rounded-full">+{task.xp} XP</div>
+-              <div className="bg-black/60 px-2.5 py-1 rounded-full">+{task.coins} COINS</div>
+-              <div className="bg-black/60 px-2.5 py-1 rounded-full">+{task.rankBoost} RANK</div>
++                <div className="flex flex-wrap gap-2 mt-4">
++                  <div className="bg-black/80 text-[#22d3ee] px-3 py-1 rounded-xl text-xs font-bold border border-[#22d3ee]/30 flex items-center gap-1">
++                    <Zap size={12} /> +{task.xp} XP
++                  </div>
++                  <div className="bg-black/80 text-yellow-400 px-3 py-1 rounded-xl text-xs font-bold border border-yellow-400/30">
++                    +{task.coins} COINS
++                  </div>
++                  <div className="bg-black/80 text-violet-400 px-3 py-1 rounded-xl text-xs font-bold border border-violet-400/30">
++                    +{task.rankBoost} RANK
++                  </div>
++                  <div className="ml-auto text-[10px] text-white/40 font-mono tracking-widest self-center">
++                    {task.timeRequired}
++                  </div>
++                </div>
++              </div>
+             </div>
+ 
+-            <button 
+-              disabled={isDone}
+-              className={`w-full py-3 text-sm font-bold rounded-2xl ${isDone ? "bg-emerald-500/10 text-emerald-400" : "bg-white text-black"}`}
+-            >
+-              {isDone ? "COMPLETED" : "ACCEPT QUEST"}
+-            </button>
++            {isDone && (
++              <div className="mt-4 pl-2 flex items-center gap-2 text-emerald-400 text-sm font-black tracking-[1px]">
++                <Check size={18} className="text-emerald-400" /> 
++                <span>AI VERIFIED • PROOF ACCEPTED</span>
++              </div>
++            )}
+           </div>
+         );
+       })}
+ 
+-      {/* Proof Modal */}
++      {/* === ANIME / FREE FIRE PROOF MODAL === */}
+       <AnimatePresence>
+-        {selected && (
+-          <ProofModal 
+-            task={selected} 
+-            onClose={() => setSelected(null)} 
+-            onSubmit={handleSubmit} 
+-          />
++        {selectedTask && (
++          <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[300] flex items-end sm:items-center justify-center">
++            <motion.div 
++              initial={{ y: 120, opacity: 0 }}
++              animate={{ y: 0, opacity: 1 }}
++              exit={{ y: 80, opacity: 0 }}
++              transition={{ type: "spring", bounce: 0.1 }}
++              className="w-full sm:max-w-[440px] bg-[#08080c] border-t-2 border-[#22d3ee]/30 sm:border-2 sm:rounded-3xl rounded-t-3xl p-6 shadow-[0_0_80px_rgba(0,0,0,0.9)]"
++            >
++              {/* Modal HUD Header */}
++              <div className="flex justify-between items-start mb-5">
++                <div>
++                  <div 
++                    className="font-black text-[28px] leading-none tracking-[-2.5px]" 
++                    style={{ color: selectedTask.color }}
++                  >
++                    {selectedTask.title}
++                  </div>
++                  <div className="text-xs font-mono tracking-[3px] text-white/40 mt-1">{selectedTask.timeRequired} • PROOF MANDATORY</div>
++                </div>
++                <button 
++                  onClick={resetModal} 
++                  className="text-white/50 hover:text-white p-1 -mr-1 active:scale-95"
++                >
++                  <X size={22} />
++                </button>
++              </div>
++
++              <p className="text-sm text-white/75 mb-4 leading-relaxed">{selectedTask.description}</p>
++
++              {/* WHY IT MATTERS - dramatic */}
++              <div className="mb-5 rounded-2xl border border-white/10 bg-black/60 p-4 text-xs">
++                <div className="uppercase tracking-[2px] text-[10px] text-orange-400 font-bold mb-1">WHY THIS MATTERS</div>
++                <div className="text-white/80">{selectedTask.futureValue}</div>
++              </div>
++
++              {/* PROOF UPLOAD — HUD style */}
++              <div className="mb-4">
++                <div className="flex items-center justify-between mb-2 px-1">
++                  <div className="text-xs tracking-[2px] text-white/50 font-bold">UPLOAD REAL PROOF PHOTO</div>
++                  <div className="text-[10px] text-red-400 font-bold">REQUIRED</div>
++                </div>
++
++                {photo ? (
++                  <div className="relative rounded-2xl overflow-hidden border-[3px] border-[#22d3ee] shadow-[0_0_30px_rgba(34,211,238,0.4)]">
++                    <img src={photo} className="w-full h-52 object-cover" alt="Proof" />
++                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#22d3ee] to-transparent" />
++                    <button 
++                      onClick={() => { setPhoto(null); setVerificationResult(null); }} 
++                      className="absolute top-3 right-3 bg-black/90 text-xs px-4 py-1 rounded-full border border-white/30 font-bold active:bg-red-950"
++                    >
++                      CHANGE PHOTO
++                    </button>
++                    <div className="absolute bottom-3 left-3 bg-black/80 px-2.5 py-0.5 text-[10px] rounded font-mono tracking-widest border border-[#22d3ee]/50">PHOTO LOCKED</div>
++                  </div>
++                ) : (
++                  <label className="flex flex-col items-center justify-center h-52 border-[3px] border-dashed border-white/20 hover:border-[#22d3ee]/60 rounded-3xl cursor-pointer active:bg-white/5 transition bg-[#0a0a0f]">
++                    <div className="text-center">
++                      <Camera className="text-[#22d3ee]/60 mx-auto mb-3" size={42} />
++                      <div className="text-white font-bold text-base tracking-[-0.5px]">UPLOAD PROOF PHOTO</div>
++                      <div className="text-white/50 text-xs mt-1">AI will analyze the image content</div>
++                      <div className="text-[10px] text-red-400/70 mt-2 font-mono">IMAGE OF YOU DOING THE TASK</div>
++                    </div>
++                    <input 
++                      type="file" 
++                      accept="image/*" 
++                      className="hidden" 
++                      onChange={handlePhotoUpload} 
++                    />
++                  </label>
++                )}
++              </div>
++
++              {/* NOTE INPUT — dramatic */}
++              <div className="mb-5">
++                <div className="text-xs tracking-[1.5px] text-white/50 mb-1.5 pl-1 font-bold">DETAILED ACTION NOTE</div>
++                <textarea
++                  value={note}
++                  onChange={handleNoteChange}
++                  placeholder="Describe exactly what you did (time, reps, what you practiced, results...)"
++                  className="w-full bg-black border-2 border-white/20 focus:border-[#22d3ee] rounded-2xl p-4 text-sm h-24 resize-none placeholder:text-white/30 focus:outline-none"
++                />
++              </div>
++
++              {/* VERIFICATION STATUS PANEL (Anime HUD) */}
++              {verificationResult && (
++                <div className={`mb-5 rounded-2xl border-2 p-4 text-sm ${verificationResult.verified 
++                  ? "border-emerald-500 bg-emerald-950/40 text-emerald-300" 
++                  : "border-red-500 bg-red-950/40 text-red-300"}`}>
++                  <div className="flex items-center gap-2 font-black tracking-wider text-xs mb-1.5">
++                    {verificationResult.verified ? (
++                      <><Award className="text-emerald-400" size={16} /> AI VERIFIED — REAL PROOF CONFIRMED</>
++                    ) : (
++                      <><AlertTriangle className="text-red-400" size={16} /> AI REJECTED — PROOF INVALID</>
++                    )}
++                  </div>
++                  <div className="text-[13px] leading-snug font-medium">
++                    {verificationResult.verificationFeedback}
++                  </div>
++                  {!verificationResult.verified && (
++                    <div className="mt-3 text-xs text-red-400/70">Upload a clearer photo that actually shows you doing the task.</div>
++                  )}
++                </div>
++              )}
++
++              {/* ACTION BUTTONS — Free Fire dramatic */}
++              {!verificationResult || verificationResult.verified ? (
++                <button
++                  onClick={verifyWithAI}
++                  disabled={isVerifying || !photo || !note.trim()}
++                  className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.985] disabled:opacity-70 disabled:cursor-not-allowed border-2
++                    ${isVerifying 
++                      ? "bg-[#22d3ee] text-black border-[#22d3ee]" 
++                      : "bg-white text-black border-white hover:bg-[#22d3ee] hover:text-black hover:border-[#22d3ee]"}`}
++                >
++                  {isVerifying ? (
++                    <> 
++                      <Loader2 className="animate-spin" size={22} /> 
++                      AI SCANNING IMAGE + TEXT... 
++                    </>
++                  ) : (
++                    "SUBMIT FOR STRICT AI VERIFICATION"
++                  )}
++                </button>
++              ) : (
++                <div className="flex gap-3">
++                  <button
++                    onClick={handleRetry}
++                    className="flex-1 py-4 rounded-2xl font-black text-base bg-red-600 hover:bg-red-700 text-white border-2 border-red-500 active:scale-[0.985] flex items-center justify-center gap-2"
++                  >
++                    RETRY WITH BETTER PROOF
++                  </button>
++                  <button
++                    onClick={resetModal}
++                    className="flex-1 py-4 rounded-2xl font-bold text-base border-2 border-white/20 text-white/70 hover:bg-white/5 active:scale-[0.985]"
++                  >
++                    CANCEL
++                  </button>
++                </div>
++              )}
++
++              <div className="text-center text-[10px] text-white/30 mt-4 font-mono tracking-[1.5px]">
++                GEMINI AI • IMAGE CONTENT ANALYSIS • NO FAKE PROOF
++              </div>
++            </motion.div>
++          </div>
+         )}
+       </AnimatePresence>
+ 
+-      {/* Reward Popup */}
++      {/* Epic Reward Toast — Anime style */}
+       <AnimatePresence>
+         {reward && (
+           <motion.div 
+-            initial={{opacity:0, scale:0.8, y:40}} 
+-            animate={{opacity:1, scale:1, y:0}}
+-            exit={{opacity:0}}
+-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-black border border-cyan-400 px-8 py-4 rounded-3xl text-center"
++            initial={{ opacity: 0, y: 60, scale: 0.9 }} 
++            animate={{ opacity: 1, y: 0, scale: 1 }} 
++            exit={{ opacity: 0, y: 30 }}
++            className="fixed bottom-9 left-1/2 -translate-x-1/2 z-[400] bg-[#0a0a0f] border-2 border-[#22d3ee] px-9 py-6 rounded-3xl text-center shadow-[0_0_60px_rgba(34,211,238,0.5)] min-w-[300px]"
+           >
+-            <div className="text-cyan-400 text-xs tracking-[2px]">QUEST COMPLETE</div>
+-            <div className="font-black text-xl">{reward.title}</div>
+-            <div className="flex gap-4 justify-center mt-1 text-sm">
+-              <span className="text-amber-400">+{reward.xp} XP</span>
+-              <span className="text-emerald-400">+{reward.coins} COINS</span>
+-              <span className="text-violet-400">+{reward.rank} RANK</span>
++            <div className="uppercase tracking-[4px] text-emerald-400 text-xs font-bold mb-1">AI ORACLE APPROVED</div>
++            <div className="font-black text-2xl tracking-[-1px] text-white mb-1">{reward.title}</div>
++            <div className="flex gap-5 justify-center text-sm font-bold mt-3">
++              <div className="text-[#22d3ee]">+{reward.xp} XP</div>
++              <div className="text-yellow-400">+{reward.coins} COINS</div>
++              <div className="text-violet-400">+{reward.rank} RANK</div>
+             </div>
++            <div className="text-[11px] text-white/50 mt-2 max-w-[240px] mx-auto leading-tight">{reward.feedback}</div>
+           </motion.div>
+         )}
+       </AnimatePresence>
+diff --git a/src/components/RPGProgression.tsx b/src/components/RPGProgression.tsx
+index 826d2cc..5dabab8 100644
+--- a/src/components/RPGProgression.tsx
++++ b/src/components/RPGProgression.tsx
+@@ -99,7 +99,7 @@ export default function RPGProgression() {
+         </div>
+       </div>
+ 
+-      {/* === PREMIUM PLAYER CARD - FREE FIRE ANIME STYLE === */}
++      {/* === PREMIUM PLAYER CARD - FREE FIRE / SOLO LEVELING ANIME STYLE === */}
+       <div className="mx-4">
+         <div className="relative rounded-3xl overflow-hidden border-2 border-cyan-500/30 bg-gradient-to-br from-[#1a1a22] via-[#111114] to-black shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+           
+@@ -246,13 +246,17 @@ export default function RPGProgression() {
+         </div>
+       </div>
+ 
+-      {/* === ADRENALINE QUESTS - MAIN FEATURE === */}
++      {/* === ADRENALINE QUESTS — FREE FIRE ANIME / GAME HUD === */}
+       <div className="px-4">
+         <div className="flex items-center justify-between mb-4">
+           <div>
+-            <div className="text-xl font-black tracking-[-1px]">ADRENALINE QUESTS</div>
+-            <div className="text-red-400 text-xs font-mono">PROOF REQUIRED • REAL SKILLS</div>
++            <div className="text-xl font-black tracking-[-1.5px] flex items-center gap-2">
++              ADRENALINE QUESTS 
++              <span className="text-[10px] px-2 py-px rounded bg-red-500/20 text-red-400 border border-red-500/50 tracking-[1.5px]">LIVE</span>
++            </div>
++            <div className="text-red-400 text-xs font-mono tracking-[2px]">PROOF REQUIRED • AI VERIFIED • REAL SKILLS ONLY</div>
+           </div>
++          <div className="text-[10px] text-white/40 font-mono">TODAY'S MISSIONS</div>
+         </div>
+ 
+         <RPGAdrenalineTasks />
+-- 
+2.47.3
+

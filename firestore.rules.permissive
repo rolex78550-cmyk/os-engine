@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // TEMPORARY SIMPLE RULE FOR DEBUGGING
+    // This allows any logged-in user full access.
+    // Use this to fix permission-denied errors quickly.
+    // ============================================
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // NOTE: This is a TEMPORARY permissive rule.
+    // Once the app works without errors, we should switch
+    // back to the strict rules (see firestore.rules.secure).
+  }
+}

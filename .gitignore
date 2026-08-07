@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+api/_server.cjs
+api/_server.cjs.map
+api/_server.cjs.d.ts
+api/notifications/*.js

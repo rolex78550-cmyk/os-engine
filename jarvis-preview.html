@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Audio-Reactive Radial Spectrum · Goal Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+  .wrap{max-width:780px;margin:0 auto;padding:20px}
+  .hud-label{font-family:'JetBrains Mono',monospace;letter-spacing:.18em;text-transform:uppercase}
+  .text-holo{background:linear-gradient(110deg,#22d3ee 20%,#e0f7ff 45%,#22d3ee 60%,#0891b2 80%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:holo 4s linear infinite}
+  @keyframes holo{to{background-position:200% center}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spinR{to{transform:rotate(-360deg)}}
+  @keyframes scan{0%{transform:translateY(-100%);opacity:0}8%{opacity:.7}92%{opacity:.7}100%{transform:translateY(640px);opacity:0}}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.04);opacity:1}}
+  @keyframes ripple{0%{transform:scale(.6);opacity:0}20%{opacity:.5}100%{transform:scale(1.4);opacity:0}}
+  @keyframes coreflare{0%,100%{box-shadow:0 0 30px 6px rgba(255,255,255,.5),0 0 60px 20px rgba(34,211,238,.45),0 0 120px 40px rgba(34,211,238,.25),inset 0 0 24px 8px rgba(255,255,255,.6)}50%{box-shadow:0 0 45px 12px rgba(255,255,255,.75),0 0 90px 34px rgba(34,211,238,.6),0 0 180px 60px rgba(34,211,238,.35),inset 0 0 36px 12px rgba(255,255,255,.85)}}
+  @keyframes orbit{to{transform:rotate(360deg)}}
+  .hud-frame{position:relative;border:1px solid rgba(34,211,238,.18);background:linear-gradient(145deg,rgba(8,16,28,.85)0%,rgba(2,6,12,.92)100%);box-shadow:0 0 0 1px rgba(34,211,238,.04),0 12px 48px rgba(0,0,0,.6),inset 0 1px 0 rgba(34,211,238,.08);border-radius:24px}
+  .hud-frame::before,.hud-frame::after{content:"";position:absolute;width:18px;height:18px;border:1.5px solid rgba(34,211,238,.55)}
+  .hud-frame::before{top:10px;left:10px;border-right:none;border-bottom:none}
+  .hud-frame::after{bottom:10px;right:10px;border-left:none;border-top:none}
+  .glass-cyan{background:linear-gradient(145deg,rgba(34,211,238,.08)0%,rgba(255,255,255,.02)50%,rgba(34,211,238,.05)100%);border:1px solid rgba(34,211,238,.2);border-radius:14px}
+  .scanlines{background-image:repeating-linear-gradient(0deg,rgba(34,211,238,.025)0px,rgba(34,211,238,.025)1px,transparent 1px,transparent 3px)}
+  h2.title{font-family:'Playfair Display',serif;font-weight:800;text-align:center;font-size:22px;margin:6px 0 2px}
+  .subtitle{text-align:center;color:rgba(34,211,238,.5);font-size:11px;margin-bottom:18px}
+  .status-bar{display:flex;justify-content:space-between;padding:0 4px 6px}
+  .status-bar .l{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;color:rgba(34,211,238,.6)}
+  .status-bar .r{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(34,211,238,.4)}
+  .vp{position:relative;height:560px;border-radius:16px;overflow:hidden;background:radial-gradient(circle at center,#04121c 0%,#000509 78%)}
+  .grid-bg{position:absolute;inset:0;opacity:.04;background-image:linear-gradient(rgba(34,211,238,.8)1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.8)1px,transparent 1px);background-size:34px 34px;mask-image:radial-gradient(circle at center,black 0%,transparent 76%);-webkit-mask-image:radial-gradient(circle at center,black 0%,transparent 76%)}
+  .scanbeam{position:absolute;left:50%;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(34,211,238,.45),transparent);animation:scan 7s ease-in-out infinite}
+  .center-wrap{position:absolute;top:50%;left:50%;width:720px;height:720px;margin-left:-360px;margin-top:-360px}
+  .core{position:absolute;top:50%;left:50%;width:90px;height:90px;margin-left:-45px;margin-top:-45px;border-radius:50%;animation:coreflare 3.4s ease-in-out infinite}
+  .core-icon{position:absolute;top:50%;left:50%;margin-left:-14px;margin-top:-14px;font-size:28px;filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #22d3ee);z-index:5}
+  .orbit{position:absolute;top:50%;left:50%;border-radius:50%;animation:orbit 28s linear infinite}
+  .pdot{position:absolute;width:3px;height:3px;border-radius:50%;background:#a5f3fc;box-shadow:0 0 8px #22d3ee}
+  .node{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,rgba(34,211,238,.3),rgba(0,5,9,.75));border:1px solid rgba(34,211,238,.5);box-shadow:0 0 18px rgba(34,211,238,.5),inset 0 1px 0 rgba(255,255,255,.15);animation:breathe 4s ease-in-out infinite}
+  .foot{text-align:center;color:rgba(255,255,255,.25);font-size:11px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2 class="title text-holo">AUDIO-REACTIVE SPECTRUM MAP</h2>
+  <p class="subtitle">TouchDesigner-style radial waveform · live animation preview</p>
+
+  <div class="status-bar"><span class="l">● SPECTRUM.MAP · SYNCED</span><span class="r">12 NODES · 18 LINKS</span></div>
+  <div class="hud-frame" style="padding:0;overflow:hidden">
+    <div class="vp">
+      <div class="scanlines" style="position:absolute;inset:0;opacity:.5"></div>
+      <div class="grid-bg"></div>
+      <div class="scanbeam"></div>
+
+      <div class="center-wrap">
+        <!-- rotating dashed rings -->
+        <svg width="720" height="720" style="position:absolute;overflow:visible">
+          <circle cx="360" cy="360" r="345" fill="none" stroke="rgba(34,211,238,.10)" stroke-width="1" stroke-dasharray="2 10" style="transform-origin:360px 360px;animation:spin 60s linear infinite"/>
+          <circle cx="360" cy="360" r="300" fill="none" stroke="rgba(34,211,238,.07)" stroke-width="1" stroke-dasharray="1 14" style="transform-origin:360px 360px;animation:spinR 45s linear infinite"/>
+        </svg>
+
+        <!-- RADIAL SPECTRUM BARS -->
+        <svg width="720" height="720" style="position:absolute;overflow:visible;animation:breathe 5s ease-in-out infinite;filter:drop-shadow(0 0 3px rgba(34,211,238,.6))">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.2"/>
+              <stop offset="60%" stop-color="#67e8f9" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="1"/>
+            </linearGradient>
+          </defs>
+          <circle cx="360" cy="360" r="88" fill="none" stroke="rgba(103,232,249,.25)" stroke-width="1"/>
+          <circle cx="360" cy="360" r="88" fill="none" stroke="rgba(103,232,249,.4)" stroke-width="1.5" style="transform-origin:360px 360px;animation:ripple 3s ease-out infinite"/>
+          <circle cx="360" cy="360" r="88" fill="none" stroke="rgba(103,232,249,.3)" stroke-width="1" style="transform-origin:360px 360px;animation:ripple 3s ease-out infinite;animation-delay:1.5s"/>
+          <g id="bars"></g>
+        </svg>
+
+        <!-- orbit rings -->
+        <div class="orbit" style="width:260px;height:260px;margin-left:-130px;margin-top:-130px">
+          <span class="pdot" style="top:0;left:130px"></span><span class="pdot" style="top:130px;left:0"></span><span class="pdot" style="top:260px;left:130px"></span><span class="pdot" style="top:130px;left:260px"></span>
+        </div>
+        <div class="orbit" style="width:350px;height:350px;margin-left:-175px;margin-top:-175px;animation-duration:40s;animation-direction:reverse">
+          <span class="pdot" style="top:60px;left:300px"></span><span class="pdot" style="top:300px;left:60px"></span><span class="pdot" style="top:60px;left:60px"></span>
+        </div>
+
+        <!-- luminous core -->
+        <div class="core"></div>
+        <div class="core-icon">🧠</div>
+
+        <!-- nodes on outer ring -->
+        <div class="node" style="top:26%;left:62%;width:50px;height:50px;font-size:18px">⚡</div>
+        <div class="node" style="top:26%;left:31%;width:50px;height:50px;font-size:18px">🎯</div>
+        <div class="node" style="top:64%;left:62%;width:50px;height:50px;font-size:18px">🔥</div>
+        <div class="node" style="top:64%;left:31%;width:50px;height:50px;font-size:18px">👁</div>
+        <div class="node" style="top:15%;left:46%;width:38px;height:38px;font-size:14px">📊</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Preview of the new radial-spectrum Goal Map · deploy to see full interactivity</p>
+</div>
+
+<script>
+// Generate organic radial spectrum bars with layered sine harmonics
+(function(){
+  var g = document.getElementById('bars');
+  var NUM = 84, INNER = 88, MAX = 120, CX = 360, CY = 360;
+  var ns = 'http://www.w3.org/2000/svg';
+  for (var i=0;i<NUM;i++){
+    var t = i/NUM;
+    var phase = t*Math.PI*2;
+    var frames = 18, vals = [];
+    for (var f=0;f<=frames;f++){
+      var tt=(f/frames)*Math.PI*2;
+      var amp = 0.45 + 0.30*Math.sin(tt*2+phase) + 0.18*Math.sin(tt*3.3+phase*1.7) + 0.10*Math.sin(tt*5+phase*2.4);
+      amp = Math.max(0.08, Math.min(1, amp));
+      vals.push((amp*MAX).toFixed(1));
+    }
+    var ang = (t*360)-90;
+    var grp = document.createElementNS(ns,'g');
+    grp.setAttribute('transform','translate('+CX+' '+CY+') rotate('+ang+')');
+    var rect = document.createElementNS(ns,'rect');
+    rect.setAttribute('x',INNER);
+    rect.setAttribute('y',-1);
+    rect.setAttribute('width',8);
+    rect.setAttribute('height',2);
+    rect.setAttribute('rx',1);
+    rect.setAttribute('fill','url(#bg)');
+    rect.setAttribute('opacity','0.85');
+    var an = document.createElementNS(ns,'animate');
+    an.setAttribute('attributeName','width');
+    an.setAttribute('values',vals.join(';'));
+    an.setAttribute('dur',(1.6+(i%5)*0.25)+'s');
+    an.setAttribute('repeatCount','indefinite');
+    rect.appendChild(an);
+    grp.appendChild(rect);
+    g.appendChild(grp);
+  }
+})();
+</script>
+</body>
+</html>
