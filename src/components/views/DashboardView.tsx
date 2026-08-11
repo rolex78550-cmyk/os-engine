@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { 
   Flame, Trophy, CheckCircle, Check, ArrowUpRight, Plus, 
   TrendingUp, Dumbbell, BookOpen, Target, DollarSign,
@@ -669,7 +670,7 @@ export const DashboardView: React.FC<any> = (props) => {
             <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-hidden">
               {visionItems.slice(0, 2).map((item: any) => (
                 <div key={item.id} className="relative rounded-2xl overflow-hidden h-36 border border-white/10 group">
-                  <img src={item.imageUrl} alt={item.caption} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src={resolveImageUrl(item.imageUrl)} alt={item.caption} onError={onImgError("/images/onboarding-hero.jpg")} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <div className="absolute bottom-2 left-2 right-2 text-[10px] font-mono font-bold text-white truncate">
                     {item.caption || "Manifest Reality"}

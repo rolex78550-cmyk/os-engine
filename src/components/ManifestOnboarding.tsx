@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { onImgError } from '../lib/imageHelper';
 import { 
   ArrowRight, ArrowLeft, Sparkles, Target, Flame, Brain, 
   Trophy, Shield, Zap, CheckCircle2, Lock, Search, Globe, 
@@ -290,9 +291,10 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
       
       {/* Anime Visual Background Backdrop */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <img 
-          src="/src/assets/images/anime_onboarding_bg_1785264614926.jpg" 
+        <img
+          src="/images/anime_onboarding_bg_1785264614926.jpg"
           alt="Anime Visual Backdrop"
+          onError={onImgError("/images/onboarding-hero.jpg")}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center opacity-35 scale-105 filter blur-[1px] transition-all duration-1000"
         />

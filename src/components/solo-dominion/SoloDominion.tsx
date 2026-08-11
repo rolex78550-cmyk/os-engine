@@ -11,6 +11,7 @@ import { subscribeGlobalLeaderboard } from "../../lib/rpgFirestore";
 import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 
 interface Mission {
   id: string;
@@ -1100,10 +1101,11 @@ export const SoloDominion: React.FC<any> = (props) => {
 
             {/* Boss Image / Avatar */}
             <div className="relative rounded-2xl overflow-hidden border border-red-500/40 bg-black h-28 flex items-center justify-between p-4 mb-4 group">
-              <img 
-                src="/src/assets/images/anime_red_warrior_1785177142520.jpg" 
-                alt="Crimson Demon Boss" 
-                className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-500" 
+              <img
+                src={resolveImageUrl("/images/anime_red_warrior_1785177142520.jpg")}
+                alt="Crimson Demon Boss"
+                onError={onImgError("/images/onboarding-hero.jpg")}
+                className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-500"
                 referrerPolicy="no-referrer"
               />
               <div className="text-left space-y-0.5 z-10 relative">
@@ -1186,7 +1188,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               unlockedAtLevel: 1,
               cardNumber: "4532 •••• •••• 1024",
               exp: "12/28",
-              image: "/src/assets/images/anime_trainee_warrior_1785176432904.jpg",
+              image: "/images/anime_trainee_warrior_1785176432904.jpg",
               quote: "“The journey of a thousand leagues begins with a single deliberate habit.”",
               perks: ["Initial Daily Habit Pass", "Base XP Tracker", "Sigma OS Access"],
               gradient: "from-zinc-900 via-zinc-950 to-emerald-950/70 border-emerald-500/50 shadow-emerald-950/60",
@@ -1201,7 +1203,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               unlockedAtLevel: 5,
               cardNumber: "5219 •••• •••• 8830",
               exp: "12/29",
-              image: "/src/assets/images/anime_red_warrior_1785177142520.jpg",
+              image: "/images/anime_red_warrior_1785177142520.jpg",
               quote: "“Forged in crimson fire. Physical & mental willpower rising infinitely.”",
               perks: ["+10% XP Multiplier", "Streak Freeze Shield", "Custom Mission Creator"],
               gradient: "from-zinc-900 via-red-950/60 to-rose-950 border-red-500/60 shadow-red-950/70",
@@ -1216,7 +1218,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               unlockedAtLevel: 12,
               cardNumber: "7742 •••• •••• 3091",
               exp: "12/30",
-              image: "/src/assets/images/anime_shadow_knight_1785176768012.jpg",
+              image: "/images/anime_shadow_knight_1785176768012.jpg",
               quote: "“Master of focus and shadow power. Unstoppable aura and deep clarity.”",
               perks: ["+25% XP Multiplier", "+25% Daily Boss Damage", "Guild Vanguard Access"],
               gradient: "from-zinc-900 via-purple-950/60 to-indigo-950 border-purple-500/60 shadow-purple-950/70",
@@ -1231,7 +1233,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               unlockedAtLevel: 25,
               cardNumber: "9999 •••• •••• 7777",
               exp: "VIP INFINITE",
-              image: "/src/assets/images/anime_shadow_monarch_1785176449409.jpg",
+              image: "/images/anime_shadow_monarch_1785176449409.jpg",
               quote: "“Peak reality creation. Total mastery over physical and mental domain.”",
               perks: ["+50% XP Multiplier", "Instant Boss Obliteration", "Supreme Monarch Title"],
               gradient: "from-purple-950 via-zinc-950 to-teal-950 border-emerald-400/60 shadow-emerald-950/80",
@@ -1261,7 +1263,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                     muted 
                     playsInline
                     preload="auto"
-                    poster="/src/assets/images/anime_trainee_warrior_1785176432904.jpg"
+                    poster="/images/anime_trainee_warrior_1785176432904.jpg"
                     className="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
                   >
                     <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
@@ -1287,7 +1289,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 {/* Character Image & Overlay */}
                 <div className="my-2.5 flex items-center gap-3 z-10">
                   <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 shrink-0 shadow-lg bg-black">
-                    <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(card.image)} alt={card.title} onError={onImgError()} className="w-full h-full object-cover" />
                   </div>
                   <div className="space-y-0.5">
                     <div className={`text-[10px] font-mono font-bold ${isUnlocked ? "text-white" : "text-amber-400"}`}>
@@ -1360,7 +1362,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               onClick={() => setSelectedStreak(s)}
               className="group relative rounded-[20px] overflow-hidden border border-white/10 h-[190px] flex flex-col justify-between p-4 text-white cursor-pointer transition-all duration-300 hover:border-purple-400/50 hover:-translate-y-1 shadow-lg"
               style={{
-                backgroundImage: `linear-gradient(to bottom, rgba(12,12,22,0.3) 0%, rgba(12,12,22,0.92) 100%), url(${s.bg})`,
+                backgroundImage: `linear-gradient(to bottom, rgba(12,12,22,0.3) 0%, rgba(12,12,22,0.92) 100%), url(${resolveImageUrl(s.bg)})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
@@ -1870,7 +1872,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 muted 
                 playsInline
                 preload="auto"
-                poster="/src/assets/images/anime_trainee_warrior_1785176432904.jpg"
+                poster="/images/anime_trainee_warrior_1785176432904.jpg"
                 className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none"
               >
                 <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
@@ -1905,7 +1907,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                     muted 
                     playsInline
                     preload="auto"
-                    poster="/src/assets/images/anime_trainee_warrior_1785176432904.jpg"
+                    poster="/images/anime_trainee_warrior_1785176432904.jpg"
                     className="w-full h-full object-cover"
                   >
                     <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
@@ -1991,7 +1993,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/20 shrink-0 bg-black shadow-lg">
-                  <img src={selectedCard.image} alt={selectedCard.title} className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(selectedCard.image)} alt={selectedCard.title} onError={onImgError()} className="w-full h-full object-cover" />
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs font-mono font-bold text-white">CHARACTER PORTRAIT</div>

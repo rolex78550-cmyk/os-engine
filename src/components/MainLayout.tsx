@@ -1,11 +1,12 @@
 import React, { ReactNode } from "react";
-import { 
+import {
   Sparkles, LayoutDashboard, Flame, Target, ImageIcon, BookOpen, Crown, User, Shield, LogOut, LogIn, RefreshCw, Bell, ChevronRight, CheckCircle, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ParticleBackground from "./ParticleBackground";
 import UniversePortalAnimation from "./UniversePortalAnimation";
 import { getTrialInfo } from "../lib/subscription";
+import { resolveImageUrl, onImgError, FALLBACK_AVATAR } from "../lib/imageHelper";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -203,9 +204,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               {/* SIGMA MOTIVATIONAL SIDEBAR CARD (Matches Reference Image) */}
               <div className="relative rounded-2xl overflow-hidden border border-emerald-500/20 bg-black/60 p-3 mt-4 group">
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10" />
-                <img 
-                  src="/src/assets/images/skyline_man_silhouette_1785175040787.jpg" 
-                  alt="Sigma Skyline Silhouette" 
+                <img
+                  src={resolveImageUrl("/src/assets/images/skyline_man_silhouette_1785175040787.jpg")}
+                  alt="Sigma Skyline Silhouette"
+                  onError={onImgError("/images/hero-wasteland.jpg")}
                   className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-60"
                 />
                 <div className="relative z-20 space-y-1 pt-10">
@@ -222,7 +224,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             <div className="flex items-center justify-between border-t border-white/5 pt-4 shrink-0">
               <div onClick={() => setActiveTab("profile")} className="flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] p-2 rounded-2xl transition-all min-w-0 flex-1">
                 <div className="relative w-9 h-9 rounded-full bg-neutral-900 border border-amber-500/20 flex items-center justify-center font-bold text-xs text-amber-200 shrink-0 overflow-hidden">
-                  <img src={(profile?.avatarUrl && (profile.avatarUrl.startsWith("data:") || profile.avatarUrl.startsWith("/images/"))) ? profile.avatarUrl : "/images/shadow_monarch_avatar.jpg"} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+                  <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover rounded-full" />
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-xs font-semibold text-amber-50 truncate">{profile?.name || "Seeker"}</h4>
@@ -325,7 +327,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 {/* Mobile Profile Menu */}
                 <div className="lg:hidden relative">
                   <button onClick={() => setShowMobileProfileMenu(!showMobileProfileMenu)} className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center font-bold text-xs overflow-hidden">
-                    <img src={(profile?.avatarUrl && (profile.avatarUrl.startsWith("data:") || profile.avatarUrl.startsWith("/images/"))) ? profile.avatarUrl : "/images/shadow_monarch_avatar.jpg"} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover" />
                   </button>
 
                   <AnimatePresence>
@@ -345,7 +347,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                           <div className="p-5 border-b border-white/5 bg-gradient-to-b from-amber-500/[0.06] to-transparent">
                             <div className="flex items-center gap-3">
                               <div className="relative w-11 h-11 rounded-full bg-neutral-900 border border-amber-500/20 flex items-center justify-center font-bold text-sm text-amber-200 shrink-0 overflow-hidden">
-                                <img src={(profile?.avatarUrl && (profile.avatarUrl.startsWith("data:") || profile.avatarUrl.startsWith("/images/"))) ? profile.avatarUrl : "/images/shadow_monarch_avatar.jpg"} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+                                <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover rounded-full" />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-sm font-semibold text-white truncate">{profile?.name || "Seeker"}</h4>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { resolveImageUrl, onImgError } from "../lib/imageHelper";
 import { 
   Shield, Dumbbell, Target, Camera, Check, Flame, Zap, Loader2, X, AlertTriangle, Award 
 } from "lucide-react";
@@ -289,15 +290,16 @@ export default function RPGAdrenalineTasks() {
                   className="w-11 h-11 rounded-xl overflow-hidden border-2 shadow-md"
                   style={{ borderColor: task.color + '70' }}
                 >
-                  <img 
-                    src={
+                  <img
+                    src={resolveImageUrl(
                       task.id.includes('defence') || task.id.includes('boxing') ? "/images/anime/avatar-warrior.png" :
                       task.id.includes('gym') ? "/images/anime/avatar-elite.png" :
                       task.id.includes('money') || task.id.includes('skill') ? "/images/anime/avatar-king.png" :
                       "/images/anime/avatar-seeker.png"
-                    } 
-                    alt="Quest Hunter" 
-                    className="w-full h-full object-cover" 
+                    )}
+                    alt="Quest Hunter"
+                    onError={onImgError()}
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 text-[8px] px-1 bg-black/90 rounded font-bold" style={{color: task.color}}>

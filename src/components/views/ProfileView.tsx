@@ -6,6 +6,7 @@ import {
   RefreshCw, Lock, Camera, Upload, Image as ImageIcon, Link as LinkIcon
 } from "lucide-react";
 import { ProfileState, SubscriptionData, RitualItem, Desire, JournalEntry, VisionItem, CommunityPost } from "../../types";
+import { resolveImageUrl, onImgError, FALLBACK_AVATAR } from "../../lib/imageHelper";
 
 interface ProfileViewProps {
   user: any;
@@ -492,9 +493,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setEditTags(prev => prev.filter(t => t !== tagToRemove));
   };
 
-  const currentAvatarUrl = (profile.avatarUrl && (profile.avatarUrl.startsWith("data:") || profile.avatarUrl.startsWith("/images/")))
-    ? profile.avatarUrl 
-    : "/images/shadow_monarch_avatar.jpg";
+  const currentAvatarUrl = resolveImageUrl(profile.avatarUrl) || FALLBACK_AVATAR;
 
   return (
     <div className="text-white space-y-2.5 sm:space-y-3 pb-4">
@@ -565,9 +564,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           >
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-[3px] border-purple-500/80 p-0.5 bg-black/60 shadow-xl shadow-purple-900/50">
               <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden relative">
-                <img 
-                  src={currentAvatarUrl} 
-                  alt={userName} 
+                <img
+                  src={currentAvatarUrl}
+                  alt={userName}
+                  onError={onImgError()}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
                 />
@@ -1072,7 +1072,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-purple-900/50 border border-purple-400/50 overflow-hidden flex items-center justify-center shrink-0">
-                    <img src={currentAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={currentAvatarUrl} onError={onImgError()} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-xs font-bold text-purple-300">Choose Anime, GoT, Marvel, DC or Upload</span>
                 </div>
@@ -1378,9 +1378,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             }`}
                           >
                             <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-purple-400 transition-colors shadow-md">
-                              <img 
-                                src={av.url} 
-                                alt={av.name} 
+                              <img
+                                src={resolveImageUrl(av.url)}
+                                alt={av.name}
+                                onError={onImgError()}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 loading="lazy"
                               />
