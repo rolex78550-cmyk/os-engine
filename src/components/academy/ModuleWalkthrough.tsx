@@ -400,6 +400,33 @@ export default function ModuleWalkthrough({
   onSwitchModule,
 }: ModuleWalkthroughProps) {
   const lessons = LESSON_DATA[module.id] || [];
+
+  // Defensive: if module has no lessons (e.g. legacy data), don't render
+  // an empty walkthrough that just shows the intro screen forever.
+  if (lessons.length === 0) {
+    return (
+      <div className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
+        <div className="relative z-10 max-w-md w-full text-center space-y-5">
+          <div className="mx-auto w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+            <BookOpen size={32} className="text-white/30" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white">Module Content Coming Soon</h2>
+            <p className="text-sm text-white/40">
+              The lessons for <span className="font-semibold text-white/70">{module.title}</span> are
+              being prepared. Check back shortly to begin this journey.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold uppercase tracking-wider transition"
+          >
+            Back to Academy
+          </button>
+        </div>
+      </div>
+    );
+  }
   const relatedModules = DEFAULT_MODULES.filter((m) => m.category === module.category && m.id !== module.id);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(
@@ -407,12 +434,15 @@ export default function ModuleWalkthrough({
   );
   const [actionDone, setActionDone] = useState(false);
 
-  // Force reset state when module changes (safety)
+  // Force reset state when MODULE CHANGES ONLY (not on every progress update,
+  // otherwise the lesson sequence resets mid-walkthrough every time a
+  // single lesson is marked done — this caused the "stuck on intro" bug).
   useEffect(() => {
     setCurrentStep(0);
     setCompletedLessons(new Set(progress?.completedLessonIds || []));
     setActionDone(false);
-  }, [module.id, progress?.completedLessonIds?.join(",")]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [module.id]);
 
   const Icon = moduleIcons[module.icon] || Zap;
   const totalSteps = lessons.length;
