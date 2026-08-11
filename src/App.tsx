@@ -126,16 +126,18 @@ export default function App() {
 
             {activeTab === "academy" && (
               <motion.div key="academy" {...pageTransition} className="will-change-transform">
-                <AcademyPage 
-                  modules={[]}
-                  progress={logic.academyProgress}
-                  badges={logic.academyBadges}
-                  overallStreak={logic.profile.streak}
-                  isPremium={logic.isPremium}
-                  onModuleComplete={logic.handleAcademyModuleComplete}
-                  onLessonComplete={logic.handleAcademyLessonComplete}
-                  onPaywall={logic.triggerPaywall}
-                />
+                <Suspense fallback={<TabLoader />}>
+                  <AcademyPage
+                    modules={[]}
+                    progress={logic.academyProgress || {}}
+                    badges={logic.academyBadges || []}
+                    overallStreak={logic.profile.streak || 0}
+                    isPremium={logic.isPremium}
+                    onModuleComplete={logic.handleAcademyModuleComplete}
+                    onLessonComplete={logic.handleAcademyLessonComplete}
+                    onPaywall={logic.triggerPaywall}
+                  />
+                </Suspense>
               </motion.div>
             )}
 
