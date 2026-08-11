@@ -148,8 +148,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                   { id: "streaks", label: "Solo Dominion", icon: Flame },
                   { id: "vision", label: "Vision Board", icon: ImageIcon },
                   { id: "journal", label: "Journal", icon: BookOpen },
-                  { id: "community", label: "Community", icon: Sparkles },
-                  { id: "academy", label: "Academy", icon: Crown },
                   { id: "profile", label: "Profile", icon: User },
                 ].map((item) => (
                   <button
@@ -370,8 +368,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                             {[
                               { id: "profile", label: "Profile", icon: User },
                               { id: "vision", label: "Vision Board", icon: ImageIcon },
-                              { id: "community", label: "Community", icon: Sparkles },
-                              { id: "academy", label: "Academy", icon: Crown },
                             ].map((item) => (
                               <button
                                 key={item.id}

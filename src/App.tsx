@@ -18,9 +18,7 @@ import { ProfileView } from "./components/views/ProfileView";
 // Hooks
 import { useAppLogic } from "./hooks/useAppLogic";
 
-// Lazy-loaded Views
-const AcademyPage = lazy(() => import("./components/academy/AcademyPage"));
-const CommunityPage = lazy(() => import("./components/CommunityPage"));
+// Lazy-loaded Views (Academy and Community removed permanently)
 const VisionBoard = lazy(() => import("./components/VisionBoard"));
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 const RealPaymentAudit = lazy(() => import("./components/RealPaymentAudit"));
@@ -50,8 +48,8 @@ export default function App() {
   if (!user) {
     return (
       <ErrorBoundary>
-        <LandingPage 
-          onSignIn={logic.signIn} 
+        <LandingPage
+          onSignIn={logic.signIn}
           onDemoSignIn={logic.signInDemo}
           authError={logic.authError}
           clearAuthError={logic.clearAuthError}
@@ -66,8 +64,8 @@ export default function App() {
   if (!logic.hasCompletedOnboarding || logic.showManifestOnboarding) {
     return (
       <ErrorBoundary>
-        <ManifestOnboarding 
-          onComplete={logic.handleManifestOnboardingComplete} 
+        <ManifestOnboarding
+          onComplete={logic.handleManifestOnboardingComplete}
         />
       </ErrorBoundary>
     );
@@ -77,7 +75,7 @@ export default function App() {
   if (!logic.hasPaidAccess && !isAdmin) {
     return (
       <ErrorBoundary>
-        <PricingPage 
+        <PricingPage
           paywallMessage={logic.paywallMessage || "Your personalized AI Life System is ready! Choose a plan to unlock full access."}
         />
       </ErrorBoundary>
@@ -115,7 +113,7 @@ export default function App() {
 
             {activeTab === "vision" && (
               <motion.div key="vision" {...pageTransition} className="will-change-transform">
-                <VisionBoard 
+                <VisionBoard
                   items={logic.visionItems}
                   onAdd={logic.handleAddVision}
                   onDelete={logic.handleDeleteVision}
@@ -124,33 +122,7 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === "academy" && (
-              <motion.div key="academy" {...pageTransition} className="will-change-transform">
-                <Suspense fallback={<TabLoader />}>
-                  <AcademyPage
-                    modules={[]}
-                    progress={logic.academyProgress || {}}
-                    badges={logic.academyBadges || []}
-                    overallStreak={logic.profile.streak || 0}
-                    isPremium={logic.isPremium}
-                    onModuleComplete={logic.handleAcademyModuleComplete}
-                    onLessonComplete={logic.handleAcademyLessonComplete}
-                    onPaywall={logic.triggerPaywall}
-                  />
-                </Suspense>
-              </motion.div>
-            )}
-
-            {activeTab === "community" && (
-              <motion.div key="community" {...pageTransition} className="will-change-transform">
-                <CommunityPage 
-                  posts={logic.communityPosts}
-                  userName={logic.profile.name}
-                  onAddPost={logic.handleAddCommunityPost}
-                  onLikePost={logic.handleLikeCommunityPost}
-                />
-              </motion.div>
-            )}
+            {/* Academy and Community tabs removed permanently */}
 
             {activeTab === "profile" && (
               <motion.div key="profile" {...pageTransition} className="will-change-transform">
@@ -179,7 +151,7 @@ export default function App() {
       <AnimatePresence>
         {logic.showCinematicIntro && (
           <Suspense fallback={<TabLoader />}>
-            <CinematicManifestIntro 
+            <CinematicManifestIntro
               onComplete={logic.handleCinematicIntroComplete}
               userName={logic.profile?.name}
             />
@@ -187,8 +159,8 @@ export default function App() {
         )}
 
         {logic.showPricingPage && (
-          <PricingPage 
-            onClose={() => logic.setShowPricingPage(false)} 
+          <PricingPage
+            onClose={() => logic.setShowPricingPage(false)}
             paywallMessage={logic.paywallMessage || undefined}
           />
         )}

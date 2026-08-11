@@ -637,9 +637,9 @@ export const DashboardView: React.FC<any> = (props) => {
 
       </div>
 
-      {/* SAAS ECOSYSTEM CARDS: VISION BOARD | COMMUNITY FEED | ACADEMY */}
+      {/* SAAS ECOSYSTEM CARDS: VISION BOARD ONLY (Community and Academy removed) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        
+
         {/* Vision Board Spotlight */}
         <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -656,8 +656,8 @@ export const DashboardView: React.FC<any> = (props) => {
           </div>
 
           {visionItems.length === 0 ? (
-            <div 
-              onClick={() => setActiveTab("vision")} 
+            <div
+              onClick={() => setActiveTab("vision")}
               className="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-500/40 transition space-y-2"
             >
               <ImageIcon size={28} className="mx-auto text-zinc-600" />
@@ -680,7 +680,7 @@ export const DashboardView: React.FC<any> = (props) => {
             </div>
           )}
 
-          <button 
+          <button
             onClick={() => setActiveTab("vision")}
             className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition"
           >
@@ -689,97 +689,7 @@ export const DashboardView: React.FC<any> = (props) => {
           </button>
         </div>
 
-        {/* High Vibrational Community Feed */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <Users size={16} className="text-emerald-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                COMMUNITY FEED
-              </h3>
-            </div>
-            <button onClick={() => setActiveTab("community")} className="text-[10px] font-mono text-emerald-400 hover:underline font-bold flex items-center gap-1">
-              <span>Feed</span>
-              <ChevronRight size={12} />
-            </button>
-          </div>
-
-          <div className="space-y-3 font-mono text-xs">
-            {communityPosts.length === 0 ? (
-              <div className="text-center py-6 text-zinc-500 text-xs">
-                Connect with high-vibration seekers worldwide.
-              </div>
-            ) : (
-              communityPosts.slice(0, 2).map((post: any) => (
-                <div key={post.id} className="bg-zinc-900/60 p-3 rounded-2xl border border-white/5 space-y-1.5">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-bold text-emerald-300">{post.authorName || "Seeker"}</span>
-                    <span className="text-zinc-500">{post.category || "Manifestation"}</span>
-                  </div>
-                  <p className="text-zinc-300 text-[11px] line-clamp-2">{post.content}</p>
-                  <div className="flex justify-between items-center text-[9px] text-zinc-500 pt-1">
-                    <button 
-                      onClick={() => handleLikeCommunityPost && handleLikeCommunityPost(post.id)}
-                      className="flex items-center gap-1 text-emerald-400 font-bold hover:underline"
-                    >
-                      <Heart size={10} fill="currentColor" /> {post.likesCount || 0} Vibrations
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <button 
-            onClick={() => setActiveTab("community")}
-            className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition"
-          >
-            <span>JOIN DISCUSSIONS</span>
-            <ArrowUpRight size={14} />
-          </button>
-        </div>
-
-        {/* Academy Masterclass & Mindset */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <GraduationCap size={16} className="text-emerald-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                ACADEMY & MINDSET
-              </h3>
-            </div>
-            <p className="text-[10px] font-mono text-zinc-500 mt-0.5">MASTERY MODULES</p>
-          </div>
-
-          <div className="space-y-2.5 font-mono text-xs">
-            <div className="bg-zinc-900/60 p-3 rounded-2xl border border-white/5 space-y-1.5">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-white text-[11px]">Quantum Reality Creation</span>
-                <span className="text-[9px] text-emerald-400 font-bold">Active</span>
-              </div>
-              <p className="text-[10px] text-zinc-400">Master sensory scripting & brainwave alignment.</p>
-              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-emerald-400 h-full w-[70%] rounded-full" />
-              </div>
-            </div>
-
-            <div className="bg-zinc-900/60 p-3 rounded-2xl border border-white/5 space-y-1.5">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-white text-[11px]">Solo Leveling Discipline</span>
-                <span className="text-[9px] text-amber-300 font-bold">Recommended</span>
-              </div>
-              <p className="text-[10px] text-zinc-400">Build unshakeable daily habits and grit.</p>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => setActiveTab("academy")}
-            className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition"
-          >
-            <span>RESUME MASTERCLASS</span>
-            <Play size={12} />
-          </button>
-        </div>
+        {/* Community and Academy cards removed permanently */}
 
       </div>
 
@@ -893,8 +803,6 @@ export const DashboardView: React.FC<any> = (props) => {
             { id: "goals", label: "Goals & Habits" },
             { id: "journal", label: "Journal" },
             { id: "vision", label: "Vision Board" },
-            { id: "academy", label: "Academy" },
-            { id: "community", label: "Community" },
             { id: "streaks", label: "Solo Dominion" },
             { id: "profile", label: "Profile" },
           ].map((nav) => (
