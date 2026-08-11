@@ -60,7 +60,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   sendTestPush,
   sendTestEmail
 }) => {
-  // Modal states
+  // ─────────────────────────────────────────────────────────────────────
+  // 1. DERIVED VALUES (must be declared BEFORE any useState that reads them)
+  //    These are pure read-only computations from the `profile` prop.
+  //    Hoisting them above the useState calls fixes the TDZ error
+  //    `Cannot access 'Ke' before initialization`.
+  // ─────────────────────────────────────────────────────────────────────
+  const userName = profile.name || user?.displayName || "Seeker";
+  const level = Number(profile.level) || 1;
+  const currentXP = Number(profile.xp) || 0;
+  const totalXpRaw = Number(profile.totalXp) || Number(profile.xp) || 0;
+  const streak = Number(profile.streak) || 0;
+  const alignment = Number(profile.alignment) || 0;
+  const longestStreak = Math.max(streak, Number(profile.longestStreak) || 0);
+  const totalQuestsCompleted = Number(profile.totalQuestsCompleted) || 0;
+  const goalsCompletedCount = desires.filter(d => d.completed || (d.progress && d.progress >= 100)).length;
+  const activeGoalsCount = desires.length;
+
+  const getRankInfo = (lvl: number) => {
+    if (lvl >= 50) return { name: "LEGENDARY MONARCH", subtitle: "GODLIKE ALIGNMENT", color: "from-amber-400 to-yellow-600" };
+    if (lvl >= 35) return { name: "SHADOW MONARCH", subtitle: "ELITE COMMANDER", color: "from-purple-500 to-indigo-600" };
+    if (lvl >= 20) return { name: "SHADOW MONARCH", subtitle: "ASCENDED HUNTER", color: "from-violet-500 to-purple-600" };
+    return { name: "HUNTER", subtitle: "NOVICE SEEKER", color: "from-blue-500 to-cyan-600" };
+  };
+  const rankInfo = getRankInfo(level);
+
+  // notify() helper used by handleSelectAvatarUrl (defined above useState
+  // so it can be referenced by the avatar handlers that come next).
+  const notify = (msg: string) => {
+    if (setNotificationMsg) setNotificationMsg(msg);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 2. STATE — useState calls AFTER derived values so no TDZ.
+  // ─────────────────────────────────────────────────────────────────────
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRankModal, setShowRankModal] = useState(false);
   const [showXPModal, setShowXPModal] = useState(false);
@@ -71,11 +104,59 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [avatarCategory, setAvatarCategory] = useState<string>("All");
   const [customUrlInput, setCustomUrlInput] = useState<string>("");
 
+  // Edit profile form — defaults from real Firestore profile (not hardcoded)
+  const [editName, setEditName] = useState(profile.name || user?.displayName || "Seeker");
+  const [editTitle, setEditTitle] = useState(profile.universeRank || rankInfo.name);
+  const [editFocus, setEditFocus] = useState((profile as any).primaryFocus || (profile as any).primaryPriority || "");
+  const [editTimezone, setEditTimezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  });
+  const [editTags, setEditTags] = useState<string[]>(
+    Array.isArray((profile as any).tags) && (profile as any).tags.length > 0
+      ? (profile as any).tags
+      : []
+  );
+  const [newTagInput, setNewTagInput] = useState("");
+
+  // Habit Streaks — derived from real rituals
+  const [habitStreaks, setHabitStreaks] = useState<Array<{ id: string; label: string; days: number; icon: string; completedToday: boolean }>>(() => {
+    if (rituals && rituals.length > 0) {
+      return rituals.slice(0, 6).map((r, i) => {
+        const icons = ["🔥", "🧘", "📖", "💪", "⚡", "🎯"];
+        return {
+          id: r.id || `ritual_${i}`,
+          label: r.label || r.title || `Ritual ${i + 1}`,
+          days: Math.max(r.streak || 0, 0),
+          icon: icons[i % icons.length],
+          completedToday: !!(r.completedDates || []).includes(todayStr),
+        };
+      });
+    }
+    return [];
+  });
+
+  const [newHabitLabel, setNewHabitLabel] = useState("");
+  const [newHabitIcon, setNewHabitIcon] = useState("✨");
+
+  // Core attributes leveling state
+  const [attrBonus, setAttrBonus] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem("solo_attr_bonus");
+      return saved ? JSON.parse(saved) : { Strength: 0, Mindset: 0, Discipline: 0, Health: 0, Intelligence: 0, Charisma: 0 };
+    } catch {
+      return { Strength: 0, Mindset: 0, Discipline: 0, Health: 0, Intelligence: 0, Charisma: 0 };
+    }
+  });
+
   // Sync edit-form defaults with the latest Firestore profile values
   useEffect(() => {
     setEditName(profile.name || user?.displayName || "Seeker");
     if (!editTitle || editTitle === "SHADOW MONARCH" || editTitle === "HUNTER") {
-      setEditTitle(profile.universeRank || (level >= 20 ? "SHADOW MONARCH" : "HUNTER"));
+      setEditTitle(profile.universeRank || rankInfo.name);
     }
   }, [profile.name, profile.universeRank, user?.displayName, level]);
 
@@ -157,76 +238,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Edit profile form state — defaults come from real Firestore profile, not hardcoded
-  const [editName, setEditName] = useState(profile.name || user?.displayName || "Seeker");
-  const [editTitle, setEditTitle] = useState(profile.universeRank || (level >= 20 ? "SHADOW MONARCH" : "HUNTER"));
-  const [editFocus, setEditFocus] = useState((profile as any).primaryFocus || (profile as any).primaryPriority || "");
-  const [editTimezone, setEditTimezone] = useState(() => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    } catch {
-      return "UTC";
-    }
-  });
-  const [editTags, setEditTags] = useState<string[]>(
-    Array.isArray((profile as any).tags) && (profile as any).tags.length > 0
-      ? (profile as any).tags
-      : []
-  );
-  const [newTagInput, setNewTagInput] = useState("");
-
-  // Habit Streaks — derived from real rituals, with a local "log today" toggle
-  const [habitStreaks, setHabitStreaks] = useState<Array<{ id: string; label: string; days: number; icon: string; completedToday: boolean }>>(() => {
-    // Prefer Firestore rituals; fall back to empty list
-    if (rituals && rituals.length > 0) {
-      return rituals.slice(0, 6).map((r, i) => {
-        const icons = ["🔥", "🧘", "📖", "💪", "⚡", "🎯"];
-        return {
-          id: r.id || `ritual_${i}`,
-          label: r.label || r.title || `Ritual ${i + 1}`,
-          days: Math.max(r.streak || 0, 0),
-          icon: icons[i % icons.length],
-          completedToday: !!(r.completedDates || []).includes(todayStr),
-        };
-      });
-    }
-    return [];
-  });
-
-  const [newHabitLabel, setNewHabitLabel] = useState("");
-  const [newHabitIcon, setNewHabitIcon] = useState("✨");
-
-  // Core attributes leveling state (bonus XP allocated by training)
-  const [attrBonus, setAttrBonus] = useState<Record<string, number>>(() => {
-    try {
-      const saved = localStorage.getItem("solo_attr_bonus");
-      return saved ? JSON.parse(saved) : { Strength: 0, Mindset: 0, Discipline: 0, Health: 0, Intelligence: 0, Charisma: 0 };
-    } catch {
-      return { Strength: 0, Mindset: 0, Discipline: 0, Health: 0, Intelligence: 0, Charisma: 0 };
-    }
-  });
-
-  const notify = (msg: string) => {
-    if (setNotificationMsg) setNotificationMsg(msg);
-  };
-
-  // Dynamic user data — ALL real values from Firestore, no fake floors
-  const userName = profile.name || user?.displayName || "Seeker";
-  const level = Number(profile.level) || 1;
-  const currentXP = Number(profile.xp) || 0;
-  // XP needed for next level scales with level (1000 + level * 200)
+  // Derived metrics computed from the real values declared at the top
   const totalXPForLevel = currentXP + (1000 + level * 200);
-  // XP within current level (modulo into the bracket)
   const xpInLevel = currentXP % (1000 + level * 200);
   const xpProgress = totalXPForLevel > 0 ? Math.min(Math.round((xpInLevel / (1000 + level * 200)) * 100), 100) : 0;
 
-  const streak = Number(profile.streak) || 0;
-  const alignment = Number(profile.alignment) || 0;
-  const goalsCompletedCount = desires.filter(d => d.completed || (d.progress && d.progress >= 100)).length;
-  const activeGoalsCount = desires.length;
-  const totalQuestsCompleted = Number(profile.totalQuestsCompleted) || 0;
-
-  // "This week" derived metric — goals completed in the last 7 days
+  // "This week" derived metric
   const goalsCompletedThisWeek = (() => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return desires.filter((d: any) => {
@@ -237,29 +254,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     }).length;
   })();
 
-  // Real total XP (from profile.totalXp, not fake Math.max floor)
-  const totalXP = Number(profile.totalXp) || Number(profile.xp) || 0;
-  // Dominion Power: derived from real total XP, level and streak — no artificial floor
+  const totalXP = totalXpRaw;
+  // Dominion Power: derived from real total XP, level and streak
   const dominionPower = totalXP * 4 + (level * 1500) + (streak * 250);
 
-  // Rank Info
-  const getRankInfo = (lvl: number) => {
-    if (lvl >= 50) return { name: "LEGENDARY MONARCH", subtitle: "GODLIKE ALIGNMENT", color: "from-amber-400 to-yellow-600" };
-    if (lvl >= 35) return { name: "SHADOW MONARCH", subtitle: "ELITE COMMANDER", color: "from-purple-500 to-indigo-600" };
-    if (lvl >= 20) return { name: "SHADOW MONARCH", subtitle: "ASCENDED HUNTER", color: "from-violet-500 to-purple-600" };
-    return { name: "HUNTER", subtitle: "NOVICE SEEKER", color: "from-blue-500 to-cyan-600" };
-  };
-
-  const rankInfo = getRankInfo(level);
-  // Global rank derived from real total XP — higher XP = better rank.
-  // This is a heuristic (true global rank needs a server query); replace
-  // with a real leaderboard call when available.
+  // Global rank derived from real total XP
   const globalRank = Math.max(1, 10000 - Math.floor(totalXP / 10) - (level * 30));
-  // Rank change: compare to previous totalXp snapshot (Firestore may store `previousTotalXp`)
+  // Rank change
   const prevTotalXp = Number((profile as any).previousTotalXp) || 0;
   const rankDelta = Math.floor((totalXP - prevTotalXp) / 10);
   const rankChange = rankDelta > 0 ? rankDelta : 0;
   const xpToRankUp = Math.max(0, 5000 - (currentXP % 5000));
+
+
 
   // Dynamic Core Attributes — derived from REAL profile data
   // For brand-new users (level=1, currentXP=0), stats start low and grow with usage.
