@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Crown, Flame, Target, Zap, Star, Trophy, Award, TrendingUp, 
   Calendar, User, Edit2, ArrowRight, X, Check, Sparkles, Bell, 
@@ -70,6 +70,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarCategory, setAvatarCategory] = useState<string>("All");
   const [customUrlInput, setCustomUrlInput] = useState<string>("");
+
+  // Sync edit-form defaults with the latest Firestore profile values
+  useEffect(() => {
+    setEditName(profile.name || user?.displayName || "Seeker");
+    if (!editTitle || editTitle === "SHADOW MONARCH" || editTitle === "HUNTER") {
+      setEditTitle(profile.universeRank || (level >= 20 ? "SHADOW MONARCH" : "HUNTER"));
+    }
+  }, [profile.name, profile.universeRank, user?.displayName, level]);
 
   // Preset Avatars dataset across requested universes
   const AVATAR_PRESETS = [
@@ -149,30 +157,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Edit profile form state
-  const [editName, setEditName] = useState(profile.name || user?.displayName || "as artist");
-  const [editTitle, setEditTitle] = useState(profile.universeRank || "SHADOW MONARCH");
-  const [editFocus, setEditFocus] = useState((profile as any).primaryFocus || "Discipline & High Vibration Reality Creation");
-  const [editTimezone, setEditTimezone] = useState("IST (UTC +5:30)");
+  // Edit profile form state — defaults come from real Firestore profile, not hardcoded
+  const [editName, setEditName] = useState(profile.name || user?.displayName || "Seeker");
+  const [editTitle, setEditTitle] = useState(profile.universeRank || (level >= 20 ? "SHADOW MONARCH" : "HUNTER"));
+  const [editFocus, setEditFocus] = useState((profile as any).primaryFocus || (profile as any).primaryPriority || "");
+  const [editTimezone, setEditTimezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  });
   const [editTags, setEditTags] = useState<string[]>(
-    (profile as any).tags || ["Discipline", "Consistency", "Growth Mindset"]
+    Array.isArray((profile as any).tags) && (profile as any).tags.length > 0
+      ? (profile as any).tags
+      : []
   );
   const [newTagInput, setNewTagInput] = useState("");
 
-  // Habit Streaks state (persisted locally)
+  // Habit Streaks — derived from real rituals, with a local "log today" toggle
   const [habitStreaks, setHabitStreaks] = useState<Array<{ id: string; label: string; days: number; icon: string; completedToday: boolean }>>(() => {
-    try {
-      const saved = localStorage.getItem("solo_habit_streaks");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      { id: "h1", label: "Workout", days: Math.max(profile.streak || 5, 12), icon: "🔥", completedToday: false },
-      { id: "h2", label: "Meditation", days: Math.max((profile.streak || 5) - 2, 7), icon: "🧘", completedToday: false },
-      { id: "h3", label: "Reading", days: 24, icon: "📖", completedToday: true },
-      { id: "h4", label: "No Sugar", days: 7, icon: "🍬", completedToday: false },
-      { id: "h5", label: "Cold Shower", days: 5, icon: "❄️", completedToday: false },
-      { id: "h6", label: "Daily Scripting", days: Math.max(journalEntries.length, 3), icon: "✏️", completedToday: false },
-    ];
+    // Prefer Firestore rituals; fall back to empty list
+    if (rituals && rituals.length > 0) {
+      return rituals.slice(0, 6).map((r, i) => {
+        const icons = ["🔥", "🧘", "📖", "💪", "⚡", "🎯"];
+        return {
+          id: r.id || `ritual_${i}`,
+          label: r.label || r.title || `Ritual ${i + 1}`,
+          days: Math.max(r.streak || 0, 0),
+          icon: icons[i % icons.length],
+          completedToday: !!(r.completedDates || []).includes(todayStr),
+        };
+      });
+    }
+    return [];
   });
 
   const [newHabitLabel, setNewHabitLabel] = useState("");
@@ -192,20 +210,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (setNotificationMsg) setNotificationMsg(msg);
   };
 
-  // Dynamic user data
-  const userName = profile.name || user?.displayName || "as artist";
-  const level = profile.level || 24;
-  const currentXP = profile.xp || 4250;
-  const totalXPForLevel = 6000;
-  const xpProgress = Math.min(Math.round((currentXP / totalXPForLevel) * 100), 100);
+  // Dynamic user data — ALL real values from Firestore, no fake floors
+  const userName = profile.name || user?.displayName || "Seeker";
+  const level = Number(profile.level) || 1;
+  const currentXP = Number(profile.xp) || 0;
+  // XP needed for next level scales with level (1000 + level * 200)
+  const totalXPForLevel = currentXP + (1000 + level * 200);
+  // XP within current level (modulo into the bracket)
+  const xpInLevel = currentXP % (1000 + level * 200);
+  const xpProgress = totalXPForLevel > 0 ? Math.min(Math.round((xpInLevel / (1000 + level * 200)) * 100), 100) : 0;
 
-  const streak = profile.streak || 18;
-  const alignment = profile.alignment || 78;
-  const goalsCompletedCount = desires.filter(d => d.completed || (d.progress && d.progress >= 100)).length || desires.length || 12;
+  const streak = Number(profile.streak) || 0;
+  const alignment = Number(profile.alignment) || 0;
+  const goalsCompletedCount = desires.filter(d => d.completed || (d.progress && d.progress >= 100)).length;
+  const activeGoalsCount = desires.length;
+  const totalQuestsCompleted = Number(profile.totalQuestsCompleted) || 0;
 
-  // Real or dynamically computed XP & Power
-  const totalXP = Math.max(125420, currentXP * 28 + (streak * 1200) + (goalsCompletedCount * 850));
-  const dominionPower = Math.max(2152299, totalXP * 16 + (level * 45000));
+  // "This week" derived metric — goals completed in the last 7 days
+  const goalsCompletedThisWeek = (() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return desires.filter((d: any) => {
+      const completed = d.completed || (d.progress && d.progress >= 100);
+      if (!completed) return false;
+      const ts = new Date(d.completedAt || d.updatedAt || d.createdAt || 0).getTime();
+      return ts >= weekAgo;
+    }).length;
+  })();
+
+  // Real total XP (from profile.totalXp, not fake Math.max floor)
+  const totalXP = Number(profile.totalXp) || Number(profile.xp) || 0;
+  // Dominion Power: derived from real total XP, level and streak — no artificial floor
+  const dominionPower = totalXP * 4 + (level * 1500) + (streak * 250);
 
   // Rank Info
   const getRankInfo = (lvl: number) => {
@@ -216,68 +251,77 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   const rankInfo = getRankInfo(level);
-  const globalRank = Math.max(1, 2500 - level * 45 - streak * 10);
-  const rankChange = 128;
+  // Global rank derived from real total XP — higher XP = better rank.
+  // This is a heuristic (true global rank needs a server query); replace
+  // with a real leaderboard call when available.
+  const globalRank = Math.max(1, 10000 - Math.floor(totalXP / 10) - (level * 30));
+  // Rank change: compare to previous totalXp snapshot (Firestore may store `previousTotalXp`)
+  const prevTotalXp = Number((profile as any).previousTotalXp) || 0;
+  const rankDelta = Math.floor((totalXP - prevTotalXp) / 10);
+  const rankChange = rankDelta > 0 ? rankDelta : 0;
+  const xpToRankUp = Math.max(0, 5000 - (currentXP % 5000));
 
-  // Dynamic Core Attributes
+  // Dynamic Core Attributes — derived from REAL profile data
+  // For brand-new users (level=1, currentXP=0), stats start low and grow with usage.
+  const attrMaxLevel = 99;
   const coreAttributes = [
-    { 
+    {
       id: "Strength",
-      name: "Strength", 
-      level: Math.min(18 + Math.floor(level / 3) + (attrBonus.Strength || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.28) + (attrBonus.Strength || 0) * 100} / 2,000`, 
-      pct: Math.min(65 + Math.floor(level * 1.2) + (attrBonus.Strength || 0) * 2, 100), 
-      color: "#f59e0b", 
+      name: "Strength",
+      level: Math.min(1 + Math.floor(level / 3) + (attrBonus.Strength || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.28) + (attrBonus.Strength || 0) * 100} / ${(level + 1) * 2000}`,
+      pct: Math.min(Math.floor(currentXP * 0.028) + (attrBonus.Strength || 0) * 2, 100),
+      color: "#f59e0b",
       icon: "⚔️",
       desc: "Physical endurance, vital force, and raw output capacity."
     },
-    { 
+    {
       id: "Mindset",
-      name: "Mindset", 
-      level: Math.min(20 + Math.floor(level / 4) + (attrBonus.Mindset || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.42) + (attrBonus.Mindset || 0) * 100} / 3,000`, 
-      pct: Math.min(70 + Math.floor(level * 1.1) + (attrBonus.Mindset || 0) * 2, 100), 
-      color: "#3b82f6", 
+      name: "Mindset",
+      level: Math.min(1 + Math.floor(level / 4) + (attrBonus.Mindset || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.42) + (attrBonus.Mindset || 0) * 100} / ${(level + 1) * 3000}`,
+      pct: Math.min(Math.floor(currentXP * 0.042) + (attrBonus.Mindset || 0) * 2, 100),
+      color: "#3b82f6",
       icon: "🧠",
       desc: "Subconscious alignment, mental clarity, and belief strength."
     },
-    { 
+    {
       id: "Discipline",
-      name: "Discipline", 
-      level: Math.min(22 + Math.floor(level / 3) + (attrBonus.Discipline || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.51) + (attrBonus.Discipline || 0) * 100} / 3,000`, 
-      pct: Math.min(75 + Math.floor(level * 0.9) + (attrBonus.Discipline || 0) * 2, 100), 
-      color: "#8b5cf6", 
+      name: "Discipline",
+      level: Math.min(1 + Math.floor(level / 3) + (attrBonus.Discipline || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.51) + (attrBonus.Discipline || 0) * 100} / ${(level + 1) * 3000}`,
+      pct: Math.min(Math.floor(currentXP * 0.051) + (attrBonus.Discipline || 0) * 2, 100),
+      color: "#8b5cf6",
       icon: "🛡️",
       desc: "Unwavering consistency, streak retention, and resistance immunity."
     },
-    { 
+    {
       id: "Health",
-      name: "Health", 
-      level: Math.min(19 + Math.floor(level / 4) + (attrBonus.Health || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.31) + (attrBonus.Health || 0) * 100} / 2,500`, 
-      pct: Math.min(60 + Math.floor(level * 1.3) + (attrBonus.Health || 0) * 2, 100), 
-      color: "#ef4444", 
+      name: "Health",
+      level: Math.min(1 + Math.floor(level / 4) + (attrBonus.Health || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.31) + (attrBonus.Health || 0) * 100} / ${(level + 1) * 2500}`,
+      pct: Math.min(Math.floor(currentXP * 0.031) + (attrBonus.Health || 0) * 2, 100),
+      color: "#ef4444",
       icon: "❤️",
       desc: "Cellular vitality, recovery speed, and physical stamina."
     },
-    { 
+    {
       id: "Intelligence",
-      name: "Intelligence", 
-      level: Math.min(17 + Math.floor(level / 3) + (attrBonus.Intelligence || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.38) + (attrBonus.Intelligence || 0) * 100} / 3,000`, 
-      pct: Math.min(55 + Math.floor(level * 1.4) + (attrBonus.Intelligence || 0) * 2, 100), 
-      color: "#06b6d4", 
+      name: "Intelligence",
+      level: Math.min(1 + Math.floor(level / 3) + (attrBonus.Intelligence || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.38) + (attrBonus.Intelligence || 0) * 100} / ${(level + 1) * 3000}`,
+      pct: Math.min(Math.floor(currentXP * 0.038) + (attrBonus.Intelligence || 0) * 2, 100),
+      color: "#06b6d4",
       icon: "🔮",
       desc: "Strategic execution, wisdom synthesis, and pattern perception."
     },
-    { 
+    {
       id: "Charisma",
-      name: "Charisma", 
-      level: Math.min(15 + Math.floor(level / 5) + (attrBonus.Charisma || 0), 99), 
-      xp: `${Math.floor(currentXP * 0.19) + (attrBonus.Charisma || 0) * 100} / 1,500`, 
-      pct: Math.min(50 + Math.floor(level * 1.1) + (attrBonus.Charisma || 0) * 2, 100), 
-      color: "#a855f7", 
+      name: "Charisma",
+      level: Math.min(1 + Math.floor(level / 5) + (attrBonus.Charisma || 0), attrMaxLevel),
+      xp: `${Math.floor(currentXP * 0.19) + (attrBonus.Charisma || 0) * 100} / ${(level + 1) * 1500}`,
+      pct: Math.min(Math.floor(currentXP * 0.019) + (attrBonus.Charisma || 0) * 2, 100),
+      color: "#a855f7",
       icon: "👑",
       desc: "Social magnetism, influence, and leadership energy."
     },
@@ -385,45 +429,108 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     },
   ];
 
-  // Dynamic Recent Activity synthesized from real state
-  const recentActivity = [
-    ...(desires.slice(0, 3).map((d, i) => ({
-      icon: "🎯",
-      text: `Completed goal: ${d.title}`,
-      xp: `+${d.progress || 300} XP`,
-      time: i === 0 ? "1h ago" : `${i + 1}d ago`
-    }))),
-    ...(journalEntries.slice(0, 2).map((j, i) => ({
-      icon: "📓",
-      text: `Journal entry: ${j.title || "Scripted Reality"}`,
-      xp: "+50 XP",
-      time: i === 0 ? "3h ago" : "2d ago"
-    }))),
-    {
-      icon: "🔥",
-      text: `Reached ${streak} day continuous streak`,
-      xp: "+150 XP",
-      time: "1d ago"
-    }
-  ].slice(0, 5);
+  // Dynamic Recent Activity — synthesized from REAL Firestore data
+  // 1. Completed desires (real, recent first)
+  // 2. Recent journal entries (real)
+  // 3. Most recent rituals (real)
+  // 4. Recent vision items (real)
+  const recentActivity = (() => {
+    const acts: Array<{ icon: string; text: string; xp: string; time: string; _ts: number }> = [];
 
-  // Active Streaks / Goals
-  const activeStreaks = desires.length > 0 
-    ? desires.slice(0, 3).map((d, idx) => ({
-        id: d.id,
-        title: d.title,
-        cat: (d.category || "Lifestyle").charAt(0).toUpperCase() + (d.category || "lifestyle").slice(1),
-        pct: d.progress || (62 + idx * 16),
-        next: d.notes || "Execute daily ritual action",
-        xp: 300 - idx * 50,
-        color: idx === 0 ? "#a855f7" : idx === 1 ? "#10b981" : "#3b82f6",
-        icon: idx === 0 ? "🏠" : idx === 1 ? "💪" : "🚀"
-      }))
-    : [
-        { id: "d1", title: "Dream House Manifestation", cat: "Lifestyle", pct: 78, next: "Increase Monthly Savings", xp: 300, color: "#a855f7", icon: "🏠" },
-        { id: "d2", title: "Build Peak Physical Fitness", cat: "Health", pct: 62, next: "Complete 4 Workouts", xp: 250, color: "#10b981", icon: "💪" },
-        { id: "d3", title: "Launch SaaS Platform", cat: "Wealth", pct: 85, next: "Deploy Server System", xp: 400, color: "#3b82f6", icon: "🚀" }
-      ];
+    const toRel = (iso?: string) => {
+      if (!iso) return "—";
+      const t = new Date(iso).getTime();
+      if (isNaN(t)) return "—";
+      const diffMs = Date.now() - t;
+      const m = Math.floor(diffMs / 60000);
+      if (m < 1) return "just now";
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      const d = Math.floor(h / 24);
+      if (d < 30) return `${d}d ago`;
+      const mo = Math.floor(d / 30);
+      return `${mo}mo ago`;
+    };
+
+    // Completed goals
+    desires
+      .filter((d: any) => d.completed || (d.progress && d.progress >= 100))
+      .slice(0, 3)
+      .forEach((d: any) => {
+        acts.push({
+          icon: "🎯",
+          text: `Completed goal: ${d.title || "Untitled Goal"}`,
+          xp: `+${Number(d.xp) || 300} XP`,
+          time: toRel(d.completedAt || d.updatedAt || d.createdAt),
+          _ts: new Date(d.completedAt || d.updatedAt || d.createdAt || 0).getTime() || 0,
+        });
+      });
+
+    // Recent journal entries
+    journalEntries.slice(0, 3).forEach((j: any) => {
+      acts.push({
+        icon: "📓",
+        text: `Journal entry: ${j.title || j.scriptType || "Scripted Reality"}`,
+        xp: "+50 XP",
+        time: toRel(j.createdAt || j.date),
+        _ts: new Date(j.createdAt || j.date || 0).getTime() || 0,
+      });
+    });
+
+    // Recent vision items
+    visionItems.slice(0, 2).forEach((v: any) => {
+      acts.push({
+        icon: "🖼️",
+        text: `Added vision: ${v.caption || v.title || "Manifest Image"}`,
+        xp: "+20 XP",
+        time: toRel(v.createdAt),
+        _ts: new Date(v.createdAt || 0).getTime() || 0,
+      });
+    });
+
+    // Streak milestone (if >= 1)
+    if (streak > 0) {
+      acts.push({
+        icon: "🔥",
+        text: `Active ${streak}-day continuous streak`,
+        xp: `+${streak * 50} XP total`,
+        time: streak === 1 ? "today" : `${streak}d running`,
+        _ts: Date.now() - 1000,
+      });
+    }
+
+    // Sort by timestamp desc and keep top 5
+    return acts
+      .sort((a, b) => b._ts - a._ts)
+      .slice(0, 5)
+      .map(({ _ts, ...rest }) => rest);
+  })();
+
+  // Active Streaks / Goals — derived ENTIRELY from real Firestore desires
+  // No fake fallback objects: if no goals, show an empty-state hint.
+  const categoryIcons: Record<string, string> = {
+    wealth: "💰", lifestyle: "🏠", career: "🚀", spiritual: "🧘",
+    health: "💪", relationship: "❤️", personal: "✨", general: "🎯",
+  };
+  const categoryColors: Record<string, string> = {
+    wealth: "#f59e0b", lifestyle: "#a855f7", career: "#3b82f6", spiritual: "#10b981",
+    health: "#ef4444", relationship: "#f43f5e", personal: "#06b6d4", general: "#8b5cf6",
+  };
+  const activeStreaks = desires.slice(0, 3).map((d: any, idx: number) => {
+    const cat = (d.category || "general").toLowerCase();
+    const pct = Math.max(0, Math.min(100, Number(d.progress) || 0));
+    return {
+      id: d.id,
+      title: d.title || "Untitled Goal",
+      cat: cat.charAt(0).toUpperCase() + cat.slice(1),
+      pct,
+      next: d.notes || (pct >= 100 ? "Completed!" : "Continue daily action"),
+      xp: Number(d.xp) || Math.max(50, 300 - idx * 50),
+      color: categoryColors[cat] || "#a855f7",
+      icon: categoryIcons[cat] || "🎯",
+    };
+  });
 
   // Habit streak toggle
   const toggleHabitToday = (id: string) => {
@@ -466,9 +573,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const handleSaveProfile = async () => {
     const updates: Partial<ProfileState> = {
       name: editName.trim() || userName,
-      universeRank: editTitle.trim() || "SHADOW MONARCH",
+      universeRank: editTitle.trim() || rankInfo.name,
       primaryFocus: editFocus.trim(),
-      tags: editTags
+      tags: editTags,
     };
 
     if (updateUserProfile) {
@@ -503,7 +610,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div>
           <div className="flex items-center gap-2.5">
             <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono uppercase font-bold tracking-widest">
-              ASCENDED HUNTER
+              {rankInfo.subtitle}
             </span>
           </div>
           <p className="text-xs text-white/60 mt-0.5">Track your evolution. Analyze. Improve. Ascend.</p>
@@ -719,28 +826,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         {/* Global Rank Card */}
-        <div 
-          onClick={() => notify(`🌐 Global Hunter Rank: #${globalRank} (Top 1%)`)}
+        <div
+          onClick={() => notify(`🌐 Global Hunter Rank: #${globalRank}`)}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between cursor-pointer transition shadow-lg"
         >
           <div>
             <div className="text-[9px] font-mono text-white/50 uppercase tracking-widest">GLOBAL RANK</div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-black tabular-nums text-white">#{globalRank}</span>
-              <span className="text-emerald-400 text-[11px] font-bold">↑{rankChange}</span>
+              {rankChange > 0 && (
+                <span className="text-emerald-400 text-[11px] font-bold">↑{rankChange}</span>
+              )}
             </div>
-            <div className="text-[10px] text-white/50">Top 1% of all System Hunters</div>
+            <div className="text-[10px] text-white/50">
+              {globalRank <= 100 ? "Top 100 Hunters" : globalRank <= 1000 ? "Top 1% of all Hunters" : "Keep grinding to climb"}
+            </div>
           </div>
           <div className="text-right text-[11px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-            {1750} XP<br />to Rank Up
+            {xpToRankUp} XP<br />to Rank Up
           </div>
         </div>
       </div>
 
-      {/* STATS OVERVIEW GRID */}
+      {/* STATS OVERVIEW GRID — all numbers from real Firestore */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-        
-        <div 
+
+        <div
           onClick={() => setSelectedStat("total_xp")}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 cursor-pointer transition shadow-md"
         >
@@ -749,10 +860,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span className="font-medium">Total XP</span>
           </div>
           <div className="text-xl font-extrabold text-white tabular-nums">{totalXP.toLocaleString()}</div>
-          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">↑12,430 this week</div>
+          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">
+            {rankDelta > 0 ? `↑${rankDelta} this session` : streak > 0 ? `${streak}-day streak` : "Start your journey"}
+          </div>
         </div>
 
-        <div 
+        <div
           onClick={() => setSelectedStat("goals")}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 cursor-pointer transition shadow-md"
         >
@@ -760,11 +873,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <Target size={13} className="text-purple-400" />
             <span className="font-medium">Goals Done</span>
           </div>
-          <div className="text-xl font-extrabold text-white tabular-nums">{goalsCompletedCount}</div>
-          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">↑5 this week</div>
+          <div className="text-xl font-extrabold text-white tabular-nums">{goalsCompletedCount} <span className="text-xs text-white/40">/ {activeGoalsCount}</span></div>
+          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">
+            {activeGoalsCount > 0
+              ? `${Math.round((goalsCompletedCount / activeGoalsCount) * 100)}% completion • +${goalsCompletedThisWeek} this week`
+              : "Create your first goal"}
+          </div>
         </div>
 
-        <div 
+        <div
           onClick={() => setSelectedStat("streak")}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 cursor-pointer transition shadow-md"
         >
@@ -773,10 +890,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span className="font-medium">Streak Days</span>
           </div>
           <div className="text-xl font-extrabold text-white tabular-nums">{streak}</div>
-          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">Best: {streak + 14}d</div>
+          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">
+            Best: {Math.max(streak, Number(profile.longestStreak) || 0)}d
+          </div>
         </div>
 
-        <div 
+        <div
           onClick={() => setSelectedStat("alignment")}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 cursor-pointer transition shadow-md"
         >
@@ -785,10 +904,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span className="font-medium">Alignment %</span>
           </div>
           <div className="text-xl font-extrabold text-white tabular-nums">{alignment}%</div>
-          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">↑6% this week</div>
+          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">
+            Based on {goalsCompletedCount} goal{goalsCompletedCount === 1 ? "" : "s"} completed
+          </div>
         </div>
 
-        <div 
+        <div
           onClick={() => setSelectedStat("power")}
           className="bg-zinc-950 border border-white/10 hover:border-purple-500/50 rounded-2xl p-3 col-span-2 sm:col-span-1 lg:col-span-1 cursor-pointer transition shadow-md"
         >
@@ -797,7 +918,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span className="font-medium">Dominion Power</span>
           </div>
           <div className="text-xl font-extrabold text-white tabular-nums">{dominionPower.toLocaleString()}</div>
-          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">↑15,230 this week</div>
+          <div className="text-emerald-400 text-[10px] font-mono mt-0.5">
+            Level {level} × {Math.max(1, totalQuestsCompleted)} quest{totalQuestsCompleted === 1 ? "" : "s"}
+          </div>
         </div>
       </div>
 
