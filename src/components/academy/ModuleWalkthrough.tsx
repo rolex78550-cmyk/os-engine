@@ -243,10 +243,12 @@ function ModuleBackground({ moduleId, accentColor }: { moduleId: string; accentC
   };
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
       <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
         {elements[moduleId] || elements["tesla-369"]}
       </svg>
+      {/* Soft top-to-bottom gradient so the top never reads as a black slab */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/20" />
     </div>
   );
 }
@@ -405,7 +407,14 @@ export default function ModuleWalkthrough({
   // an empty walkthrough that just shows the intro screen forever.
   if (lessons.length === 0) {
     return (
-      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        style={{
+          background:
+            "radial-gradient(ellipse at top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.96) 60%, #000 100%)",
+        }}
+      >
+        <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
         <div className="relative z-10 max-w-md w-full text-center space-y-5 my-auto">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
             <BookOpen size={32} className="text-white/30" />
@@ -494,7 +503,13 @@ export default function ModuleWalkthrough({
   // ─── INTRO SCREEN ───
   if (isIntro) {
     return (
-      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        style={{
+          background:
+            "radial-gradient(ellipse at top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.96) 60%, #000 100%)",
+        }}
+      >
         <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
         <div className="relative z-10 max-w-2xl w-full text-center space-y-8 my-auto">
@@ -591,7 +606,13 @@ export default function ModuleWalkthrough({
   // ─── OUTRO / COMPLETION SCREEN ───
   if (isOutro) {
     return (
-      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        style={{
+          background:
+            "radial-gradient(ellipse at top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.96) 60%, #000 100%)",
+        }}
+      >
         <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
         <div className="relative z-10 max-w-lg w-full text-center space-y-8 my-auto">
@@ -683,11 +704,17 @@ export default function ModuleWalkthrough({
   const lessonDone = currentLesson ? completedLessons.has(currentLesson.id) : false;
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex flex-col overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[300] flex flex-col overflow-y-auto"
+      style={{
+        background:
+          "radial-gradient(ellipse at top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.96) 60%, #000 100%)",
+      }}
+    >
       <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
       {/* Top Bar — sticky to top so it stays visible while content scrolls */}
-      <div className="sticky top-0 z-20 shrink-0 flex items-center justify-between px-4 md:px-8 py-4 border-b border-white/[0.03] bg-black/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-20 shrink-0 flex items-center justify-between px-4 md:px-8 py-4 border-b border-white/[0.03] bg-black/60 backdrop-blur-md">
         <button
           onClick={onClose}
           className="flex items-center gap-2 text-white/30 hover:text-white text-[11px] font-mono uppercase tracking-wider font-bold transition-all cursor-pointer"
@@ -836,7 +863,7 @@ export default function ModuleWalkthrough({
 
       {/* Bottom Navigation */}
       {/* Bottom Navigation — sticky to bottom */}
-      <div className="sticky bottom-0 z-20 shrink-0 border-t border-white/[0.03] px-4 md:px-8 py-4 bg-black/80 backdrop-blur-xl">
+      <div className="sticky bottom-0 z-20 shrink-0 border-t border-white/[0.03] px-4 md:px-8 py-4 bg-black/60 backdrop-blur-md">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <button
             onClick={prevStep}
