@@ -1174,7 +1174,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* EDIT PROFILE MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <div className="font-black text-lg text-white">Edit Profile Configuration</div>
@@ -1264,7 +1264,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* HUNTER RANK PRIVILEGES MODAL */}
       {showRankModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4" onClick={() => setShowRankModal(false)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setShowRankModal(false)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <div>
@@ -1301,7 +1301,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* STAT BREAKDOWN MODAL */}
       {selectedStat && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4" onClick={() => setSelectedStat(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setSelectedStat(null)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <h3 className="font-bold text-base text-white capitalize">{selectedStat.replace("_", " ")} Breakdown</h3>
@@ -1324,7 +1324,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* ACHIEVEMENT INSPECT MODAL */}
       {selectedAchievement && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4" onClick={() => setSelectedAchievement(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setSelectedAchievement(null)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
             <div className="text-center">
               <div className="text-5xl mb-2">{selectedAchievement.icon}</div>
@@ -1359,7 +1359,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* ADD HABIT MODAL */}
       {showAddHabitModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4" onClick={() => setShowAddHabitModal(false)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setShowAddHabitModal(false)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-xs p-5 shadow-2xl space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-sm text-white">Add New Habit Tracker</h3>
             
@@ -1394,7 +1394,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* AVATAR SELECTION MODAL */}
       {showAvatarModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[230] flex items-center justify-center p-4" onClick={() => setShowAvatarModal(false)}>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4" onClick={() => setShowAvatarModal(false)}>
           <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl w-full max-w-3xl p-5 sm:p-7 shadow-2xl space-y-5 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             
             {/* Modal Header */}

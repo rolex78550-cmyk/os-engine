@@ -405,8 +405,8 @@ export default function ModuleWalkthrough({
   // an empty walkthrough that just shows the intro screen forever.
   if (lessons.length === 0) {
     return (
-      <div className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
-        <div className="relative z-10 max-w-md w-full text-center space-y-5">
+      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="relative z-10 max-w-md w-full text-center space-y-5 my-auto">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
             <BookOpen size={32} className="text-white/30" />
           </div>
@@ -494,10 +494,10 @@ export default function ModuleWalkthrough({
   // ─── INTRO SCREEN ───
   if (isIntro) {
     return (
-      <div className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
-        <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
+        <div className="relative z-10 max-w-2xl w-full text-center space-y-8 my-auto">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -591,10 +591,10 @@ export default function ModuleWalkthrough({
   // ─── OUTRO / COMPLETION SCREEN ───
   if (isOutro) {
     return (
-      <div className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
-        <div className="relative z-10 max-w-lg w-full text-center space-y-8">
+        <div className="relative z-10 max-w-lg w-full text-center space-y-8 my-auto">
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -683,11 +683,11 @@ export default function ModuleWalkthrough({
   const lessonDone = currentLesson ? completedLessons.has(currentLesson.id) : false;
 
   return (
-    <div className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex flex-col overflow-y-auto">
       <ModuleBackground moduleId={module.id} accentColor={module.accentColor} />
 
-      {/* Top Bar */}
-      <div className="shrink-0 flex items-center justify-between px-4 md:px-8 py-4 border-b border-white/[0.03] relative z-10">
+      {/* Top Bar — sticky to top so it stays visible while content scrolls */}
+      <div className="sticky top-0 z-20 shrink-0 flex items-center justify-between px-4 md:px-8 py-4 border-b border-white/[0.03] bg-black/80 backdrop-blur-xl">
         <button
           onClick={onClose}
           className="flex items-center gap-2 text-white/30 hover:text-white text-[11px] font-mono uppercase tracking-wider font-bold transition-all cursor-pointer"
@@ -711,8 +711,8 @@ export default function ModuleWalkthrough({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10">
+      {/* Main Content — scrollable area between sticky top bar and sticky bottom nav */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-8 relative z-10">
         <div className="max-w-2xl mx-auto space-y-8">
           <AnimatePresence mode="wait">
             {currentLesson && (
@@ -835,7 +835,8 @@ export default function ModuleWalkthrough({
       </div>
 
       {/* Bottom Navigation */}
-      <div className="shrink-0 border-t border-white/[0.03] px-4 md:px-8 py-4 relative z-10">
+      {/* Bottom Navigation — sticky to bottom */}
+      <div className="sticky bottom-0 z-20 shrink-0 border-t border-white/[0.03] px-4 md:px-8 py-4 bg-black/80 backdrop-blur-xl">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <button
             onClick={prevStep}

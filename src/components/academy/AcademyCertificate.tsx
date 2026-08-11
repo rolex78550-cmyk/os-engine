@@ -96,7 +96,7 @@ export default function AcademyCertificate({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[300] bg-black flex items-center justify-center p-4 overflow-y-auto"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/[0.03] rounded-full" />

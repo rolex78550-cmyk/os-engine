@@ -1500,7 +1500,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 1. VIEW ALL MISSIONS MODAL */}
       {showMissionsModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
@@ -1555,7 +1555,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 2. ADD CUSTOM MISSION MODAL */}
       {showAddMissionModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <form onSubmit={handleAddCustomMission} className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -1620,7 +1620,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 3. STREAK DETAIL & CONTROL DRAWER */}
       {selectedStreak && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
@@ -1684,7 +1684,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 4. ADD CUSTOM STREAK MODAL */}
       {showAddStreakModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <form onSubmit={handleAddCustomStreak} className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -1734,7 +1734,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 5. WARRIOR EVOLUTION ROADMAP MODAL */}
       {showRankModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-purple-500/30 rounded-3xl w-full max-w-xl p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
@@ -1803,7 +1803,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* 6. INSPECT USER CARD MODAL */}
       {inspectUser && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-sm p-6 text-center space-y-4 shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-purple-900/80 border-2 border-purple-400/50 flex items-center justify-center text-2xl font-black text-white mx-auto">
               {inspectUser.name.charAt(0)}
