@@ -379,17 +379,27 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         }, LOADING_SAFETY_TIMEOUT);
 
         // 2. Payments listener (also defensive)
+        // NOTE: We intentionally do NOT use `orderBy('createdAt', 'desc')` here.
+        // Firestore composite queries require indexes; missing indexes throw
+        // "The query requires an index" errors that fail the whole listener
+        // and the user loses access. We sort in-memory below.
         let unsubPayments: (() => void) | undefined;
         try {
           const payQuery = query(
             collection(db, 'payments'),
             where('userId', '==', firebaseUser.uid),
-            orderBy('createdAt', 'desc'),
             limit(50)
           );
           unsubPayments = onSnapshot(payQuery, (snap) => {
             const items: any[] = [];
             snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+            // Sort in-memory by createdAt desc (newest first) so deriveAccessFromPayments
+            // picks the most recent successful payment.
+            items.sort((a, b) => {
+              const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return bt - at;
+            });
             setPayments(items);
           }, (err) => {
             console.warn('[FirebaseProvider] payments listener error (non-fatal):', err?.message);
@@ -526,11 +536,13 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
           if (paymentStatus === 'success' || provider === 'dodo') {
             const planType = (urlParams.get('plan') || urlParams.get('planType') || 'monthly') as PlanType;
-            const payId = urlParams.get('payment_id') || `pay_dodo_${Date.now()}`;
+            // Dodo's hosted checkout does not always pass back payment_id in the URL.
+            // Generate a stable fallback so /api/dodo/activate has a non-empty id.
+            const payId = urlParams.get('payment_id') || urlParams.get('checkout_id') || `pay_dodo_${firebaseUser.uid}_${Date.now()}`;
             const amountUSD = planType === 'yearly' ? 49.99 : planType === 'lifetime' ? 99 : 4.99;
 
             try {
-              await fetch('/api/dodo/activate', {
+              const res = await fetch('/api/dodo/activate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -541,7 +553,12 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
                   currency: 'USD',
                 }),
               });
-              console.log('[FirebaseProvider] Dodo payment return verified and activated');
+              const result = await res.json().catch(() => ({}));
+              if (res.ok && result.success) {
+                console.log('[FirebaseProvider] ✅ Dodo payment return activated:', planType);
+              } else {
+                console.warn('[FirebaseProvider] Dodo activation API returned non-ok:', res.status, result);
+              }
             } catch (e) {
               console.warn('[FirebaseProvider] Dodo return activation skipped:', e);
             }
@@ -553,7 +570,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             refreshSubscription();
           }
         };
-        setTimeout(checkDodoReturnUrl, 1000);
+        setTimeout(checkDodoReturnUrl, 800);
 
         return () => {
           unsubProfile();

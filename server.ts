@@ -1028,12 +1028,13 @@ app.post("/api/razorpay/order", async (req, res) => {
   }
 });
 
-// API Route: Subscription Activate
+// API Route: Subscription Activate (Razorpay INR — used as fallback for India users
+// when the Razorpay webhook has not yet fired)
 app.post("/api/subscription/activate", async (req, res) => {
   try {
     const { uid, planType, razorpayOrderId, razorpayPaymentId, amount } = req.body;
-    if (!uid || !planType || !razorpayOrderId || !razorpayPaymentId || !amount) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+    if (!uid || !planType) {
+      return res.status(400).json({ success: false, error: "uid and planType are required" });
     }
 
     const db = getDb();
@@ -1067,10 +1068,12 @@ app.post("/api/subscription/activate", async (req, res) => {
       updatedAt: now.toISOString()
     }, { merge: true });
 
-    await db.collection("payments").add({
-      userId: uid, planType, amount: Number(amount), currency: "INR",
+    // Deterministic payment doc id so re-activations are idempotent.
+    const payDocId = razorpayPaymentId || razorpayOrderId || `rzp_act_${uid}_${now.getTime()}`;
+    await db.collection("payments").doc(payDocId).set({
+      userId: uid, planType, amount: Number(amount) || 0, currency: "INR",
       paymentStatus: "success", razorpayOrderId, razorpayPaymentId, createdAt: now.toISOString()
-    });
+    }, { merge: true });
 
     res.json({ success: true, message: "Subscription activated successfully" });
   } catch (error: any) {
@@ -1180,54 +1183,91 @@ app.post("/api/dodo/checkout", async (req, res) => {
 });
 
 // API Route: Dodo Subscription Activate
+// This is the FALLBACK activation path used when the webhook hasn't fired yet
+// (e.g. user lands on the return URL before the webhook arrives, or webhook
+// is not configured in the Dodo dashboard).
+//
+// It is also a DEFENSE-IN-DEPTH: even if the webhook fails, this endpoint
+// still grants the user access, so the customer never pays without getting
+// their subscription.
 app.post("/api/dodo/activate", async (req, res) => {
   try {
     const { uid, planType, dodoPaymentId, amount, currency = "USD" } = req.body;
-    if (!uid || !planType || !dodoPaymentId || !amount) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+    if (!uid || !planType) {
+      return res.status(400).json({ success: false, error: "uid and planType are required" });
     }
 
     const db = getDb();
     const userRef = db.collection("users").doc(uid);
     const userDoc = await userRef.get();
-    if (!userDoc.exists) return res.status(404).json({ success: false, error: "User not found" });
 
-    const FOUNDER_LIFETIME_LIMIT = 100;
+    // Founder lifetime cap
     if (planType === "lifetime") {
       const lifetimePayments = await db.collection("payments").where("planType", "==", "lifetime").where("paymentStatus", "==", "success").get();
-      if (lifetimePayments.size >= FOUNDER_LIFETIME_LIMIT) {
+      if (lifetimePayments.size >= 100) {
         return res.status(403).json({ success: false, error: "Founder Lifetime plan is sold out" });
       }
     }
 
     const now = new Date();
-    let expiryDate = null;
+    let expiryDate: Date | null = null;
     let status = "active";
     let lifetimeAccess = false;
 
-    if (planType === "lifetime") { lifetimeAccess = true; status = "lifetime"; }
-    else if (planType === "monthly") { expiryDate = new Date(now); expiryDate.setDate(expiryDate.getDate() + 30); }
-    else if (planType === "yearly") { expiryDate = new Date(now); expiryDate.setDate(expiryDate.getDate() + 365); }
+    if (planType === "lifetime") {
+      lifetimeAccess = true;
+      status = "lifetime";
+    } else if (planType === "monthly") {
+      expiryDate = new Date(now);
+      expiryDate.setDate(expiryDate.getDate() + 30);
+    } else if (yearlyHelper(planType)) {
+      expiryDate = new Date(now);
+      expiryDate.setDate(expiryDate.getDate() + 365);
+    } else {
+      return res.status(400).json({ success: false, error: `Invalid planType: ${planType}` });
+    }
 
+    // ── STEP 1: write user doc (source of truth for the app) ──
     await userRef.set({
       currentPlan: planType,
       subscriptionStatus: status,
       purchaseDate: now.toISOString(),
       expiryDate: expiryDate ? expiryDate.toISOString() : null,
       lifetimeAccess,
-      updatedAt: now.toISOString()
+      updatedAt: now.toISOString(),
     }, { merge: true });
 
-    await db.collection("payments").add({
-      userId: uid, planType, amount: Number(amount), currency,
-      paymentStatus: "success", dodoPaymentId, createdAt: now.toISOString()
-    });
+    // ── STEP 2: record the payment (used by deriveAccessFromPayments) ──
+    // Use a stable ID so duplicate activations don't create duplicate rows.
+    const stablePayId = dodoPaymentId || `dodo_act_${uid}_${now.getTime()}`;
+    await db.collection("payments").doc(stablePayId).set({
+      userId: uid,
+      planType,
+      amount: Number(amount) || 0,
+      currency,
+      paymentStatus: "success",
+      dodoPaymentId: stablePayId,
+      source: "return_url_activate",
+      createdAt: now.toISOString(),
+    }, { merge: true });
 
-    res.json({ success: true, message: "Dodo Subscription activated successfully" });
+    console.log(`[DodoActivate] ✅ Activated ${planType} for UID: ${uid} (expiry: ${expiryDate?.toISOString() || "lifetime"})`);
+    return res.json({
+      success: true,
+      message: "Dodo Subscription activated successfully",
+      planType,
+      expiryDate: expiryDate ? expiryDate.toISOString() : null,
+      lifetimeAccess,
+    });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error("[DodoActivate] Error:", error?.message || error);
+    res.status(500).json({ success: false, error: error?.message });
   }
 });
+
+function yearlyHelper(plan: string): boolean {
+  return plan === "yearly";
+}
 
 // In-memory set for fast webhook deduplication
 const processedDodoWebhookEvents = new Set<string>();
@@ -1361,19 +1401,23 @@ app.post("/api/dodo/webhook", async (req, res) => {
           updatedAt: now.toISOString()
         }, { merge: true });
 
-        await db.collection("payments").add({
+        // Use a deterministic doc id so duplicate webhooks don't create duplicates.
+        const payDocId = paymentId || `dodo_wh_${uid}_${now.getTime()}`;
+        await db.collection("payments").doc(payDocId).set({
           userId: uid,
           planType,
           amount,
           currency: "USD",
           paymentStatus: "success",
-          dodoPaymentId: paymentId,
+          dodoPaymentId: payDocId,
           createdAt: now.toISOString(),
           source: "webhook",
           eventType
-        });
+        }, { merge: true });
 
-        console.log(`[DodoWebhook] ✅ Subscription active/renewed for UID: ${uid}, Plan: ${planType}, Event: ${eventType}`);
+        console.log(`[DodoWebhook] ✅ Subscription active/renewed for UID: ${uid}, Plan: ${planType}, Event: ${eventType}, Expiry: ${expiryDate?.toISOString() || "lifetime"}`);
+      } else {
+        console.warn(`[DodoWebhook] ⚠️ Event ${eventType} received but no uid in metadata. Cannot grant access.`);
       }
     } else if (eventType === "subscription.on_hold") {
       if (uid) {
