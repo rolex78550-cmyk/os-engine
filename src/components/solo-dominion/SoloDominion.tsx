@@ -1449,172 +1449,229 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       </div>
 
-      {/* PREMIUM ANIME WARRIOR BLACK METAL CARDS VAULT (MILESTONE REWARDS) */}
-      <div className="mb-8 bg-[#121124]/90 border border-purple-500/25 rounded-[28px] p-6 shadow-2xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+      {/* SOLO DOMINION • REWARDS — Evolution Path Cards (exact screenshot style) */}
+      <div className="mb-8">
+        {/* Section header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
           <div>
-            <div className="flex items-center gap-2">
-              <CreditCard size={20} className="text-amber-400 animate-pulse" />
-              <h3 className="font-bold text-base tracking-wider text-white uppercase font-mono">
-                CHARACTER EVOLUTION • BLACK METAL ATM CARDS
-              </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles size={16} className="text-purple-400" />
+              <span className="text-[10px] font-mono tracking-[3px] text-purple-300 uppercase font-bold">SOLO DOMINION</span>
+              <span className="text-purple-400">✦</span>
+              <span className="text-[10px] font-mono tracking-[3px] text-amber-300 uppercase font-bold">REWARDS</span>
             </div>
-            <p className="text-xs text-purple-300 font-mono mt-0.5">
-              Instant Level 1 Welcome Card on login! Level up to unlock stunning anime warrior cards!
+            <p className="text-xs sm:text-sm text-white/60 tracking-tight font-medium">
+              Win your battles. Claim your power. These aren't just rewards, they're proof of your evolution.
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowWelcomeCardModal(true)}
-              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-black font-mono text-xs font-black shadow-lg shadow-amber-900/40 flex items-center gap-1.5 transition"
-            >
-              <Gift size={14} /> VIEW WELCOME CARD
-            </button>
-            <span className="px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-mono font-bold">
-              Level {level} Active
-            </span>
-          </div>
+          <button
+            onClick={() => setShowWelcomeCardModal(true)}
+            className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-mono text-xs font-black tracking-wider uppercase flex items-center gap-2 transition shadow-lg shadow-amber-900/40 shrink-0"
+          >
+            <Gift size={14} /> VIEW WELCOME REWARD
+          </button>
         </div>
 
-        {/* ATM CARDS GRID (4 TIERS) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* 4 TIER CARDS — full bleed anime character style */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {[
             {
-              id: "seeker-level-1",
-              tier: "TIER 1",
-              title: "CIVILIAN SEEKER BLACK CARD",
-              subtitle: "LEVEL 1 • WELCOME REWARD",
-              unlockedAtLevel: 1,
-              cardNumber: "4532 •••• •••• 1024",
-              exp: "12/28",
-              image: "/images/anime_trainee_warrior_1785176432904.jpg",
-              quote: "“The journey of a thousand leagues begins with a single deliberate habit.”",
-              perks: ["Initial Daily Habit Pass", "Base XP Tracker", "Sigma OS Access"],
-              gradient: "from-zinc-900 via-zinc-950 to-emerald-950/70 border-emerald-500/50 shadow-emerald-950/60",
-              textColor: "text-emerald-400",
-              badge: "👤 SEEKER TRAINEE"
-            },
-            {
-              id: "iron-level-5",
-              tier: "TIER 2",
-              title: "CRIMSON BERSERKER GOLD CARD",
-              subtitle: "LEVEL 5 • EXECUTIVE MILESTONE",
+              id: "demon-slayer",
+              tier: 1,
+              title: "DEMON SLAYER",
+              subtitle: "LEVEL 5 • FIRST AWAKENING",
               unlockedAtLevel: 5,
-              cardNumber: "5219 •••• •••• 8830",
-              exp: "12/29",
-              image: "/images/anime_red_warrior_1785177142520.jpg",
-              quote: "“Forged in crimson fire. Physical & mental willpower rising infinitely.”",
-              perks: ["+10% XP Multiplier", "Streak Freeze Shield", "Custom Mission Creator"],
-              gradient: "from-zinc-900 via-red-950/60 to-rose-950 border-red-500/60 shadow-red-950/70",
-              textColor: "text-red-400",
-              badge: "⚔️ CRIMSON BERSERKER"
+              image: "/images/anime_demon_slayer.jpg",
+              quote: "\u201CCut through doubt.\nSlay your demons.\nBecome unstoppable.\u201D",
+              accent: "purple",
+              borderGlow: "rgba(168, 85, 247, 0.6)",
+              iconBg: "from-violet-500 via-purple-600 to-fuchsia-600",
+              ornamentColor: "text-purple-300",
+              label: "TIER I"
             },
             {
-              id: "shadow-level-12",
-              tier: "TIER 3",
-              title: "SHADOW COMMANDER KNIGHT",
-              subtitle: "LEVEL 12 • ELITE COMMANDER",
+              id: "crimson-berserker",
+              tier: 2,
+              title: "CRIMSON BERSERKER",
+              subtitle: "LEVEL 12 • EXECUTIVE ASCENSION",
               unlockedAtLevel: 12,
-              cardNumber: "7742 •••• •••• 3091",
-              exp: "12/30",
-              image: "/images/anime_shadow_knight_1785176768012.jpg",
-              quote: "“Master of focus and shadow power. Unstoppable aura and deep clarity.”",
-              perks: ["+25% XP Multiplier", "+25% Daily Boss Damage", "Guild Vanguard Access"],
-              gradient: "from-zinc-900 via-purple-950/60 to-indigo-950 border-purple-500/60 shadow-purple-950/70",
-              textColor: "text-purple-400",
-              badge: "⚔️ SHADOW KNIGHT"
+              image: "/images/anime_red_warrior_1785177142520.jpg",
+              quote: "\u201CRage is temporary.\nDiscipline is eternal.\nChoose your legacy.\u201D",
+              accent: "red",
+              borderGlow: "rgba(239, 68, 68, 0.6)",
+              iconBg: "from-rose-500 via-red-600 to-amber-600",
+              ornamentColor: "text-red-300",
+              label: "TIER II"
             },
             {
-              id: "monarch-level-25",
-              tier: "TIER 4",
-              title: "COSMIC SHADOW MONARCH",
-              subtitle: "LEVEL 25 • LEGENDARY MONARCH",
+              id: "shadow-commander",
+              tier: 3,
+              title: "SHADOW COMMANDER",
+              subtitle: "LEVEL 25 • ELITE ASCENSION",
               unlockedAtLevel: 25,
-              cardNumber: "9999 •••• •••• 7777",
-              exp: "VIP INFINITE",
+              image: "/images/anime_shadow_knight_1785176768012.jpg",
+              quote: "\u201CThe world is ruled\nby those who operate\nin the shadows.\u201D",
+              accent: "slate",
+              borderGlow: "rgba(148, 163, 184, 0.6)",
+              iconBg: "from-slate-500 via-zinc-600 to-neutral-700",
+              ornamentColor: "text-slate-200",
+              label: "TIER III"
+            },
+            {
+              id: "cosmic-shadow-monarch",
+              tier: 4,
+              title: "COSMIC SHADOW MONARCH",
+              subtitle: "LEVEL 50 • LEGENDARY APEX",
+              unlockedAtLevel: 50,
               image: "/images/anime_shadow_monarch_1785176449409.jpg",
-              quote: "“Peak reality creation. Total mastery over physical and mental domain.”",
-              perks: ["+50% XP Multiplier", "Instant Boss Obliteration", "Supreme Monarch Title"],
-              gradient: "from-purple-950 via-zinc-950 to-teal-950 border-emerald-400/60 shadow-emerald-950/80",
-              textColor: "text-emerald-300",
-              badge: "👑 COSMIC MONARCH"
+              quote: "\u201CYou don't chase the universe.\nYou become something\nit bows to.\u201D",
+              accent: "amber",
+              borderGlow: "rgba(251, 191, 36, 0.7)",
+              iconBg: "from-amber-400 via-yellow-500 to-orange-500",
+              ornamentColor: "text-amber-300",
+              label: "TIER IV"
             }
           ].map((card) => {
             const isUnlocked = level >= card.unlockedAtLevel;
             return (
-              <div 
+              <div
                 key={card.id}
-                onClick={() => setSelectedCard(card)}
-                className={`relative rounded-2xl overflow-hidden border p-5 flex flex-col justify-between min-h-[230px] transition-all duration-300 cursor-pointer hover:scale-[1.02] shadow-2xl group ${
-                  isUnlocked ? card.gradient : "bg-zinc-950 border-white/10 opacity-60 grayscale"
+                onClick={() => setSelectedCard({ ...card, isUnlocked })}
+                className={`relative cursor-pointer group transition-all duration-500 ${
+                  isUnlocked ? "hover:-translate-y-2" : ""
                 }`}
+                style={{ animation: "fadeInUp 0.6s ease-out" }}
               >
-                {card.id === "seeker-level-1" && (
-                  <video 
-                    ref={(el) => {
-                      if (el) {
-                        el.muted = true;
-                        el.play().catch(() => {});
-                      }
+                {/* Main card frame — full bleed character image */}
+                <div
+                  className={`relative aspect-[3/5] rounded-2xl overflow-hidden border-2 ${
+                    isUnlocked ? "" : "opacity-50 grayscale"
+                  }`}
+                  style={{
+                    borderColor: isUnlocked ? card.borderGlow : "rgba(255,255,255,0.1)",
+                    boxShadow: isUnlocked
+                      ? `0 0 30px ${card.borderGlow}, inset 0 0 60px rgba(0,0,0,0.4)`
+                      : "none",
+                  }}
+                >
+                  {/* FULL-BLEED CHARACTER IMAGE */}
+                  <img
+                    src={resolveImageUrl(card.image)}
+                    alt={card.title}
+                    onError={onImgError()}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+
+                  {/* Dark gradient overlay (top + bottom for text readability) */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%)",
                     }}
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    preload="auto"
-                    poster="/images/anime_trainee_warrior_1785176432904.jpg"
-                    className="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
-                  >
-                    <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
-                  </video>
+                  />
+
+                  {/* TOP CORNER ORNAMENTS — like the reference image */}
+                  <div className={`absolute top-0 left-0 w-12 h-12 ${card.ornamentColor} opacity-80`}>
+                    <svg viewBox="0 0 50 50" fill="currentColor" className="w-full h-full">
+                      <path d="M0 0 L18 0 L18 4 L4 4 L4 18 L0 18 Z M6 6 L14 6 L14 8 L8 8 L8 14 L6 14 Z" />
+                      <circle cx="3" cy="3" r="1.5" />
+                    </svg>
+                  </div>
+                  <div className={`absolute top-0 right-0 w-12 h-12 ${card.ornamentColor} opacity-80`}>
+                    <svg viewBox="0 0 50 50" fill="currentColor" className="w-full h-full">
+                      <path d="M50 0 L32 0 L32 4 L46 4 L46 18 L50 18 Z M36 6 L44 6 L44 8 L38 8 L38 14 L36 14 Z" />
+                      <circle cx="47" cy="3" r="1.5" />
+                    </svg>
+                  </div>
+                  <div className={`absolute bottom-0 left-0 w-12 h-12 ${card.ornamentColor} opacity-80`}>
+                    <svg viewBox="0 0 50 50" fill="currentColor" className="w-full h-full">
+                      <path d="M0 50 L18 50 L18 46 L4 46 L4 32 L0 32 Z M6 44 L14 44 L14 42 L8 42 L8 36 L6 36 Z" />
+                      <circle cx="3" cy="47" r="1.5" />
+                    </svg>
+                  </div>
+                  <div className={`absolute bottom-0 right-0 w-12 h-12 ${card.ornamentColor} opacity-80`}>
+                    <svg viewBox="0 0 50 50" fill="currentColor" className="w-full h-full">
+                      <path d="M50 50 L32 50 L32 46 L46 46 L46 32 L50 32 Z M36 44 L44 44 L44 42 L38 42 L38 36 L36 36 Z" />
+                      <circle cx="47" cy="47" r="1.5" />
+                    </svg>
+                  </div>
+
+                  {/* TOP: Tier label */}
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+                    <div className={`px-3 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border ${card.ornamentColor} text-[9px] font-mono font-bold tracking-[2px] uppercase`}>
+                      {card.label}
+                    </div>
+                  </div>
+
+                  {/* CENTER: Shield-like emblem */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${card.iconBg} flex items-center justify-center border-2 shadow-2xl`}
+                      style={{ borderColor: card.borderGlow }}>
+                      <Sparkles size={20} className="text-white drop-shadow-lg" />
+                    </div>
+                  </div>
+
+                  {/* BOTTOM CONTENT: Title + Quote */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+                    <div className="text-center space-y-2">
+                      <h3
+                        className={`font-serif font-black uppercase tracking-[1.5px] leading-[0.95] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
+                          card.title.length > 18 ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+                        }`}
+                      >
+                        {card.title}
+                      </h3>
+                      <p className="text-[9.5px] font-mono tracking-[1.5px] uppercase text-white/70 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+                        {card.subtitle}
+                      </p>
+                      <p className="text-[10.5px] font-serif italic text-white/90 leading-snug whitespace-pre-line pt-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+                        {card.quote}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* LOCK OVERLAY for locked cards */}
+                  {!isUnlocked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                      <div className="text-center space-y-1.5">
+                        <div className="text-3xl">🔒</div>
+                        <p className="text-[10px] font-mono font-bold text-white uppercase tracking-wider">
+                          Reach Level {card.unlockedAtLevel}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* UNLOCKED indicator below card */}
+                {isUnlocked && (
+                  <div className="text-center mt-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-mono font-bold uppercase tracking-wider">
+                      <Zap size={9} /> Unlocked
+                    </span>
+                  </div>
                 )}
-                <div className="flex justify-between items-start z-10">
-                  <div className="space-y-0.5">
-                    <div className={`text-[9.5px] font-mono tracking-[2px] font-bold uppercase ${card.textColor}`}>
-                      {card.tier}
-                    </div>
-                    <div className="text-xs font-black text-white font-mono uppercase leading-snug">
-                      {card.title}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-7 h-5 rounded bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 border border-amber-500/40 shadow-md flex items-center justify-center text-[7px] font-black font-mono text-amber-950">
-                      CHIP
-                    </div>
-                    {isUnlocked ? <Zap size={13} className={card.textColor} /> : <X size={13} className="text-zinc-500" />}
-                  </div>
-                </div>
-
-                {/* Character Image & Overlay */}
-                <div className="my-2.5 flex items-center gap-3 z-10">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 shrink-0 shadow-lg bg-black">
-                    <img src={resolveImageUrl(card.image)} alt={card.title} onError={onImgError()} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className={`text-[10px] font-mono font-bold ${isUnlocked ? "text-white" : "text-amber-400"}`}>
-                      {isUnlocked ? "UNLOCKED" : `REACH LEVEL ${card.unlockedAtLevel}`}
-                    </div>
-                    <div className="text-[9.5px] text-zinc-300 font-mono line-clamp-1">{card.badge}</div>
-                  </div>
-                </div>
-
-                {/* Card Number & Holder */}
-                <div className="space-y-1 z-10 pt-2 border-t border-white/10">
-                  <div className="text-xs font-mono tracking-[2px] font-bold text-zinc-300">
-                    {card.cardNumber}
-                  </div>
-                  <div className="flex justify-between items-center text-[9px] font-mono text-zinc-400">
-                    <span className="uppercase font-bold text-white truncate max-w-[110px]">{profile?.name || "WARRIOR"}</span>
-                    <span className={`font-bold ${card.textColor}`}>{card.exp}</span>
-                  </div>
-                </div>
               </div>
             );
           })}
         </div>
-      </div>
 
+        {/* Bottom call-to-action */}
+        <div className="flex items-center justify-between mt-6 px-2">
+          <div>
+            <p className="text-[11px] font-mono text-purple-300 uppercase tracking-wider font-bold">
+              Your journey. Your rewards.
+            </p>
+            <p className="text-[10px] font-mono text-white/40 mt-0.5">
+              Keep progressing. Greater powers await.
+            </p>
+          </div>
+          <button className="text-[11px] font-mono font-bold text-white/60 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition">
+            View All Rewards <ArrowRight size={12} />
+          </button>
+        </div>
+      </div>
       {/* YOUR ACTIVE STREAKS */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4 px-1">
