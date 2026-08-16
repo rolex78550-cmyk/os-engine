@@ -1798,56 +1798,48 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* --- MODALS & DRAWERS --- */}
 
-      {/* PROOF VERIFICATION MODAL — CLEAN WHITE/BLACK THEME */}
+      {/* PROOF VERIFICATION MODAL — CLEAN WHITE/BLACK THEME, FULL-SCREEN ON MOBILE */}
       {proofMission && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 animate-fade-in" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}>
-          <div className="bg-white text-black w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl relative max-h-[94vh] overflow-y-auto" style={{ border: "1px solid #000" }}>
+        <div
+          className="fixed inset-0 z-[300] flex items-stretch sm:items-center justify-center sm:p-4 animate-fade-in overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}
+        >
+          <div
+            className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl relative sm:my-4 flex flex-col"
+            style={{
+              border: "1px solid #000",
+              minHeight: "100vh",
+              maxHeight: "100vh",
+            }}
+          >
 
-            {/* Close button */}
-            <button
-              onClick={closeProofModal}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition z-20"
-              aria-label="Close"
+            {/* STICKY HEADER */}
+            <div
+              className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
+              style={{ borderColor: "#000", backgroundColor: "#fff", position: "sticky", top: 0, zIndex: 10 }}
             >
-              <X size={18} />
-            </button>
-
-            {/* Header */}
-            <div className="px-5 sm:px-7 pt-6 pb-4 border-b" style={{ borderColor: "#000" }}>
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
-                  {proofMission.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[9px] font-mono tracking-[2.5px] uppercase font-bold" style={{ color: "#666" }}>
-                    PROOF REQUIRED
-                  </div>
-                  <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-black leading-tight truncate">
-                    {proofMission.title}
-                  </h3>
-                </div>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+                {proofMission.icon}
               </div>
-              <p className="text-[11px] mt-2 font-mono" style={{ color: "#555" }}>{proofMission.desc}</p>
-
-              {/* Step indicator */}
-              <div className="flex items-center gap-1 pt-3">
-                {(["choose", "selfie", "video", "text", "verifying", "result"] as const).map((s) => (
-                  <div
-                    key={s}
-                    className="h-1 flex-1 rounded-full transition-all"
-                    style={{
-                      backgroundColor:
-                        proofStep === s
-                          ? "#000"
-                          : (proofStep === "verifying" || proofStep === "result") ||
-                            ((proofStep === "selfie" || proofStep === "video" || proofStep === "text") && s === "choose")
-                          ? "#000"
-                          : "#e5e5e5",
-                    }}
-                  />
-                ))}
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] font-mono tracking-[2.5px] uppercase font-bold" style={{ color: "#666" }}>
+                  PROOF REQUIRED
+                </div>
+                <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-black leading-tight truncate">
+                  {proofMission.title}
+                </h3>
               </div>
+              <button
+                onClick={closeProofModal}
+                className="p-2 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition shrink-0"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
             </div>
+
+            {/* SCROLLABLE BODY */}
+            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
 
             {/* STEP 1: Choose ANY ONE proof type */}
             {proofStep === "choose" && (
@@ -1862,7 +1854,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 <div className="space-y-2.5">
                   <button
                     onClick={() => setProofStep("selfie")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
                     style={{ borderColor: "#000", backgroundColor: "#fff" }}
                   >
                     <div className="flex items-center gap-3">
@@ -1881,7 +1873,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
                   <button
                     onClick={() => setProofStep("video")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
                     style={{ borderColor: "#000", backgroundColor: "#fff" }}
                   >
                     <div className="flex items-center gap-3">
@@ -1900,7 +1892,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
                   <button
                     onClick={() => setProofStep("text")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
                     style={{ borderColor: "#000", backgroundColor: "#fff" }}
                   >
                     <div className="flex items-center gap-3">
