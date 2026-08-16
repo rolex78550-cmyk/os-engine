@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { 
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
   Target, Zap, BookOpen, Edit3, Flame, CheckCircle, ArrowRight,
   Volume2, VolumeX, Plus, X, ChevronLeft, ChevronRight, Star,
   Trophy, Sparkles, Calendar, Edit2, Trash2, Award, Info, Gift, User, Check,
@@ -12,6 +12,12 @@ import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
+import {
+  DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
+  CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
+  getCurrentTier, getNextTier, xpForNextLevel,
+  type QuestDef, type QuestRank, type QuestCategory, type QuestQuestType,
+} from "../../lib/questSystem";
 
 interface Mission {
   id: string;
@@ -27,12 +33,24 @@ interface Mission {
   completed: boolean;
   /** Proof requirements — AI picks based on mission description */
   proofRequired?: ProofType;
-  /** Mission category for AI-driven proof selection */
-  category?: "fitness" | "learning" | "mindset" | "wealth" | "lifestyle" | "social" | "creative" | "general";
+  /** Mission category for AI-driven proof selection (legacy values + new) */
+  category?:
+    | "fitness" | "learning" | "mindset" | "wealth" | "lifestyle"
+    | "social" | "creative" | "general"
+    | "mind" | "body" | "career" | "goals" | "knowledge"
+    | "life" | "discipline" | "manifestation";
   /** Recorded proof data (after user submits) */
   proofData?: MissionProof;
   /** When the proof was last verified */
   verifiedAt?: string;
+  /** Quest type for the RPG board (main / side / discipline / boss) */
+  questType?: "main" | "side" | "discipline" | "boss";
+  /** Difficulty rank (E / D / C / B / A) */
+  rank?: "E" | "D" | "C" | "B" | "A";
+  /** Boss quest artwork (only set for boss quests) */
+  bossImage?: string;
+  /** Long-form description for the quest board */
+  description?: string;
 }
 
 type ProofType = "selfie" | "video_oath" | "text_oath" | "both";
@@ -1107,41 +1125,247 @@ export const SoloDominion: React.FC<any> = (props) => {
   const visibleStreaks = streaks.slice(streakPageIndex * 6, (streakPageIndex + 1) * 6);
   const maxStreakPages = Math.ceil(streaks.length / 6);
 
+  // ============================================================
+  // QUEST SYSTEM DERIVATIONS — RPG layer
+  // ============================================================
+  const currentTier = getCurrentTier(level);
+  const nextTier = getNextTier(level);
+
+  // Convert existing `missions` (legacy Mission[]) into a unified quest list
+  // that the new QuestBoard expects, using the new rank + category metadata.
+  // We re-derive ranks and categories from existing mission data so legacy
+  // users keep their XP without losing progress.
+  const deriveRankFromXp = (xp: number): QuestRank => {
+    if (xp <= 25) return "E";
+    if (xp <= 60) return "D";
+    if (xp <= 130) return "C";
+    if (xp <= 320) return "B";
+    return "A";
+  };
+  const deriveCategoryFromMission = (m: Mission): QuestCategory => {
+    if (m.category === "fitness") return "body";
+    if (m.category === "learning") return "knowledge";
+    if (m.category === "mindset") return "mind";
+    if (m.category === "wealth") return "wealth";
+    if (m.category === "lifestyle") return "life";
+    if (m.category === "social") return "social";
+    if (m.category === "creative") return "career";
+    return "career";
+  };
+  const deriveQuestType = (m: Mission, idx: number): QuestQuestType => {
+    if (m.proofData?.proofTypeUsed === "video_oath" || (m.xp || 0) >= 150) return "boss";
+    if ((m.xp || 0) >= 100) return "main";
+    if (idx === 0) return "main";
+    if (m.category === "mindset" || m.category === "wealth") return "discipline";
+    return "side";
+  };
+
+  // Build the quest list shown in the QuestBoard. We merge:
+  //  1) The user's existing missions (from Firestore) — preserved for back-compat
+  //  2) Default quests that don't exist in their list — gentle onboarding
+  const legacyQuests: Mission[] = (missions || []).map((m, i) => ({
+    ...m,
+    questType: deriveQuestType(m, i),
+    rank: (m.xp <= 25 ? "E" : m.xp <= 60 ? "D" : m.xp <= 130 ? "C" : m.xp <= 320 ? "B" : "A") as QuestRank,
+    category: deriveCategoryFromMission(m),
+  }));
+
+  // Default onboarding quests — only added once per user (when they have
+  // zero custom missions). Otherwise the user keeps their own catalogue.
+  const seenIds = new Set(legacyQuests.map((q) => q.id));
+  const onboardingQuests: Mission[] = (legacyQuests.length === 0
+    ? DEFAULT_QUESTS.map((d) => {
+        const legacyCat: Mission["category"] =
+          d.category === "body" ? "fitness" :
+          d.category === "knowledge" ? "learning" :
+          d.category === "mind" ? "mindset" :
+          "lifestyle";
+        return {
+          id: d.id,
+          title: d.title,
+          desc: d.description,
+          description: d.description,
+          progress: "0/1",
+          currentVal: 0,
+          targetVal: 1,
+          unit: "times",
+          xp: d.xp,
+          icon: CATEGORY_ICON[d.category],
+          color: "#a855f7",
+          completed: false,
+          category: legacyCat,
+          questType: d.questType,
+          rank: d.rank,
+          bossImage: d.bossImage,
+        };
+      })
+    : []
+  ).filter((q) => !seenIds.has(q.id));
+
+  const quests: Mission[] = [...onboardingQuests, ...legacyQuests];
+
+  // Boss battles — always from the catalog, but mark completed if user already
+  // completed an equivalent local mission.
+  const completedBossIds = new Set(
+    legacyQuests.filter((q) => q.questType === "boss" && q.completed).map((q) => q.id)
+  );
+  const bossQuests: Mission[] = BOSS_QUESTS.map((b) => ({
+    id: b.id,
+    title: b.title,
+    desc: b.description,
+    description: b.description,
+    progress: "0/1",
+    currentVal: 0,
+    targetVal: 1,
+    unit: "times",
+    xp: b.xp,
+    icon: CATEGORY_ICON[b.category],
+    color: "#ef4444",
+    completed: completedBossIds.has(b.id),
+    category: "lifestyle" as const,
+    questType: "boss" as const,
+    rank: b.rank,
+    bossImage: b.bossImage,
+  }));
+
+  // Daily XP + completion counters
+  const DAILY_XP_CAP = 800;
+  const todayXpKey = today;
+  const dailyXpEarned = useMemo(() => {
+    // Sum XP from today's completed quests. For legacy data without
+    // submittedAt we just count it (best-effort).
+    return legacyQuests
+      .filter((q) => q.completed)
+      .reduce((sum, q) => sum + (q.xp || 0), 0);
+  }, [legacyQuests]);
+  const todayCompletedCount = legacyQuests.filter((q) => q.completed).length;
+  const isUnlockedFor = (lvl: number) => level >= lvl;
+
+  // Open proof modal for a quest
+  const openQuestProof = (q: Mission) => {
+    // Map new quest metadata back onto a Mission object that the existing
+    // proof pipeline understands. We re-use `openProofModal` from the legacy
+    // flow which already handles selfie/video/text proof submissions.
+    const synthetic: Mission = {
+      id: q.id,
+      title: q.title,
+      desc: q.desc,
+      progress: q.progress,
+      currentVal: q.currentVal,
+      targetVal: q.targetVal,
+      unit: q.unit,
+      xp: q.xp,
+      icon: q.icon,
+      color: q.color,
+      completed: q.completed,
+      category: q.category,
+      questType: q.questType,
+      rank: q.rank,
+      bossImage: q.bossImage,
+    };
+    openProofModal(synthetic);
+  };
+
   return (
-    <div 
+    <div
       className="text-white relative z-30 pb-12 select-none"
       onClick={handleUserInteraction}
+      style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
     >
-      {/* FLOATING TOAST NOTIFICATION */}
+      {/* ============================================================ */}
+      {/* GLOBAL FX — cinematic gradient + ambient particles          */}
+      {/* ============================================================ */}
+      <style>{`
+        @keyframes xpGlow {
+          0%, 100% { box-shadow: 0 0 14px rgba(168,85,247,0.45), inset 0 0 8px rgba(168,85,247,0.2); }
+          50%      { box-shadow: 0 0 28px rgba(168,85,247,0.85), inset 0 0 14px rgba(168,85,247,0.4); }
+        }
+        @keyframes bossPulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(239,68,68,0.5), 0 0 40px rgba(239,68,68,0.25); }
+          50%      { box-shadow: 0 0 36px rgba(239,68,68,0.95), 0 0 70px rgba(239,68,68,0.45); }
+        }
+        @keyframes floatParticle {
+          0%   { transform: translateY(0) translateX(0); opacity: 0; }
+          10%  { opacity: 0.6; }
+          90%  { opacity: 0.6; }
+          100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
+        }
+        @keyframes rewardGlow {
+          0%, 100% { box-shadow: 0 0 30px var(--glow), inset 0 0 60px rgba(0,0,0,0.4); }
+          50%      { box-shadow: 0 0 60px var(--glow), inset 0 0 80px rgba(0,0,0,0.3); }
+        }
+        @keyframes levelUpBurst {
+          0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+          40%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .sd-particle {
+          position: absolute;
+          width: 3px;
+          height: 3px;
+          background: rgba(168,85,247,0.7);
+          border-radius: 50%;
+          pointer-events: none;
+          animation: floatParticle linear infinite;
+          box-shadow: 0 0 6px rgba(168,85,247,0.8);
+        }
+        .sd-rank-E { border-color: rgba(148,163,184,0.6) !important; }
+        .sd-rank-D { border-color: rgba(34,197,94,0.6) !important; }
+        .sd-rank-C { border-color: rgba(59,130,246,0.6) !important; }
+        .sd-rank-B { border-color: rgba(168,85,247,0.6) !important; }
+        .sd-rank-A { border-color: rgba(251,191,36,0.7) !important; }
+      `}</style>
+
+      {/* Ambient purple particles */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
+        {Array.from({ length: 14 }).map((_, i) => (
+          <div
+            key={i}
+            className="sd-particle"
+            style={{
+              left: `${(i * 7 + 5) % 100}%`,
+              bottom: "-10vh",
+              animationDuration: `${15 + (i % 6) * 2}s`,
+              animationDelay: `${i * 0.4}s`,
+              opacity: 0.4,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ============================================================ */}
+      {/* FLOATING TOAST                                              */}
+      {/* ============================================================ */}
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-[300] bg-purple-950/90 border border-purple-400/50 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-bounce">
+        <div className="fixed top-20 right-6 z-[400] bg-gradient-to-r from-purple-950/95 to-indigo-950/95 border border-purple-400/60 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-bounce">
           <Sparkles size={18} className="text-yellow-400 animate-spin" />
           <span className="text-xs font-bold tracking-wide">{toastMsg}</span>
         </div>
       )}
 
-      {/* PAGE HEADER */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* ============================================================ */}
+      {/* PAGE HEADER                                                 */}
+      {/* ============================================================ */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
         <div>
           <div className="flex items-center gap-3 mb-1.5">
-            <div className="text-[10px] font-mono tracking-[4px] text-purple-400 uppercase font-bold">SOLO SYSTEM v2.0</div>
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="text-[10px] font-mono tracking-[4px] text-purple-400 uppercase font-bold">SOLO DOMINION v3.0</div>
+            <div className="h-px flex-1 bg-gradient-to-r from-purple-500/40 to-transparent" />
           </div>
-          
           <h1 className="text-[40px] sm:text-[48px] font-extrabold tracking-[-2.5px] leading-[0.95] mb-1.5 text-white">
             Continue your conquest.
           </h1>
           <p className="text-[14px] sm:text-[15px] text-white/60 tracking-tight font-medium">
-            Discipline today. Freedom forever.
+            Your real life is the game. <span className="text-purple-300">Your goals are quests.</span> Your discipline gives XP.
           </p>
         </div>
-
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2">
           <button
-            onClick={() => {
-              playVoiceover("start");
-              setShowSyncModal(true);
-            }}
+            onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black tracking-wider uppercase shadow-lg shadow-purple-900/40 border border-purple-400/30 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
           >
             <Calendar size={14} className="text-amber-400 animate-pulse" />
@@ -1150,308 +1374,96 @@ export const SoloDominion: React.FC<any> = (props) => {
         </div>
       </div>
 
-      {/* MAIN 12-COLUMN GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-8">
-        
-        {/* HERO CARD — EXACT DESIGN MATCH */}
-        <div 
-          className="xl:col-span-7 relative min-h-[340px] rounded-[24px] border border-white/10 overflow-hidden flex flex-col justify-between p-7 md:p-8 bg-cover bg-center shadow-2xl group"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(10,10,18,0.85) 0%, rgba(10,10,18,0.5) 50%, rgba(10,10,18,0.1) 100%), linear-gradient(to top, rgba(10,10,18,0.95) 0%, transparent 60%), url('/assets/solo-dominion-hero.jpg')`
-          }}
+      {/* ============================================================ */}
+      {/* TODAY'S DOMINION — XP bar + Level + Rank                   */}
+      {/* ============================================================ */}
+      <div className="mb-6 relative z-10">
+        <div
+          className="rounded-3xl border border-purple-500/30 bg-gradient-to-br from-[#1A0F2E]/90 via-[#0F0820]/90 to-[#08060F]/90 p-5 sm:p-6 relative overflow-hidden"
+          style={{ animation: "fadeInUp 0.5s ease-out" }}
         >
-          <div className="relative z-10">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[10px] font-mono tracking-[2.5px] text-white/50 uppercase">CURRENT STAGE</span>
-                <button
-                  onClick={openRankModal}
-                  className={`inline-flex items-center gap-1.5 px-3 py-0.5 border text-white text-[10px] font-bold rounded-full tracking-[1px] uppercase shadow-lg transition ${warrior.borderColor} ${warrior.bgGlow}`}
-                >
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                  {warrior.badge}
-                </button>
-              </div>
+          {/* Decorative glow */}
+          <div className="absolute -top-32 -right-32 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
-              <button
-                onClick={openRankModal}
-                className="text-[10px] font-mono text-purple-300 hover:text-white flex items-center gap-1 underline underline-offset-2"
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-5">
+            {/* Level + Rank block */}
+            <div className="flex items-center gap-4 shrink-0">
+              <div
+                className="relative w-[88px] h-[88px] rounded-full p-[3px] flex items-center justify-center"
+                style={{ animation: "xpGlow 3s ease-in-out infinite", background: "conic-gradient(from 0deg, #a855f7, #6366f1, #ec4899, #a855f7)" }}
               >
-                <Info size={12} /> Stage Roadmap
-              </button>
-            </div>
-
-            <h2 
-              onClick={openRankModal}
-              className="text-[42px] sm:text-[58px] font-serif font-black tracking-[1.5px] leading-[0.88] text-white uppercase drop-shadow-md cursor-pointer hover:text-purple-200 transition"
-            >
-              {warrior.stage}
-            </h2>
-            <div className={`text-[18px] sm:text-[22px] font-bold tracking-[2px] uppercase -mt-0.5 mb-2 drop-shadow-sm ${warrior.textColor}`}>
-              {warrior.title} • LEVEL {level}
-            </div>
-            
-            <p className="text-[12.5px] text-white/70 max-w-[340px] font-medium leading-relaxed">
-              {warrior.desc}
-            </p>
-
-            {/* Active Stage Perks Badges */}
-            <div className="flex flex-wrap gap-2 pt-3">
-              {warrior.perks.map((perk, i) => (
-                <span key={i} className="text-[9.5px] font-mono px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-emerald-300 font-bold flex items-center gap-1">
-                  <Sparkles size={10} className="text-amber-300" /> {perk}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom controls inside Hero */}
-          <div className="relative z-10 flex items-end justify-between pt-6">
-            <div className="flex-1 max-w-[320px] pr-4">
-              <div className="text-[9px] font-mono tracking-[2px] text-white/50 mb-1.5 uppercase font-semibold">
-                NEXT STAGE EVOLUTION PROGRESS
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                  <div className={`h-full bg-gradient-to-r ${warrior.auraColor} rounded-full transition-all duration-500`} style={{ width: `${xpPercentage}%` }} />
+                <div className="w-full h-full rounded-full bg-[#08060F] border border-white/10 flex flex-col items-center justify-center text-center">
+                  <span className="text-[10px] font-mono tracking-[1px] text-purple-300 uppercase font-bold">LEVEL</span>
+                  <span className="text-[28px] font-black text-white leading-none tracking-tight tabular-nums">{level}</span>
                 </div>
-                <span className="font-mono text-[11px] font-semibold text-white/80 tabular-nums">{xpPercentage}%</span>
               </div>
-            </div>
-
-            {/* LEVEL CIRCLE GAUGE */}
-            <div 
-              onClick={openRankModal}
-              className="flex flex-col items-center shrink-0 cursor-pointer group-hover:scale-105 transition-transform"
-            >
-              <span className="text-[11px] font-mono text-white/80 mb-1 tabular-nums font-semibold">{currentXP} / {xpNeeded} XP</span>
-              <div className="relative w-[72px] h-[72px] rounded-full p-[3px] bg-gradient-to-tr from-purple-600 via-purple-400 to-indigo-500 shadow-xl shadow-purple-900/40">
-                <div className="w-full h-full rounded-full bg-[#0D0D18]/90 border border-white/10 flex flex-col items-center justify-center text-center p-1">
-                  <span className="text-[14px] leading-none mb-0.5">{warrior.avatarIcon}</span>
-                  <span className="text-[22px] font-black text-white leading-none tracking-tight">{level}</span>
-                  <span className="text-[7px] font-mono tracking-[1px] text-purple-300 uppercase leading-none font-bold">LEVEL</span>
+              <div>
+                <div className="text-[9px] font-mono tracking-[3px] text-amber-400 uppercase font-bold">{currentTier.label}</div>
+                <div className="text-2xl sm:text-3xl font-serif font-black text-white tracking-wide uppercase drop-shadow-md">
+                  {currentTier.name}
+                </div>
+                <div className="text-[10px] font-mono text-white/50 mt-0.5 max-w-[220px] leading-snug">
+                  {currentTier.description}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* TODAY'S REAL MISSIONS */}
-        <div className="xl:col-span-5 bg-[#121124]/90 border border-white/10 rounded-[24px] p-5 md:p-6 flex flex-col justify-between shadow-2xl">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono tracking-[2.5px] text-white/70 uppercase font-bold">TODAY'S REAL MISSIONS</span>
-                <button 
-                  onClick={() => setShowAddMissionModal(true)}
-                  className="p-1 rounded-lg bg-purple-600/50 hover:bg-purple-500 text-white transition"
-                  title="Add Custom Mission"
-                >
-                  <Plus size={12} />
-                </button>
+            {/* XP bar + counters */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono tracking-[2px] text-white/60 uppercase font-bold">XP TODAY</span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-mono font-bold">
+                    {dailyXpEarned} / {DAILY_XP_CAP}
+                  </span>
+                </div>
+                {nextTier ? (
+                  <span className="text-[10px] font-mono text-amber-300 font-bold uppercase">
+                    Next: {nextTier.name} @ Lv.{nextTier.level}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono text-amber-300 font-bold uppercase">★ Apex Reached</span>
+                )}
               </div>
-              <span className="text-[22px] font-black tracking-tight text-white tabular-nums">
-                <span className="text-purple-400">{missions.filter(m => m.completed).length}</span>
-                <span className="text-white/40">/{missions.length}</span>
-              </span>
-            </div>
-
-            {/* List of Missions */}
-            <div className="space-y-2.5">
-              {missions.slice(0, 4).map((m) => (
+              <div className="h-3 bg-black/60 rounded-full overflow-hidden border border-white/10">
                 <div
-                  key={m.id}
-                  className={`group relative flex items-center gap-3.5 p-3 rounded-[16px] border transition-all
-                    ${m.completed 
-                      ? "bg-emerald-950/30 border-emerald-500/30" 
-                      : "bg-[#1B1933]/70 border-white/5 hover:border-purple-500/30 hover:bg-[#221F40]"}`}
-                >
-                  {/* Icon */}
-                  <div 
-                    onClick={() => !m.completed && completeMission(m.id)}
-                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border cursor-pointer hover:scale-105 transition"
-                    style={{ 
-                      backgroundColor: m.id === 'run' ? 'rgba(6, 78, 59, 0.6)' : m.id === 'read' ? 'rgba(30, 58, 138, 0.6)' : 'rgba(88, 28, 135, 0.6)',
-                      borderColor: m.id === 'run' ? 'rgba(34, 197, 94, 0.3)' : m.id === 'read' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(168, 85, 247, 0.3)',
-                      color: m.color 
-                    }}
-                  >
-                    <span className="text-base">{m.icon}</span>
-                  </div>
-
-                  {/* Text details */}
-                  <div className="flex-1 min-w-0" onClick={() => !m.completed && completeMission(m.id)}>
-                    <div className="font-bold text-[13.5px] text-white tracking-tight leading-snug cursor-pointer">
-                      {m.title}
-                    </div>
-                    <div className="text-[11px] text-white/50 leading-tight truncate">
-                      {m.desc}
-                    </div>
-                    <div className="text-[10px] font-mono text-white/40 mt-0.5">
-                      {m.progress}
-                    </div>
-                  </div>
-
-                  {/* Partial progress increment button */}
-                  {!m.completed && (
-                    <button
-                      onClick={() => handleIncrementMissionProgress(m.id, m.targetVal ? Math.ceil(m.targetVal / 4) : 1)}
-                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[10px] font-mono font-bold text-purple-300"
-                      title="Add Progress"
-                    >
-                      +
-                    </button>
-                  )}
-
-                  {/* XP badge */}
-                  <div className="shrink-0 text-right">
-                    <div className="font-mono text-[12px] font-extrabold text-amber-400 tabular-nums">
-                      +{m.xp} XP
-                    </div>
-                  </div>
-
-                  {m.completed && (
-                    <CheckCircle className="absolute right-3 top-3 text-emerald-400 w-4 h-4" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom View All button */}
-          <button 
-            onClick={() => setShowMissionsModal(true)}
-            className="mt-4 w-full py-3 rounded-xl bg-[#211A42] hover:bg-[#2B2256] border border-purple-500/20 text-purple-200 text-xs font-bold tracking-wide flex items-center justify-center gap-2 transition active:scale-[0.985]"
-          >
-            <span>View All Missions ({missions.length})</span>
-            <ArrowRight size={14} className="opacity-80" />
-          </button>
-        </div>
-      </div>
-
-      {/* CHARACTER STATS TREE & DAILY DUNGEON BOSS BATTLE ROW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        
-        {/* CHARACTER STATS ALLOCATION PANEL */}
-        <div className="lg:col-span-7 bg-[#121124]/90 border border-purple-500/20 rounded-[24px] p-6 space-y-4 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Target size={18} className="text-purple-400" />
-                <h3 className="font-bold text-sm tracking-wider text-white uppercase font-mono">
-                  WARRIOR CHARACTER STATS TREE
-                </h3>
-              </div>
-              <p className="text-[11px] text-white/50">Attributes level up as you execute real habits</p>
-            </div>
-
-            <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-mono font-bold">
-              Points Available: {availableStatPoints}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-            {[
-              { key: "str", name: "STR", full: "Strength", val: allocatedStats.str, desc: "Workouts & Fitness", icon: "💪", color: "text-red-400" },
-              { key: "int", name: "INT", full: "Intelligence", val: allocatedStats.int, desc: "Reading & Learning", icon: "🧠", color: "text-blue-400" },
-              { key: "wil", name: "WIL", full: "Willpower", val: allocatedStats.wil, desc: "Habit Streaks", icon: "🛡️", color: "text-emerald-400" },
-              { key: "agi", name: "AGI", full: "Agility", val: allocatedStats.agi, desc: "Cardio & Speed", icon: "⚡", color: "text-amber-400" },
-              { key: "cha", name: "CHA", full: "Charisma", val: allocatedStats.cha, desc: "Mindset & Vibe", icon: "✨", color: "text-purple-400" },
-            ].map((stat) => (
-              <div key={stat.key} className="bg-black/50 border border-white/10 rounded-2xl p-3 flex flex-col justify-between space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-base">{stat.icon}</span>
-                  <span className={`text-xs font-mono font-bold ${stat.color}`}>{stat.name}</span>
-                </div>
-
-                <div>
-                  <div className="text-2xl font-black text-white font-mono">{stat.val}</div>
-                  <div className="text-[9px] text-white/50">{stat.desc}</div>
-                </div>
-
-                <button 
-                  onClick={() => allocatePoint(stat.key as any)}
-                  disabled={availableStatPoints <= 0}
-                  className="w-full py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 disabled:opacity-30 text-white font-mono text-[10px] font-bold transition border border-purple-400/30"
-                >
-                  + Add Point
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* DAILY BOSS DUNGEON BATTLE */}
-        <div className="lg:col-span-5 bg-gradient-to-b from-red-950/40 via-[#121124] to-black border border-red-500/30 rounded-[24px] p-6 flex flex-col justify-between shadow-2xl">
-          <div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <Flame size={18} className="text-red-400 animate-bounce" />
-                <div>
-                  <h3 className="font-bold text-sm tracking-wider text-red-200 uppercase font-mono">
-                    DAILY SHADOW BOSS DUNGEON
-                  </h3>
-                  <p className="text-[10px] font-mono text-red-400/80">Slay Procrastination Demon</p>
-                </div>
-              </div>
-              <span className="px-2.5 py-0.5 rounded bg-red-500/20 text-red-300 font-mono text-[10px] font-bold border border-red-500/30">
-                BOSS EVENT
-              </span>
-            </div>
-
-            {/* Boss Image / Avatar */}
-            <div className="relative rounded-2xl overflow-hidden border border-red-500/40 bg-black h-28 flex items-center justify-between p-4 mb-4 group">
-              <img
-                src={resolveImageUrl("/images/anime_red_warrior_1785177142520.jpg")}
-                alt="Crimson Demon Boss"
-                onError={onImgError("/images/onboarding-hero.jpg")}
-                className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-500"
-                referrerPolicy="no-referrer"
-              />
-              <div className="text-left space-y-0.5 z-10 relative">
-                <div className="text-2xl font-black text-white font-serif tracking-wide drop-shadow-md">👹 DEMON OF LETHARGY</div>
-                <div className="text-[10px] font-mono text-red-200">Complete real missions to strike with Shadow Crimson Blade!</div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent pointer-events-none" />
-            </div>
-
-            {/* Boss HP Bar */}
-            <div className="space-y-1.5 mb-4">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-zinc-400 font-bold">BOSS HEALTH</span>
-                <span className="text-red-400 font-black">{bossHp} / {maxBossHp} HP</span>
-              </div>
-              <div className="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-red-500/30">
-                <div 
-                  className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${(bossHp / maxBossHp) * 100}%` }}
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${Math.min(100, xpPercentage)}%`,
+                    background: "linear-gradient(to right, #a855f7, #6366f1, #ec4899)",
+                    boxShadow: "0 0 14px rgba(168,85,247,0.6)",
+                  }}
                 />
               </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-[10px] font-mono text-white/50">
+                <span>{currentXP} / {xpNeeded} XP total</span>
+                <span>Quests done: <span className="text-emerald-400 font-bold">{todayCompletedCount}</span> / {quests.length}</span>
+                <span>Daily: <span className="text-purple-300 font-bold">{dailyXpEarned}</span> XP</span>
+              </div>
             </div>
           </div>
-
-          <button
-            onClick={() => attackBoss(80)}
-            disabled={bossDefeated}
-            className={`w-full py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${
-              bossDefeated
-                ? "bg-emerald-500 text-black shadow-lg"
-                : "bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/40"
-            }`}
-          >
-            {bossDefeated ? (
-              <>🎉 DEMON SLAIN! REWARD CLAIMED</>
-            ) : (
-              <>⚔️ STRIKE BOSS WITH DISCIPLINE (-80 HP)</>
-            )}
-          </button>
         </div>
-
       </div>
 
-      {/* SOLO DOMINION • REWARDS — Evolution Path Cards (exact screenshot style) */}
-      <div className="mb-8">
-        {/* Section header */}
+      {/* ============================================================ */}
+      {/* QUEST BOARD — main / side / discipline                     */}
+      {/* ============================================================ */}
+      <QuestBoard
+        quests={quests}
+        bossQuests={bossQuests}
+        onOpenQuest={openProofModal}
+        isUnlockedFor={isUnlockedFor}
+        rankColor={RANK_COLOR}
+        rankLabel={RANK_LABEL}
+        categoryIcon={CATEGORY_ICON}
+        categoryLabel={CATEGORY_LABEL}
+      />
+
+      {/* ============================================================ */}
+      {/* SOLO DOMINION • REWARDS — character evolution cards        */}
+      {/* ============================================================ */}
+      <div className="mt-8 relative z-10">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -1461,7 +1473,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               <span className="text-[10px] font-mono tracking-[3px] text-amber-300 uppercase font-bold">REWARDS</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 tracking-tight font-medium">
-              Win your battles. Claim your power. These aren't just rewards, they're proof of your evolution.
+              Your character is forged in real-world discipline. Hit the next level to unlock new evolution cards.
             </p>
           </div>
           <button
@@ -1472,81 +1484,57 @@ export const SoloDominion: React.FC<any> = (props) => {
           </button>
         </div>
 
-        {/* 4 TIER CARDS — full bleed anime character style */}
+        {/* Character ladder visualization */}
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-black/60 via-purple-950/20 to-black/60 p-4 mb-5">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1">
+            {CHARACTER_TIERS.map((tier, idx) => {
+              const unlocked = level >= tier.level;
+              return (
+                <React.Fragment key={tier.id || tier.name}>
+                  <div
+                    className={`shrink-0 flex flex-col items-center gap-1.5 transition ${unlocked ? "opacity-100" : "opacity-40"}`}
+                    title={unlocked ? `Unlocked: ${tier.name}` : `Locked: Reach Level ${tier.level}`}
+                  >
+                    <div
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 overflow-hidden"
+                      style={{
+                        borderColor: unlocked ? tier.borderGlow : "rgba(255,255,255,0.15)",
+                        boxShadow: unlocked ? `0 0 18px ${tier.borderGlow}` : "none",
+                      }}
+                    >
+                      <img src={resolveImageUrl(tier.image)} alt={tier.name} onError={onImgError()} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="text-[8px] font-mono tracking-wider uppercase font-bold text-center" style={{ color: unlocked ? "#fff" : "#888" }}>
+                      Lv.{tier.level}
+                    </div>
+                    <div className="text-[9px] font-mono tracking-wider uppercase font-bold text-center" style={{ color: unlocked ? "#fbbf24" : "#666" }}>
+                      {tier.name.split(" ")[0]}
+                    </div>
+                  </div>
+                  {idx < CHARACTER_TIERS.length - 1 && (
+                    <div className="flex-1 h-px min-w-[12px]" style={{
+                      background: unlocked ? "linear-gradient(to right, rgba(168,85,247,0.5), rgba(99,102,241,0.5))" : "rgba(255,255,255,0.1)",
+                    }} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4 Reward cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {[
-            {
-              id: "demon-slayer",
-              tier: 1,
-              title: "DEMON SLAYER",
-              subtitle: "LEVEL 5 • FIRST AWAKENING",
-              unlockedAtLevel: 5,
-              image: "/images/anime_demon_slayer.jpg",
-              quote: "\u201CCut through doubt.\nSlay your demons.\nBecome unstoppable.\u201D",
-              accent: "purple",
-              borderGlow: "rgba(168, 85, 247, 0.6)",
-              iconBg: "from-violet-500 via-purple-600 to-fuchsia-600",
-              ornamentColor: "text-purple-300",
-              label: "TIER I"
-            },
-            {
-              id: "crimson-berserker",
-              tier: 2,
-              title: "CRIMSON BERSERKER",
-              subtitle: "LEVEL 12 • EXECUTIVE ASCENSION",
-              unlockedAtLevel: 12,
-              image: "/images/anime_red_warrior_1785177142520.jpg",
-              quote: "\u201CRage is temporary.\nDiscipline is eternal.\nChoose your legacy.\u201D",
-              accent: "red",
-              borderGlow: "rgba(239, 68, 68, 0.6)",
-              iconBg: "from-rose-500 via-red-600 to-amber-600",
-              ornamentColor: "text-red-300",
-              label: "TIER II"
-            },
-            {
-              id: "shadow-commander",
-              tier: 3,
-              title: "SHADOW COMMANDER",
-              subtitle: "LEVEL 25 • ELITE ASCENSION",
-              unlockedAtLevel: 25,
-              image: "/images/anime_shadow_knight_1785176768012.jpg",
-              quote: "\u201CThe world is ruled\nby those who operate\nin the shadows.\u201D",
-              accent: "slate",
-              borderGlow: "rgba(148, 163, 184, 0.6)",
-              iconBg: "from-slate-500 via-zinc-600 to-neutral-700",
-              ornamentColor: "text-slate-200",
-              label: "TIER III"
-            },
-            {
-              id: "cosmic-shadow-monarch",
-              tier: 4,
-              title: "COSMIC SHADOW MONARCH",
-              subtitle: "LEVEL 50 • LEGENDARY APEX",
-              unlockedAtLevel: 50,
-              image: "/images/anime_shadow_monarch_1785176449409.jpg",
-              quote: "\u201CYou don't chase the universe.\nYou become something\nit bows to.\u201D",
-              accent: "amber",
-              borderGlow: "rgba(251, 191, 36, 0.7)",
-              iconBg: "from-amber-400 via-yellow-500 to-orange-500",
-              ornamentColor: "text-amber-300",
-              label: "TIER IV"
-            }
-          ].map((card) => {
-            const isUnlocked = level >= card.unlockedAtLevel;
+          {CHARACTER_TIERS.slice(1).map((card) => {
+            const isUnlocked = level >= card.level;
             return (
               <div
-                key={card.id}
+                key={card.name}
                 onClick={() => setSelectedCard({ ...card, isUnlocked })}
-                className={`relative cursor-pointer group transition-all duration-500 ${
-                  isUnlocked ? "hover:-translate-y-2" : ""
-                }`}
+                className={`relative cursor-pointer group transition-all duration-500 ${isUnlocked ? "hover:-translate-y-2" : ""}`}
                 style={{ animation: "fadeInUp 0.6s ease-out" }}
               >
-                {/* Main card frame — full bleed character image */}
                 <div
-                  className={`relative aspect-[3/5] rounded-2xl overflow-hidden border-2 ${
-                    isUnlocked ? "" : "opacity-50 grayscale"
-                  }`}
+                  className={`relative aspect-[3/5] rounded-2xl overflow-hidden border-2 ${isUnlocked ? "" : "opacity-50 grayscale"}`}
                   style={{
                     borderColor: isUnlocked ? card.borderGlow : "rgba(255,255,255,0.1)",
                     boxShadow: isUnlocked
@@ -1554,24 +1542,19 @@ export const SoloDominion: React.FC<any> = (props) => {
                       : "none",
                   }}
                 >
-                  {/* FULL-BLEED CHARACTER IMAGE */}
                   <img
                     src={resolveImageUrl(card.image)}
                     alt={card.title}
                     onError={onImgError()}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-
-                  {/* Dark gradient overlay (top + bottom for text readability) */}
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      background:
-                        "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%)",
+                      background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%)",
                     }}
                   />
-
-                  {/* TOP CORNER ORNAMENTS — like the reference image */}
+                  {/* Corner ornaments */}
                   <div className={`absolute top-0 left-0 w-12 h-12 ${card.ornamentColor} opacity-80`}>
                     <svg viewBox="0 0 50 50" fill="currentColor" className="w-full h-full">
                       <path d="M0 0 L18 0 L18 4 L4 4 L4 18 L0 18 Z M6 6 L14 6 L14 8 L8 8 L8 14 L6 14 Z" />
@@ -1597,33 +1580,19 @@ export const SoloDominion: React.FC<any> = (props) => {
                     </svg>
                   </div>
 
-                  {/* TOP: Tier label */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
                     <div className={`px-3 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border ${card.ornamentColor} text-[9px] font-mono font-bold tracking-[2px] uppercase`}>
                       {card.label}
                     </div>
                   </div>
 
-                  {/* CENTER: Shield-like emblem */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${card.iconBg} flex items-center justify-center border-2 shadow-2xl`}
-                      style={{ borderColor: card.borderGlow }}>
-                      <Sparkles size={20} className="text-white drop-shadow-lg" />
-                    </div>
-                  </div>
-
-                  {/* BOTTOM CONTENT: Title + Quote */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
                     <div className="text-center space-y-2">
-                      <h3
-                        className={`font-serif font-black uppercase tracking-[1.5px] leading-[0.95] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] ${
-                          card.title.length > 18 ? "text-base sm:text-lg" : "text-lg sm:text-xl"
-                        }`}
-                      >
-                        {card.title}
+                      <h3 className="font-serif font-black uppercase tracking-[1.5px] leading-[0.95] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] text-lg sm:text-xl">
+                        {card.name}
                       </h3>
                       <p className="text-[9.5px] font-mono tracking-[1.5px] uppercase text-white/70 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-                        {card.subtitle}
+                        Unlocked at Level {card.level}
                       </p>
                       <p className="text-[10.5px] font-serif italic text-white/90 leading-snug whitespace-pre-line pt-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
                         {card.quote}
@@ -1631,20 +1600,17 @@ export const SoloDominion: React.FC<any> = (props) => {
                     </div>
                   </div>
 
-                  {/* LOCK OVERLAY for locked cards */}
                   {!isUnlocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
                       <div className="text-center space-y-1.5">
                         <div className="text-3xl">🔒</div>
                         <p className="text-[10px] font-mono font-bold text-white uppercase tracking-wider">
-                          Reach Level {card.unlockedAtLevel}
+                          Reach Level {card.level}
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* UNLOCKED indicator below card */}
                 {isUnlocked && (
                   <div className="text-center mt-2">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-mono font-bold uppercase tracking-wider">
@@ -1656,206 +1622,11 @@ export const SoloDominion: React.FC<any> = (props) => {
             );
           })}
         </div>
-
-        {/* Bottom call-to-action */}
-        <div className="flex items-center justify-between mt-6 px-2">
-          <div>
-            <p className="text-[11px] font-mono text-purple-300 uppercase tracking-wider font-bold">
-              Your journey. Your rewards.
-            </p>
-            <p className="text-[10px] font-mono text-white/40 mt-0.5">
-              Keep progressing. Greater powers await.
-            </p>
-          </div>
-          <button className="text-[11px] font-mono font-bold text-white/60 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition">
-            View All Rewards <ArrowRight size={12} />
-          </button>
-        </div>
-      </div>
-      {/* YOUR ACTIVE STREAKS */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-[13px] tracking-[2px] text-white uppercase">YOUR ACTIVE STREAKS</h3>
-            <button
-              onClick={() => setShowAddStreakModal(true)}
-              className="px-2 py-0.5 bg-purple-600/60 hover:bg-purple-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
-            >
-              <Plus size={10} /> Add
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 text-[11px] text-white/50 font-medium">
-            <button 
-              onClick={() => setShowStreaksGallery(true)} 
-              className="hover:text-white transition"
-            >
-              View All ({streaks.length})
-            </button>
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => setStreakPageIndex(prev => Math.max(0, prev - 1))}
-                disabled={streakPageIndex === 0}
-                className="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white disabled:opacity-30 transition"
-              >
-                ‹
-              </button>
-              <button 
-                onClick={() => setStreakPageIndex(prev => Math.min(maxStreakPages - 1, prev + 1))}
-                disabled={streakPageIndex >= maxStreakPages - 1}
-                className="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white disabled:opacity-30 transition"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 6-Card responsive grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          {visibleStreaks.map((s) => (
-            <div
-              key={s.id}
-              onClick={() => setSelectedStreak(s)}
-              className="group relative rounded-[20px] overflow-hidden border border-white/10 h-[190px] flex flex-col justify-between p-4 text-white cursor-pointer transition-all duration-300 hover:border-purple-400/50 hover:-translate-y-1 shadow-lg"
-              style={{
-                backgroundImage: `linear-gradient(to bottom, rgba(12,12,22,0.3) 0%, rgba(12,12,22,0.92) 100%), url(${resolveImageUrl(s.bg)})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              {/* Top Header */}
-              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[1.5px] text-white/90 uppercase">
-                <span className="text-xs">{s.icon}</span> 
-                <span>{s.cat}</span>
-              </div>
-
-              {/* Title */}
-              <div className="font-bold text-[16px] leading-tight tracking-tight text-white group-hover:text-purple-200 transition">
-                {s.title}
-              </div>
-
-              {/* Bottom Progress Bar */}
-              <div>
-                <div className="flex justify-between items-center text-[11px] font-medium mb-1.5">
-                  <span className="text-white/60">Progress</span>
-                  <span className="font-bold text-white">{s.pct}%</span>
-                </div>
-                <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${s.pct}%`, backgroundColor: s.color }} 
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* GLOBAL DOMINION & DAILY CLAIM */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* LEADERBOARD CARD */}
-        <div className="lg:col-span-8 rounded-[22px] border border-white/10 bg-[#121124]/90 p-6 shadow-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-2.5">
-              <Flame className="w-5 h-5 text-amber-400" />
-              <div>
-                <div className="font-bold tracking-[1.5px] text-[14px] uppercase text-white">GLOBAL DOMINION LEADERBOARD</div>
-                <p className="text-[11px] text-white/50">Top ranked Hunters across all realms</p>
-              </div>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
-              <button
-                onClick={() => setLeaderboardTab("all")}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${leaderboardTab === "all" ? "bg-purple-600 text-white" : "text-white/50 hover:text-white"}`}
-              >
-                All Time
-              </button>
-              <button
-                onClick={() => setLeaderboardTab("weekly")}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${leaderboardTab === "weekly" ? "bg-purple-600 text-white" : "text-white/50 hover:text-white"}`}
-              >
-                Weekly Sprint
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {leaderboardPreview.map((l, i) => (
-              <div 
-                key={i} 
-                onClick={() => setInspectUser(l)}
-                className={`flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${
-                  l.isYou 
-                    ? "bg-purple-950/40 border-purple-500/40" 
-                    : "bg-white/5 border-white/5 hover:bg-white/10"
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`font-mono w-6 font-bold text-xs ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-white/40"}`}>
-                    #{l.rank}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-purple-900/60 border border-purple-400/30 flex items-center justify-center text-xs font-bold text-purple-200 shrink-0">
-                    {l.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <div className={`text-xs font-bold truncate ${l.isYou ? "text-amber-300" : "text-white"}`}>
-                      {l.name}
-                    </div>
-                    <div className="text-[10px] font-mono text-white/40">{l.level}</div>
-                  </div>
-                </div>
-
-                <div className="font-mono text-amber-400 text-[12px] font-extrabold tabular-nums shrink-0">
-                  {l.xp.toLocaleString()} XP
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* DAILY CONQUEST REWARD CLAIM */}
-        <div className="lg:col-span-4 rounded-[22px] border border-white/10 bg-gradient-to-b from-purple-950/40 to-[#121124] p-6 shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-mono tracking-[2px] text-yellow-400 uppercase font-bold">DAILY CONQUEST</span>
-              <Trophy size={18} className="text-yellow-400" />
-            </div>
-
-            <h3 className="text-xl font-black text-white mb-1">Hunter Check-In</h3>
-            <p className="text-xs text-white/60 mb-4">Claim your daily 100 XP login bonus to maintain your rank momentum.</p>
-
-            <div className="p-4 rounded-2xl bg-black/50 border border-white/10 text-center space-y-1 mb-4">
-              <span className="text-2xl font-black text-amber-400 font-mono">+100 XP</span>
-              <p className="text-[11px] text-white/50">Resets daily at 00:00 UTC</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleClaimDailyReward}
-            disabled={dailyClaimed}
-            className={`w-full py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg ${
-              dailyClaimed 
-                ? "bg-white/10 text-white/40 border border-white/5 cursor-not-allowed" 
-                : "bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black shadow-amber-500/20 active:scale-98"
-            }`}
-          >
-            {dailyClaimed ? (
-              <><Check size={16} /> Claimed for Today</>
-            ) : (
-              <><Gift size={16} /> Claim Daily 100 XP</>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* --- MODALS & DRAWERS --- */}
-
-      {/* PROOF VERIFICATION MODAL — CLEAN WHITE/BLACK THEME, FULL-SCREEN ON MOBILE */}
+      {/* ============================================================ */}
+      {/* EXISTING PROOF MODAL — kept fully functional                */}
+      {/* ============================================================ */}
       {proofMission && (
         <div
           className="fixed inset-0 z-[300] flex items-stretch justify-center overflow-y-auto"
@@ -1863,15 +1634,8 @@ export const SoloDominion: React.FC<any> = (props) => {
         >
           <div
             className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col"
-            style={{
-              border: "1px solid #000",
-              minHeight: "100vh",
-              maxHeight: "100vh",
-              height: "100vh",
-            }}
+            style={{ border: "1px solid #000", minHeight: "100vh", maxHeight: "100vh", height: "100vh" }}
           >
-
-            {/* STICKY HEADER */}
             <div
               className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
               style={{ borderColor: "#000", backgroundColor: "#fff", position: "sticky", top: 0, zIndex: 10 }}
@@ -1896,10 +1660,8 @@ export const SoloDominion: React.FC<any> = (props) => {
               </button>
             </div>
 
-            {/* SCROLLABLE BODY */}
             <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
 
-            {/* STEP 1: Choose ANY ONE proof type */}
             {proofStep === "choose" && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
                 <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
@@ -1908,87 +1670,42 @@ export const SoloDominion: React.FC<any> = (props) => {
                     <strong className="text-black">ANY ONE</strong> of the three proofs below to complete "<span className="text-black">{proofMission.title}</span>". AI will verify if your proof is real and matches the task.
                   </p>
                 </div>
-
                 <div className="space-y-2.5">
-                  <button
-                    onClick={() => setProofStep("selfie")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
-                        📸
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-black uppercase text-black">Option 1 — Selfie Photo</div>
-                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
-                          Upload a clear selfie of you actively performing the task
+                  {[
+                    { id: "selfie", emoji: "📸", title: "Option 1 — Selfie Photo", desc: "Upload a clear selfie of you actively performing the task" },
+                    { id: "video", emoji: "🎥", title: "Option 2 — Video Oath", desc: "Record a 30-sec video swearing on the universe you did the task" },
+                    { id: "text", emoji: "✍️", title: "Option 3 — Text Universe Oath", desc: "Write a powerful 10+ word oath affirming you completed the task" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setProofStep(opt.id as any)}
+                      className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
+                      style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>{opt.emoji}</div>
+                        <div className="flex-1">
+                          <div className="text-sm font-black uppercase text-black">{opt.title}</div>
+                          <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>{opt.desc}</div>
                         </div>
+                        <span className="text-xl" style={{ color: "#000" }}>→</span>
                       </div>
-                      <span className="text-xl" style={{ color: "#000" }}>→</span>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setProofStep("video")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
-                        🎥
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-black uppercase text-black">Option 2 — Video Oath</div>
-                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
-                          Record a 30-sec video swearing on the universe you did the task
-                        </div>
-                      </div>
-                      <span className="text-xl" style={{ color: "#000" }}>→</span>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setProofStep("text")}
-                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
-                        ✍️
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-black uppercase text-black">Option 3 — Text Universe Oath</div>
-                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
-                          Write a powerful 10+ word oath affirming you completed the task
-                        </div>
-                      </div>
-                      <span className="text-xl" style={{ color: "#000" }}>→</span>
-                    </div>
-                  </button>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* STEP 2A: Selfie upload */}
             {proofStep === "selfie" && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
                 <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
-                  <p className="text-[11px] font-mono leading-relaxed text-black">
-                    📸 Upload a <strong>clear selfie</strong> showing you in the act of completing "<strong>{proofMission.title}</strong>". AI will verify it matches the task.
-                  </p>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">📸 Upload a <strong>clear selfie</strong> showing you in the act of completing "<strong>{proofMission.title}</strong>".</p>
                 </div>
-
                 {proofSelfieBase64 ? (
                   <div className="space-y-2">
                     <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000" }}>
                       <img src={proofSelfieBase64} alt="Selfie proof" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => setProofSelfieBase64(null)}
-                        className="absolute top-2 right-2 p-1.5 rounded-full text-white"
-                        style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-                        aria-label="Remove selfie"
-                      >
+                      <button onClick={() => setProofSelfieBase64(null)} className="absolute top-2 right-2 p-1.5 rounded-full text-white" style={{ backgroundColor: "rgba(0,0,0,0.7)" }} aria-label="Remove selfie">
                         <X size={14} />
                       </button>
                     </div>
@@ -2000,72 +1717,35 @@ export const SoloDominion: React.FC<any> = (props) => {
                       <div className="text-5xl mb-2">📷</div>
                       <p className="text-xs font-bold text-black">Tap to take or upload selfie</p>
                       <p className="text-[10px] font-mono mt-1" style={{ color: "#555" }}>JPG/PNG • max 8MB</p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="user"
-                        className="hidden"
-                        onChange={handleSelfieFile}
-                      />
+                      <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleSelfieFile} />
                     </div>
                   </label>
                 )}
-
                 <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setProofStep("choose")}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    onClick={submitProofForVerification}
-                    disabled={!proofSelfieBase64 || proofVerifying}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30"
-                    style={{ backgroundColor: "#000" }}
-                  >
+                  <button onClick={() => setProofStep("choose")} className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
+                  <button onClick={submitProofForVerification} disabled={!proofSelfieBase64 || proofVerifying} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30" style={{ backgroundColor: "#000" }}>
                     {proofVerifying ? "Verifying..." : "Submit →"}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 2B: Video oath recording */}
             {proofStep === "video" && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
                 <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
-                  <p className="text-[11px] font-mono leading-relaxed text-black">
-                    🎥 Record a <strong>30-second oath video</strong>. Look at the camera and swear to the universe you completed "<strong>{proofMission.title}</strong>".
-                  </p>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">🎥 Record a <strong>30-second oath video</strong> swearing you completed "<strong>{proofMission.title}</strong>".</p>
                 </div>
-
                 <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000", backgroundColor: "#000" }}>
                   {proofVideoUrl ? (
                     <>
                       <video src={proofVideoUrl} controls className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => {
-                          if (proofVideoUrl) URL.revokeObjectURL(proofVideoUrl);
-                          setProofVideoUrl(null);
-                          setProofVideoBlob(null);
-                        }}
-                        className="absolute top-2 right-2 p-1.5 rounded-full text-white"
-                        style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-                        aria-label="Remove video"
-                      >
+                      <button onClick={() => { if (proofVideoUrl) URL.revokeObjectURL(proofVideoUrl); setProofVideoUrl(null); setProofVideoBlob(null); }} className="absolute top-2 right-2 p-1.5 rounded-full text-white" style={{ backgroundColor: "rgba(0,0,0,0.7)" }} aria-label="Remove video">
                         <X size={14} />
                       </button>
                     </>
                   ) : (
                     <>
-                      <video
-                        ref={videoPreviewRef}
-                        className="w-full h-full object-cover"
-                        autoPlay
-                        muted
-                        playsInline
-                      />
+                      <video ref={videoPreviewRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                       {!isRecordingVideo && (
                         <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
                           <div className="text-center space-y-2">
@@ -2083,190 +1763,91 @@ export const SoloDominion: React.FC<any> = (props) => {
                     </>
                   )}
                 </div>
-
                 <div className="flex gap-2">
                   {!isRecordingVideo && !proofVideoUrl && (
-                    <button
-                      onClick={startVideoRecording}
-                      disabled={!videoRecorderSupported}
-                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2 disabled:opacity-30"
-                      style={{ backgroundColor: "#000" }}
-                    >
+                    <button onClick={startVideoRecording} disabled={!videoRecorderSupported} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2 disabled:opacity-30" style={{ backgroundColor: "#000" }}>
                       <div className="w-3 h-3 rounded-full bg-white" /> Start Recording
                     </button>
                   )}
                   {isRecordingVideo && (
-                    <button
-                      onClick={stopVideoRecording}
-                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2"
-                      style={{ backgroundColor: "#000" }}
-                    >
+                    <button onClick={stopVideoRecording} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#000" }}>
                       <div className="w-3 h-3 rounded-sm bg-white" /> Stop Recording
                     </button>
                   )}
                   {proofVideoUrl && (
-                    <button
-                      onClick={submitProofForVerification}
-                      disabled={proofVerifying}
-                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white"
-                      style={{ backgroundColor: "#000" }}
-                    >
+                    <button onClick={submitProofForVerification} disabled={proofVerifying} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: "#000" }}>
                       {proofVerifying ? "Verifying..." : "Submit →"}
                     </button>
                   )}
                 </div>
-
-                <button
-                  onClick={() => setProofStep("choose")}
-                  className="w-full py-2 rounded-xl text-xs font-bold border-2 text-black"
-                  style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                >
-                  ← Back
-                </button>
+                <button onClick={() => setProofStep("choose")} className="w-full py-2 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
               </div>
             )}
 
-            {/* STEP 2C: Text oath */}
             {proofStep === "text" && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
                 <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
-                  <p className="text-[11px] font-mono leading-relaxed text-black">
-                    ✍️ Pick a template and customize your <strong>universe oath</strong>. Min <strong>10 words</strong>. The universe reads every word.
-                  </p>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">✍️ Pick a template and customize your <strong>universe oath</strong>. Min <strong>10 words</strong>.</p>
                 </div>
-
                 <div>
-                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
-                    📜 Pick Template
-                  </label>
+                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">📜 Pick Template</label>
                   <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                     {OATH_TEMPLATES.map((tpl, i) => {
                       const tplWithMission = tpl.replace("[MISSION]", `"${proofMission.title}"`);
                       const isSelected = proofTextOath === tplWithMission;
                       return (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setProofTextOath(tplWithMission);
-                            playSFX("click");
-                          }}
-                          className="w-full text-left p-2.5 rounded-xl text-[10.5px] font-mono leading-relaxed border-2 transition"
-                          style={{
-                            borderColor: "#000",
-                            backgroundColor: isSelected ? "#000" : "#fff",
-                            color: isSelected ? "#fff" : "#333",
-                          }}
-                        >
+                        <button key={i} onClick={() => { setProofTextOath(tplWithMission); playSFX("click"); }} className="w-full text-left p-2.5 rounded-xl text-[10.5px] font-mono leading-relaxed border-2 transition" style={{ borderColor: "#000", backgroundColor: isSelected ? "#000" : "#fff", color: isSelected ? "#fff" : "#333" }}>
                           <span className="font-bold">TEMPLATE {i + 1}:</span> {tplWithMission}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
-                    ✏️ Your Oath (customize as you wish)
-                  </label>
-                  <textarea
-                    value={proofTextOath}
-                    onChange={(e) => setProofTextOath(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-xl p-3 text-[11.5px] font-mono leading-relaxed border-2 text-black"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                    placeholder="Type your universe oath here..."
-                  />
+                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">✏️ Your Oath (customize as you wish)</label>
+                  <textarea value={proofTextOath} onChange={(e) => setProofTextOath(e.target.value)} rows={3} className="w-full rounded-xl p-3 text-[11.5px] font-mono leading-relaxed border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }} placeholder="Type your universe oath here..." />
                   <p className="text-[10px] font-mono mt-1" style={{ color: "#666" }}>
-                    Word count: {proofTextOath.trim() ? proofTextOath.trim().split(/\s+/).length : 0} (min 10)
+                    Word count: {proofTextOath.trim() ? proofTextOath.trim().split(/\\s+/).length : 0} (min 10)
                   </p>
                 </div>
-
                 <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setProofStep("choose")}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black"
-                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    onClick={submitProofForVerification}
-                    disabled={proofVerifying || proofTextOath.trim().split(/\s+/).length < 10}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30"
-                    style={{ backgroundColor: "#000" }}
-                  >
+                  <button onClick={() => setProofStep("choose")} className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
+                  <button onClick={submitProofForVerification} disabled={proofVerifying || proofTextOath.trim().split(/\\s+/).length < 10} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30" style={{ backgroundColor: "#000" }}>
                     {proofVerifying ? "Verifying..." : "Submit →"}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 3: AI Verifying */}
             {proofStep === "verifying" && (
               <div className="px-5 sm:px-7 py-10 text-center">
                 <div className="relative w-20 h-20 mx-auto mb-5">
                   <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: "#e5e5e5" }} />
                   <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: "#000" }} />
-                  <div className="absolute inset-3 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: "#000", color: "#fff" }}>
-                    🤖
-                  </div>
+                  <div className="absolute inset-3 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: "#000", color: "#fff" }}>🤖</div>
                 </div>
-                <h3 className="text-base font-black uppercase tracking-tight text-black">
-                  AI Oracle Verifying
-                </h3>
-                <p className="text-[11px] mt-2 font-mono" style={{ color: "#555" }}>
-                  Analyzing your proof for authenticity...
-                </p>
-                <p className="text-[10px] mt-1 font-mono" style={{ color: "#888" }}>
-                  The universe is watching. Truth prevails.
-                </p>
+                <h3 className="text-base font-black uppercase tracking-tight text-black">AI Oracle Verifying</h3>
+                <p className="text-[11px] mt-2 font-mono" style={{ color: "#555" }}>Analyzing your proof for authenticity...</p>
+                <p className="text-[10px] mt-1 font-mono" style={{ color: "#888" }}>The universe is watching. Truth prevails.</p>
               </div>
             )}
 
-            {/* STEP 4: Result */}
             {proofStep === "result" && proofResult && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div
-                  className="p-5 rounded-2xl border-2 text-center"
-                  style={{
-                    borderColor: "#000",
-                    backgroundColor: proofResult.verified ? "#000" : "#fff",
-                    color: proofResult.verified ? "#fff" : "#000",
-                  }}
-                >
-                  <div className="text-5xl mb-2">
-                    {proofResult.verified ? "✓" : "✕"}
-                  </div>
-                  <h3 className="text-base font-black uppercase tracking-tight">
-                    {proofResult.verified ? "Universe Accepted" : "Proof Rejected"}
-                  </h3>
-                  <p className="text-[11px] mt-2 font-mono leading-relaxed opacity-90">
-                    {proofResult.feedback}
-                  </p>
-                  <div className="mt-3 inline-flex items-center gap-2 text-[10px] font-mono px-3 py-1.5 rounded-full" style={{
-                    backgroundColor: proofResult.verified ? "rgba(255,255,255,0.15)" : "#f5f5f5",
-                    color: proofResult.verified ? "#fff" : "#000",
-                  }}>
+                <div className="p-5 rounded-2xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: proofResult.verified ? "#000" : "#fff", color: proofResult.verified ? "#fff" : "#000" }}>
+                  <div className="text-5xl mb-2">{proofResult.verified ? "✓" : "✕"}</div>
+                  <h3 className="text-base font-black uppercase tracking-tight">{proofResult.verified ? "Universe Accepted" : "Proof Rejected"}</h3>
+                  <p className="text-[11px] mt-2 font-mono leading-relaxed opacity-90">{proofResult.feedback}</p>
+                  <div className="mt-3 inline-flex items-center gap-2 text-[10px] font-mono px-3 py-1.5 rounded-full" style={{ backgroundColor: proofResult.verified ? "rgba(255,255,255,0.15)" : "#f5f5f5", color: proofResult.verified ? "#fff" : "#000" }}>
                     <span className="opacity-70">SCORE:</span>
                     <span className="font-black text-base">{proofResult.score}/100</span>
                   </div>
                 </div>
-
                 <div className="flex gap-2">
                   {!proofResult.verified && (
-                    <button
-                      onClick={() => setProofStep("choose")}
-                      className="flex-1 py-3 rounded-xl text-xs font-bold border-2 text-black"
-                      style={{ borderColor: "#000", backgroundColor: "#fff" }}
-                    >
-                      Try Again
-                    </button>
+                    <button onClick={() => setProofStep("choose")} className="flex-1 py-3 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>Try Again</button>
                   )}
-                  <button
-                    onClick={closeProofModal}
-                    className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white"
-                    style={{ backgroundColor: "#000" }}
-                  >
+                  <button onClick={closeProofModal} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: "#000" }}>
                     {proofResult.verified ? "Continue →" : "Close"}
                   </button>
                 </div>
@@ -2277,128 +1858,119 @@ export const SoloDominion: React.FC<any> = (props) => {
         </div>
       )}
 
-
-      {/* 1. VIEW ALL MISSIONS MODAL */}
+      {/* ============================================================ */}
+      {/* LEGACY MODALS (Welcome, Streaks, etc.) — still functional  */}
+      {/* ============================================================ */}
       {showMissionsModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Target size={18} className="text-purple-400" />
-                <h3 className="text-lg font-bold text-white">Today's Daily Missions</h3>
+                <h3 className="text-lg font-bold text-white">Today's Quests</h3>
               </div>
-              <button onClick={() => setShowMissionsModal(false)} className="text-white/50 hover:text-white">
-                <X size={18} />
-              </button>
+              <button onClick={() => setShowMissionsModal(false)} className="text-white/50 hover:text-white"><X size={18} /></button>
             </div>
-
             <div className="space-y-3">
-              {missions.map((m) => (
-                <div key={m.id} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+              {quests.map((q) => (
+                <div key={q.id} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{m.icon}</span>
+                    <span className="text-2xl">{CATEGORY_ICON[q.category]}</span>
                     <div>
-                      <div className="text-sm font-bold text-white">{m.title}</div>
-                      <div className="text-xs text-white/50">{m.desc}</div>
-                      <div className="text-[10px] font-mono text-purple-300 mt-0.5">{m.progress}</div>
+                      <div className="text-sm font-bold text-white">{q.title}</div>
+                      <div className="text-xs text-white/50">{q.description}</div>
                     </div>
                   </div>
-
-                  {!m.completed ? (
-                    <button
-                      onClick={() => completeMission(m.id)}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition"
-                    >
-                      Complete (+{m.xp} XP)
+                  {!q.completed ? (
+                    <button onClick={() => openProofModal(q)} className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition">
+                      Complete (+{q.xp} XP)
                     </button>
                   ) : (
                     <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                      <CheckCircle size={14} /> Completed
+                      <CheckCircle size={14} /> Done
                     </span>
                   )}
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* Stubs for legacy modals that we keep reachable but hide by default
+          (welcome card, sync, etc. — full logic lives below as standalone
+          functions so the existing data flow keeps working). */}
+      {showWelcomeCardModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#121124] border border-emerald-500/50 rounded-[32px] w-full max-w-lg p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden text-center">
             <button
-              onClick={() => {
-                setShowMissionsModal(false);
-                setShowAddMissionModal(true);
-              }}
-              className="w-full py-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-purple-200 text-xs font-bold flex items-center justify-center gap-2 transition"
+              onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
             >
-              <Plus size={14} /> Create Custom Mission
+              <X size={18} />
+            </button>
+            <div className="space-y-2 relative z-10">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                <Sparkles size={14} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase font-serif tracking-wide">SEEKER TRAINEE CARD</h2>
+              <p className="text-xs text-emerald-200 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
+            </div>
+            <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-6 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
+              <img src={resolveImageUrl(CHARACTER_TIERS[0].image)} alt="Seeker" onError={onImgError()} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none" />
+              <div className="relative z-10 space-y-3">
+                <div className="text-[10px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
+                <div className="text-sm font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
+                <div className="text-[10px] text-zinc-300 font-mono italic pt-2">"{CHARACTER_TIERS[0].quote}"</div>
+                <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-zinc-400 flex justify-between">
+                  <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
+                  <span className="text-emerald-400 font-bold">UNLOCKED</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("🎉 WELCOME SEEKER CARD CLAIMED!"); }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-sm font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2 relative z-10"
+            >
+              <Award size={18} /> CLAIM WELCOME CARD & ENTER
             </button>
           </div>
         </div>
       )}
 
-      {/* 2. ADD CUSTOM MISSION MODAL */}
-      {showAddMissionModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <form onSubmit={handleAddCustomMission} className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Plus size={16} className="text-purple-400" /> Add Custom Mission
-              </h3>
-              <button type="button" onClick={() => setShowAddMissionModal(false)} className="text-white/50 hover:text-white">
-                <X size={16} />
-              </button>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-mono text-white/60 block mb-1">MISSION TITLE</label>
-              <input
-                value={newMissionTitle}
-                onChange={e => setNewMissionTitle(e.target.value)}
-                placeholder="e.g. 50 Squats or Read 1 Chapter"
-                className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-mono text-white/60 block mb-1">DESCRIPTION</label>
-              <input
-                value={newMissionDesc}
-                onChange={e => setNewMissionDesc(e.target.value)}
-                placeholder="Brief description"
-                className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-mono text-white/60 block mb-1">XP REWARD</label>
-                <input
-                  type="number"
-                  value={newMissionXP}
-                  onChange={e => setNewMissionXP(Number(e.target.value))}
-                  className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-mono text-white/60 block mb-1">ICON EMOJI</label>
-                <input
-                  value={newMissionIcon}
-                  onChange={e => setNewMissionIcon(e.target.value)}
-                  className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition"
-            >
-              Add Mission
+      {showSyncModal && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-4">
+          <div className="bg-[#121124] border border-purple-500/50 rounded-[32px] w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative text-center">
+            <button onClick={() => setShowSyncModal(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">
+              <X size={20} />
             </button>
-          </form>
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                <Calendar size={12} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
+              </span>
+              <h3 className="text-xl font-black text-white font-serif uppercase tracking-wide">Sync Commitment Streak</h3>
+              <p className="text-[11px] text-white/50 leading-relaxed">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
+            </div>
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
+                <span className="text-3xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
+              </div>
+              <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-2 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+              <div className="flex justify-between text-[10px] font-mono text-zinc-500">
+                <span>1 Day</span>
+                <span>42 Days (Milestone)</span>
+                <span>100 Days</span>
+              </div>
+            </div>
+            <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
+              {isSyncing ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING TIMELINE...</> : <><Calendar size={14} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
+            </button>
+            <span className="text-[9.5px] font-mono text-zinc-500 block">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
+          </div>
         </div>
       )}
 
-      {/* 3. STREAK DETAIL & CONTROL DRAWER */}
       {selectedStreak && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
           <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl">
@@ -2410,501 +1982,236 @@ export const SoloDominion: React.FC<any> = (props) => {
                   <span className="text-[10px] font-mono text-purple-300">{selectedStreak.cat}</span>
                 </div>
               </div>
-              <button onClick={() => setSelectedStreak(null)} className="text-white/50 hover:text-white">
-                <X size={18} />
-              </button>
+              <button onClick={() => setSelectedStreak(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
             </div>
-
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-white/60">Current Progress</span>
                 <span className="font-bold text-white">{selectedStreak.pct}%</span>
               </div>
               <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full rounded-full bg-purple-500 transition-all duration-500" 
-                  style={{ width: `${selectedStreak.pct}%` }} 
-                />
+                <div className="h-full rounded-full bg-purple-500 transition-all duration-500" style={{ width: `${selectedStreak.pct}%` }} />
               </div>
             </div>
-
             <div className="space-y-2">
               <span className="text-[11px] font-mono text-white/50 block">ADVANCE STREAK:</span>
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => advanceStreak(selectedStreak.id, 5)}
-                  className="py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-xs font-bold text-white"
-                >
-                  +5% Boost
-                </button>
-                <button
-                  onClick={() => advanceStreak(selectedStreak.id, 10)}
-                  className="py-2.5 bg-purple-600/80 hover:bg-purple-500 rounded-xl text-xs font-bold text-white"
-                >
-                  +10% Boost
-                </button>
-                <button
-                  onClick={() => advanceStreak(selectedStreak.id, 25)}
-                  className="py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-bold"
-                >
-                  +25% Sprint
-                </button>
+                <button onClick={() => advanceStreak(selectedStreak.id, 5)} className="py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-xs font-bold text-white">+5% Boost</button>
+                <button onClick={() => advanceStreak(selectedStreak.id, 10)} className="py-2.5 bg-purple-600/80 hover:bg-purple-500 rounded-xl text-xs font-bold text-white">+10% Boost</button>
+                <button onClick={() => advanceStreak(selectedStreak.id, 25)} className="py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-bold">+25% Sprint</button>
               </div>
             </div>
-
-            <button
-              onClick={() => setSelectedStreak(null)}
-              className="w-full py-2.5 bg-white/10 text-white rounded-xl text-xs font-semibold"
-            >
-              Done
-            </button>
+            <button onClick={() => setSelectedStreak(null)} className="w-full py-2.5 bg-white/10 text-white rounded-xl text-xs font-semibold">Done</button>
           </div>
         </div>
       )}
 
-      {/* 4. ADD CUSTOM STREAK MODAL */}
-      {showAddStreakModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <form onSubmit={handleAddCustomStreak} className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Plus size={16} className="text-purple-400" /> Activate New Streak
-              </h3>
-              <button type="button" onClick={() => setShowAddStreakModal(false)} className="text-white/50 hover:text-white">
-                <X size={16} />
-              </button>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-mono text-white/60 block mb-1">STREAK TITLE</label>
-              <input
-                value={newStreakTitle}
-                onChange={e => setNewStreakTitle(e.target.value)}
-                placeholder="e.g. Master Japanese or Buy BMW M4"
-                className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-mono text-white/60 block mb-1">CATEGORY</label>
-              <select
-                value={newStreakCat}
-                onChange={e => setNewStreakCat(e.target.value)}
-                className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-xs text-white"
-              >
-                <option value="LIFESTYLE">LIFESTYLE</option>
-                <option value="HEALTH">HEALTH</option>
-                <option value="CAREER">CAREER</option>
-                <option value="WEALTH">WEALTH</option>
-                <option value="RELATIONSHIP">RELATIONSHIP</option>
-                <option value="PERSONAL">PERSONAL</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition"
-            >
-              Activate Streak Card
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* 5. WARRIOR EVOLUTION ROADMAP MODAL */}
-      {showRankModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-purple-500/30 rounded-3xl w-full max-w-xl p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Award size={18} className="text-purple-400" />
-                <div>
-                  <h3 className="text-lg font-bold text-white">Warrior Journey Evolution Roadmap</h3>
-                  <p className="text-[11px] font-mono text-purple-300">Civilian Trainee ➔ Cosmic Legend Monarch</p>
-                </div>
-              </div>
-              <button onClick={() => setShowRankModal(false)} className="text-white/50 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { 
-                  stage: "STAGE 1: CIVILIAN TRAINEE", 
-                  lvl: "Level 1 - 4", 
-                  badge: "👤 Civilian",
-                  color: "border-zinc-500/40 bg-zinc-900/40 text-zinc-300",
-                  perk: "Basic daily habit tracking, standard XP gains, awakening mindset.",
-                  req: "Start your journey. Complete basic workout, reading, and hydration missions." 
-                },
-                { 
-                  stage: "STAGE 2: IRON WARRIOR", 
-                  lvl: "Level 5 - 11", 
-                  badge: "🛡️ Iron Vanguard",
-                  color: "border-amber-500/40 bg-amber-950/30 text-amber-300",
-                  perk: "Unlocks Custom Missions, +10% XP Multiplier, Daily Boss Dungeon strikes.",
-                  req: "Reach Level 5 & maintain a 3-day active streak across fitness or career." 
-                },
-                { 
-                  stage: "STAGE 3: SHADOW COMMANDER", 
-                  lvl: "Level 12 - 24", 
-                  badge: "⚔️ Shadow Knight",
-                  color: "border-purple-500/50 bg-purple-950/40 text-purple-200",
-                  perk: "Unlocks Guild Vanguard, +25% XP Multiplier, +25% Boss Damage Boost.",
-                  req: "Reach Level 12 & complete 50 cumulative daily missions." 
-                },
-                { 
-                  stage: "STAGE 4: COSMIC LEGEND MONARCH", 
-                  lvl: "Level 25+", 
-                  badge: "👑 Cosmic Monarch",
-                  color: "border-emerald-400/60 bg-emerald-950/40 text-emerald-300",
-                  perk: "Unlocks Supreme Monarch Badge, +50% XP Multiplier, Instant Boss Obliteration.",
-                  req: "Reach Level 25. Master of reality and unstoppable discipline." 
-                },
-              ].map((r, i) => (
-                <div key={i} className={`p-4 rounded-2xl border space-y-2 ${r.color}`}>
-                  <div className="flex justify-between items-center text-xs font-bold font-mono">
-                    <span className="flex items-center gap-1.5"><Sparkles size={12} /> {r.stage}</span>
-                    <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10">{r.lvl}</span>
-                  </div>
-                  <div className="text-sm font-bold text-white">{r.badge}</div>
-                  <p className="text-[11.5px] text-white/70 leading-relaxed"><strong className="text-white">Unlocks:</strong> {r.perk}</p>
-                  <div className="text-[10px] font-mono text-white/50 bg-black/40 p-2 rounded-xl border border-white/5">
-                    <strong className="text-amber-300">Requirement:</strong> {r.req}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 6. INSPECT USER CARD MODAL */}
-      {inspectUser && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-sm p-6 text-center space-y-4 shadow-2xl">
-            <div className="w-16 h-16 rounded-full bg-purple-900/80 border-2 border-purple-400/50 flex items-center justify-center text-2xl font-black text-white mx-auto">
-              {inspectUser.name.charAt(0)}
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">{inspectUser.name}</h3>
-              <p className="text-xs font-mono text-purple-300">{inspectUser.level}</p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-black/50 border border-white/10 text-center">
-              <span className="text-xl font-extrabold text-amber-400 font-mono">{inspectUser.xp.toLocaleString()} XP</span>
-              <p className="text-[10px] text-white/50">Total Conquest Score</p>
-            </div>
-
-            <button onClick={() => setInspectUser(null)} className="w-full py-2.5 bg-white/10 text-white rounded-xl text-xs font-semibold">
-              Close Profile
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 7. FIRST LOGIN WELCOME CARD REWARD CELEBRATION MODAL */}
-      {showWelcomeCardModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#121124] border border-emerald-500/50 rounded-[32px] w-full max-w-lg p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden text-center">
-            
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                localStorage.setItem("welcome_card_claimed_v1", "true");
-                setShowWelcomeCardModal(false);
-              }}
-              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
-              title="Close"
-            >
+      {selectedCard && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
+          <div
+            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl relative"
+            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}` }}
+          >
+            <button onClick={() => setSelectedCard(null)} className="absolute top-3 right-3 p-2 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 z-20">
               <X size={18} />
             </button>
-
-            {/* Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Header */}
-            <div className="space-y-2 relative z-10">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Sparkles size={14} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase font-serif tracking-wide">
-                SEEKER TRAINEE BLACK METAL CARD
-              </h2>
-              <p className="text-xs text-emerald-200 font-mono">
-                Issued upon logging into Sigma Menifest OS • Level 1 Milestone
-              </p>
+            <div className="text-center space-y-2 mb-4">
+              <span className={`text-[10px] font-mono font-bold tracking-[3px] uppercase ${selectedCard.ornamentColor}`}>{selectedCard.label}</span>
+              <h3 className="text-2xl font-serif font-black uppercase tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{selectedCard.name}</h3>
+              <p className="text-[11px] font-mono text-white/50">UNLOCKED AT LEVEL {selectedCard.level}</p>
             </div>
-
-            {/* 3D ATM Black Card Visual */}
-            <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-6 shadow-2xl text-left space-y-4 max-w-sm mx-auto transform hover:rotate-1 transition-transform overflow-hidden">
-              <video 
-                ref={(el) => {
-                  if (el) {
-                    el.muted = true;
-                    el.play().catch(() => {});
-                  }
-                }}
-                autoPlay 
-                loop 
-                muted 
-                playsInline
-                preload="auto"
-                poster="/images/anime_trainee_warrior_1785176432904.jpg"
-                className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none"
-              >
-                <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-zinc-950/70 to-transparent pointer-events-none" />
-
-              <div className="flex justify-between items-start relative z-10">
-                <div>
-                  <div className="text-[10px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">
-                    SIGMA MENIFEST OS • TIER 1
-                  </div>
-                  <div className="text-sm font-black text-white font-mono uppercase">
-                    SEEKER BLACK CARD
-                  </div>
-                </div>
-                <div className="w-9 h-7 rounded bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 border border-amber-500/40 shadow-md flex items-center justify-center text-[9px] font-black font-mono text-amber-950">
-                  CHIP
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 py-2 relative z-10">
-                <div className="w-16 h-16 rounded-xl overflow-hidden border border-emerald-400/50 shrink-0 shadow-lg bg-black relative">
-                  <video 
-                    ref={(el) => {
-                      if (el) {
-                        el.muted = true;
-                        el.play().catch(() => {});
-                      }
-                    }}
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    preload="auto"
-                    poster="/images/anime_trainee_warrior_1785176432904.jpg"
-                    className="w-full h-full object-cover"
-                  >
-                    <source src="/videos/hero_anime_loop.mp4" type="video/mp4" />
-                  </video>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-emerald-300">ANIME CHARACTER STAGE 1</div>
-                  <div className="text-[10px] text-zinc-300 font-mono">“Awakening focus & daily discipline.”</div>
-                </div>
-              </div>
-
-              <div className="space-y-1 pt-2 border-t border-white/10 relative z-10">
-                <div className="text-base font-mono tracking-[3px] font-bold text-zinc-200">
-                  4532 •••• •••• 1024
-                </div>
-                <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400">
-                  <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
-                  <span className="text-emerald-400 font-bold">EXP 12/28</span>
-                </div>
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border-2 mb-4" style={{ borderColor: selectedCard.borderGlow }}>
+              <img src={resolveImageUrl(selectedCard.image)} alt={selectedCard.name} onError={onImgError()} className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)" }} />
+              <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+                <p className="text-[12px] font-serif italic text-white text-center leading-snug whitespace-pre-line drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">{selectedCard.quote}</p>
               </div>
             </div>
-
-            {/* Claim Action */}
-            <div className="space-y-3 relative z-10 pt-2">
-              <p className="text-xs text-zinc-300 font-mono leading-relaxed">
-                As you level up in real life, higher tier cards (Iron Vanguard, Shadow Knight, and Cosmic Monarch) will unlock automatically!
-              </p>
-              <button
-                onClick={() => {
-                  try {
-                    localStorage.setItem("welcome_card_claimed_v1", "true");
-                  } catch (e) {
-                    console.warn("Could not save welcome_card_claimed_v1", e);
-                  }
-                  setShowWelcomeCardModal(false);
-                  playSFX("levelup");
-                  showToast("🎉 WELCOME SEEKER CARD CLAIMED TO YOUR VAULT!");
-                }}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-sm font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2"
-              >
-                <Award size={18} /> CLAIM WELCOME CARD & ENTER SYSTEM
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 8. SELECTED CARD INSPECTOR MODAL */}
-      {selectedCard && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-purple-500/40 rounded-[32px] w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative text-center">
-            
-            <button 
-              onClick={() => setSelectedCard(null)} 
-              className="absolute top-4 right-4 text-white/50 hover:text-white"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="space-y-1">
-              <span className={`text-xs font-mono font-bold tracking-wider ${selectedCard.textColor}`}>
-                {selectedCard.tier} • {selectedCard.badge}
-              </span>
-              <h3 className="text-xl font-bold text-white font-mono uppercase">{selectedCard.title}</h3>
-              <p className="text-[11px] font-mono text-zinc-400">{selectedCard.subtitle}</p>
-            </div>
-
-            {/* 3D ATM Metal Card Preview */}
-            <div className={`rounded-2xl border p-5 text-left space-y-4 shadow-2xl ${selectedCard.gradient}`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className={`text-[9px] font-mono font-bold uppercase ${selectedCard.textColor}`}>
-                    SIGMA MENIFEST OS
-                  </div>
-                  <div className="text-sm font-black text-white font-mono uppercase">
-                    {selectedCard.title}
-                  </div>
-                </div>
-                <div className="w-8 h-6 rounded bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 border border-amber-500/40 shadow-md flex items-center justify-center text-[8px] font-black font-mono text-amber-950">
-                  CHIP
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/20 shrink-0 bg-black shadow-lg">
-                  <img src={resolveImageUrl(selectedCard.image)} alt={selectedCard.title} onError={onImgError()} className="w-full h-full object-cover" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-white">CHARACTER PORTRAIT</div>
-                  <div className="text-[10px] text-zinc-300 font-mono italic">{selectedCard.quote}</div>
-                </div>
-              </div>
-
-              <div className="space-y-1 pt-2 border-t border-white/10">
-                <div className="text-sm font-mono tracking-[2.5px] font-bold text-zinc-200">
-                  {selectedCard.cardNumber}
-                </div>
-                <div className="flex justify-between items-center text-[9px] font-mono text-zinc-400">
-                  <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR"}</span>
-                  <span className={`font-bold ${selectedCard.textColor}`}>{selectedCard.exp}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Unlocked Perks List */}
-            <div className="space-y-2 text-left bg-black/40 p-4 rounded-2xl border border-white/10">
-              <span className="text-xs font-mono font-bold text-amber-300 uppercase block">
-                CARD PERKS & MULTIPLIERS:
-              </span>
-              <ul className="space-y-1.5 text-xs text-zinc-200 font-mono">
-                {selectedCard.perks.map((p: string, i: number) => (
+            <div className="space-y-2 bg-black/40 p-3 rounded-2xl border border-white/10">
+              <span className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider block">PERKS & MULTIPLIERS</span>
+              <ul className="space-y-1.5 text-[11px] text-zinc-200 font-mono">
+                {(selectedCard.perks || []).map((p: string, i: number) => (
                   <li key={i} className="flex items-center gap-2">
-                    <Sparkles size={12} className="text-emerald-400 shrink-0" />
-                    <span>{p}</span>
+                    <Sparkles size={12} className="text-emerald-400 shrink-0" />{p}
                   </li>
                 ))}
               </ul>
             </div>
-
-            <button 
-              onClick={() => setSelectedCard(null)} 
-              className="w-full py-3 bg-purple-600/80 hover:bg-purple-500 text-white font-mono text-xs font-bold uppercase rounded-xl transition"
-            >
-              CLOSE CARD INSPECTOR
+            <button onClick={() => setSelectedCard(null)} className="w-full mt-4 py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: selectedCard.borderGlow, color: "#000" }}>
+              CLOSE
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 9. QUANTUM TIMELINE SYNC MODAL */}
-      {showSyncModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-purple-500/50 rounded-[32px] w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative text-center">
-            
-            <button 
-              onClick={() => setShowSyncModal(false)} 
-              className="absolute top-4 right-4 text-white/50 hover:text-white"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="space-y-2">
-              <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Calendar size={12} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
-              </span>
-              <h3 className="text-xl font-black text-white font-serif uppercase tracking-wide">Sync Commitment Streak</h3>
-              <p className="text-[11px] text-white/50 leading-relaxed">
-                Manually align your real commitment history with Sigma's cloud-database. The system will seed authentic historical daily events to dynamically compute your desired streak.
-              </p>
-            </div>
-
-            {/* Slider / Counter */}
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
-                <span className="text-3xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
-              </div>
-              
-              <input 
-                type="range" 
-                min="1" 
-                max="100" 
-                value={targetStreakDays} 
-                onChange={(e) => {
-                  playSFX("click");
-                  setTargetStreakDays(Number(e.target.value));
-                }}
-                className="w-full h-2 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-
-              <div className="flex justify-between text-[10px] font-mono text-zinc-500">
-                <span>1 Day</span>
-                <span>42 Days (Milestone)</span>
-                <span>100 Days</span>
-              </div>
-            </div>
-
-            {/* Dynamic Forecast Metrics */}
-            <div className="grid grid-cols-2 gap-2 text-left bg-purple-950/20 border border-purple-500/20 p-3 rounded-xl text-xs font-mono">
-              <div className="space-y-0.5">
-                <span className="text-zinc-400 text-[10px]">PREDICTED LEVEL:</span>
-                <div className="text-white font-bold">Level {Math.max(level, Math.min(25, Math.ceil(targetStreakDays / 2)))}</div>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-zinc-400 text-[10px]">ESTIMATED MIN XP:</span>
-                <div className="text-amber-400 font-bold">{(targetStreakDays * 250).toLocaleString()} XP</div>
-              </div>
-            </div>
-
-            {/* Synchronize Action */}
-            <div className="space-y-3 pt-2">
-              <button 
-                onClick={handleSyncStreak}
-                disabled={isSyncing}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSyncing ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ALIGNING TIMELINE...
-                  </>
-                ) : (
-                  <>
-                    <Calendar size={14} className="text-amber-400 animate-pulse" />
-                    WRITE TIMELINE TO DATABASE
-                  </>
-                )}
-              </button>
-              <span className="text-[9.5px] font-mono text-zinc-500 block">
-                ⚠️ Writes to the official cloud database node. Action is irreversible.
-              </span>
-            </div>
           </div>
         </div>
       )}
     </div>
   );
 };
+
+// QuestBoard — full-bleed quest card grid with main/side/discipline
+// and boss battles. Rendered inline by SoloDominion.
+const QuestBoard: React.FC<{
+  quests: Mission[];
+  bossQuests: Mission[];
+  onOpenQuest: (q: Mission) => void;
+  isUnlockedFor: (level: number) => boolean;
+  rankColor: typeof RANK_COLOR;
+  rankLabel: typeof RANK_LABEL;
+  categoryIcon: typeof CATEGORY_ICON;
+  categoryLabel: typeof CATEGORY_LABEL;
+}> = ({ quests, bossQuests, onOpenQuest, rankColor, rankLabel, categoryIcon, categoryLabel }) => {
+  const mainQuests = quests.filter((q) => q.questType === "main");
+  const sideQuests = quests.filter((q) => q.questType === "side");
+  const disciplineQuests = quests.filter((q) => q.questType === "discipline");
+
+  const renderQuest = (q: Mission) => {
+    const r = (q.rank || "E") as QuestRank;
+    return (
+      <button
+        key={q.id}
+        onClick={() => !q.completed && onOpenQuest(q)}
+        disabled={q.completed}
+        className={`group relative text-left w-full rounded-2xl border-2 transition-all p-4 ${
+          q.completed
+            ? "border-emerald-500/40 bg-emerald-950/20 opacity-80"
+            : "bg-gradient-to-br from-[#0F0820] to-black hover:border-purple-500/50 hover:scale-[1.01]"
+        }`}
+        style={{ borderColor: q.completed ? "rgba(16,185,129,0.5)" : "rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 border-2"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)", borderColor: rankColor[r] }}
+          >
+            {categoryIcon[q.category]}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+              <span
+                className="text-[9px] font-mono font-bold tracking-[2px] uppercase px-1.5 py-0.5 rounded"
+                style={{ color: rankColor[r], backgroundColor: `${rankColor[r]}15`, border: `1px solid ${rankColor[r]}40` }}
+              >
+                {rankLabel[r]}
+              </span>
+              <span className="text-[9px] font-mono text-white/40 uppercase tracking-wider">{categoryLabel[q.category]}</span>
+            </div>
+            <div className={`text-sm font-black uppercase tracking-wide ${q.completed ? "text-emerald-300 line-through opacity-70" : "text-white"}`}>
+              {q.title}
+            </div>
+            <p className="text-[10.5px] text-white/55 mt-1 leading-snug line-clamp-2">{q.description}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-base font-black font-mono text-amber-300 tabular-nums">+{q.xp}</div>
+            <div className="text-[9px] font-mono text-white/40 uppercase tracking-wider">XP</div>
+          </div>
+        </div>
+        {q.completed ? (
+          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+            <CheckCircle size={12} /> Quest Complete
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-purple-300 uppercase tracking-wider font-bold">Tap to submit proof</span>
+            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">→</span>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 relative z-10">
+      {/* Main + Side Quests */}
+      <div className="lg:col-span-2 space-y-4">
+        {mainQuests.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Flame size={14} className="text-purple-400" />
+              <span className="text-[10px] font-mono tracking-[3px] text-purple-300 uppercase font-bold">MAIN QUESTS</span>
+            </div>
+            <div className="space-y-2">{mainQuests.map(renderQuest)}</div>
+          </div>
+        )}
+        {sideQuests.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Target size={14} className="text-blue-400" />
+              <span className="text-[10px] font-mono tracking-[3px] text-blue-300 uppercase font-bold">SIDE QUESTS</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{sideQuests.map(renderQuest)}</div>
+          </div>
+        )}
+        {disciplineQuests.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap size={14} className="text-amber-400" />
+              <span className="text-[10px] font-mono tracking-[3px] text-amber-300 uppercase font-bold">DISCIPLINE QUESTS</span>
+            </div>
+            <div className="space-y-2">{disciplineQuests.map(renderQuest)}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Boss Battle panel */}
+      <div className="lg:col-span-1">
+        <div
+          className="rounded-2xl border-2 p-4 sticky top-4"
+          style={{
+            borderColor: "rgba(239,68,68,0.4)",
+            background: "linear-gradient(180deg, rgba(127,29,29,0.18) 0%, rgba(0,0,0,0.4) 100%)",
+            animation: "bossPulse 2.4s ease-in-out infinite",
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">👹</span>
+              <div>
+                <div className="text-[10px] font-mono tracking-[3px] text-red-300 uppercase font-bold">BOSS BATTLES</div>
+                <div className="text-[10px] font-mono text-white/40">High-XP challenges</div>
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-300 text-[9px] font-mono font-bold uppercase tracking-wider">+XP</span>
+          </div>
+          <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+            {bossQuests.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => !b.completed && onOpenQuest(b)}
+                disabled={b.completed}
+                className={`w-full text-left rounded-xl border-2 p-2.5 transition group ${
+                  b.completed ? "border-emerald-500/40 bg-emerald-950/20 opacity-70" : "border-red-500/30 bg-black/40 hover:border-red-500/70 hover:scale-[1.01]"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-red-500/40 shrink-0">
+                    <img src={resolveImageUrl(b.bossImage || "/images/anime_red_warrior_1785177142520.jpg")} alt={b.title} onError={onImgError()} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-mono font-bold uppercase text-red-300 leading-tight line-clamp-1">{b.title}</div>
+                    <p className="text-[9.5px] text-white/50 mt-0.5 leading-snug line-clamp-2">{b.description}</p>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span
+                        className="text-[8.5px] font-mono font-bold tracking-wider uppercase px-1.5 py-0.5 rounded"
+                        style={{ color: rankColor[b.rank || "B"], backgroundColor: `${rankColor[b.rank || "B"]}15`, border: `1px solid ${rankColor[b.rank || "B"]}40` }}
+                      >
+                        {rankLabel[b.rank || "B"]}
+                      </span>
+                      <span className="text-[9.5px] font-mono text-amber-300 font-bold">+{b.xp} XP</span>
+                    </div>
+                  </div>
+                </div>
+                {b.completed && (
+                  <div className="mt-2 flex items-center gap-1 text-[9.5px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                    <CheckCircle size={11} /> Slain
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export default SoloDominion;
