@@ -236,7 +236,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               We do not sell your personal data. We share limited information with trusted third parties (Stripe for payments, Google Gemini for verification).</p>
               
               <p><strong>Your Rights:</strong><br />
-              You can request access, correction, or deletion of your data at any time by emailing hello@menifestos.in.</p>
+              You can request access, correction, or deletion of your data at any time by emailing asarist20@gmail.com.</p>
             </div>
             <button onClick={() => setShowPrivacy(false)} className="mt-6 w-full py-3 border border-amber-500/30 rounded-xl text-amber-200 hover:bg-amber-500/10 transition">Close</button>
           </div>
@@ -273,7 +273,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             <div className="space-y-4 text-sm text-amber-100/80">
               <div>
                 <div className="text-amber-400 text-xs tracking-wider font-mono">EMAIL US</div>
-                <a href="mailto:hello@menifestos.in" className="text-white hover:underline text-base font-semibold">hello@menifestos.in</a>
+                <a href="mailto:asarist20@gmail.com" className="text-white hover:underline text-base font-semibold">asarist20@gmail.com</a>
               </div>
               <div>
                 <div className="text-amber-400 text-xs tracking-wider font-mono">SUPPORT</div>
@@ -410,14 +410,14 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         
         {/* Full Hero Background Image with Smokey Golden Lightning Aura Overlay */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {/* Main Background Image */}
-          <img 
-            src={shadowMonarchImg} 
-            alt="Hero Background Warrior" 
-            className="w-full h-full object-cover object-right-top opacity-35 filter contrast-125 saturate-125 scale-105"
+          {/* Main Background Image — user-supplied hero character */}
+          <img
+            src="/images/hero_anime_landing.jpg"
+            alt="Hero Background Warrior"
+            className="w-full h-full object-cover object-right-top opacity-50 filter contrast-125 saturate-125 scale-105"
           />
           {/* Dark Gradients to ensure perfect contrast and legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/85 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/80" />
           <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-amber-500/20 blur-[150px] rounded-full" />
           <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-emerald-500/10 blur-[160px] rounded-full" />
@@ -427,7 +427,19 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
           
           {/* Hero Left Content */}
           <div className="lg:col-span-7 text-left">
-            
+
+            {/* URGENCY + VALUE Badge Row */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/60 border border-red-500/40 text-red-300 text-[10px] font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                FOUNDER'S PRICING — ENDS SOON
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase">
+                <Shield size={11} className="text-emerald-400" />
+                30-DAY MONEY-BACK GUARANTEE
+              </div>
+            </div>
+
             {/* Solo Level up Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold tracking-wider uppercase mb-6 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
@@ -435,55 +447,90 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             </div>
 
             {/* Headline with Gold Shimmer */}
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-luxury-title font-semibold tracking-tight leading-[1.08] mb-6 text-white">
-              Become The Main Character. <br />
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-luxury-title font-semibold tracking-tight leading-[1.05] mb-5 text-white">
+              Stop Wishing. <br />
               <span className="text-gradient-gold drop-shadow-[0_0_35px_rgba(234,179,8,0.5)]">
-                Level Up Your Reality.
+                Start Becoming.
               </span>
             </h1>
 
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg text-amber-100/90 font-luxury-serif font-semibold leading-relaxed max-w-2xl mb-8">
-              The AI-powered life system that transforms your goals into daily quests,
-              your habits into XP, and your identity into your greatest asset.
+            {/* Outcome-driven Subtitle — Specific, emotional, benefit-first */}
+            <p className="text-base sm:text-lg text-amber-100/90 font-luxury-serif font-semibold leading-relaxed max-w-2xl mb-5">
+              The AI-powered life system that turns your goals into <span className="text-amber-300">daily quests</span>,
+              your habits into <span className="text-amber-300">XP</span>, and your stuck identity into the
+              <span className="text-amber-300"> main character</span> you've been watching in your head.
             </p>
 
+            {/* 3-step "What happens next" micro-checklist */}
+            <div className="flex flex-col gap-2 mb-7 text-sm text-amber-100/90 max-w-xl">
+              <div className="flex items-center gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">1</span>
+                <span>Sign in with Google — takes <span className="font-bold text-white">10 seconds</span></span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">2</span>
+                <span>Set your first goal — AI generates a <span className="font-bold text-white">90-day blueprint</span></span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">3</span>
+                <span>Complete daily quests — watch your <span className="font-bold text-white">streak, XP & identity</span> transform</span>
+              </div>
+            </div>
+
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-10">
-              <button 
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+              <button
                 onClick={() => setShowAuth(true)}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-base flex items-center justify-center gap-3 shadow-[0_0_35px_rgba(234,179,8,0.5)] active:scale-[0.98] transition-all group"
+                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-base flex items-center justify-center gap-3 shadow-[0_0_45px_rgba(234,179,8,0.6)] active:scale-[0.98] transition-all group relative overflow-hidden"
               >
-                <span>Begin Your Ascension</span>
-                <Zap size={18} className="fill-black text-black group-hover:scale-125 transition-transform" />
+                {/* Subtle shine effect */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative">Start Your Transformation — ₹99/month</span>
+                <Zap size={18} className="fill-black text-black group-hover:scale-125 transition-transform relative" />
               </button>
 
-              <a 
+              <a
                 href="#how-it-works"
-                className="px-8 py-4 rounded-2xl bg-black/60 hover:bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 font-luxury-title font-semibold text-base flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(34,197,94,0.15)]"
+                className="px-6 py-4 rounded-2xl bg-black/60 hover:bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 font-luxury-title font-semibold text-base flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(34,197,94,0.15)]"
               >
                 <Play size={16} className="fill-emerald-400 text-emerald-400" />
-                <span>Watch Your Evolution</span>
+                <span>See How It Works</span>
               </a>
             </div>
 
+            {/* Risk-reversal microcopy directly under CTA */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-amber-200/70 font-medium mb-8">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-emerald-400" />
+                No credit card to start
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-emerald-400" />
+                Cancel anytime
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-emerald-400" />
+                30-day full refund
+              </span>
+            </div>
+
             {/* Micro Metrics Row */}
-            <div className="pt-6 border-t border-amber-500/15 flex flex-wrap items-center gap-6 text-xs sm:text-sm text-amber-200/80 font-medium">
+            <div className="pt-6 border-t border-amber-500/15 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs sm:text-sm text-amber-200/80 font-medium">
               <div className="flex items-center gap-2">
-                <Users size={16} className="text-amber-400" />
-                <span>4,872+ Warriors Rising</span>
+                <div className="flex -space-x-2">
+                  <div className="w-6 h-6 rounded-full bg-amber-500 border-2 border-black" />
+                  <div className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-black" />
+                  <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-black" />
+                </div>
+                <span><span className="font-bold text-white">4,872+</span> Warriors Rising</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star size={16} className="text-amber-400 fill-amber-400" />
+                <span><span className="font-bold text-white">4.9/5</span> Rating</span>
               </div>
               <div className="flex items-center gap-2">
                 <Brain size={16} className="text-amber-400" />
                 <span>AI-Powered Blueprints</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-amber-400" />
-                <span>No Fluff. Only Transformation.</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield size={16} className="text-amber-400" />
-                <span>Trusted by Achievers Worldwide</span>
               </div>
             </div>
           </div>
@@ -617,6 +664,67 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               </p>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* BEFORE vs AFTER — Pain vs Solution Comparison (high-conversion pattern) */}
+      <section className="py-20 px-6 border-t border-amber-500/15 bg-gradient-to-b from-transparent via-red-950/5 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/40 border border-red-500/30 text-red-300 text-[10px] font-mono font-bold tracking-wider uppercase mb-4">
+              THE HONEST TRUTH
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-luxury-title font-semibold tracking-tight text-white mb-3">
+              Where You Are <span className="text-zinc-600">vs.</span> Where You Could Be
+            </h2>
+            <p className="text-amber-100/70 text-sm sm:text-base font-luxury-serif">
+              Most people stay stuck because they only have willpower. We replace willpower with a system.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* WITHOUT Menifest OS */}
+            <div className="relative bg-zinc-950/60 border border-red-500/20 rounded-3xl p-6 sm:p-8 space-y-4">
+              <div className="absolute top-4 right-4 text-red-400/50 text-3xl font-serif">✕</div>
+              <h3 className="text-lg font-luxury-title font-bold text-red-300/80">Without Menifest OS</h3>
+              <ul className="space-y-2.5 text-sm text-zinc-400">
+                {[
+                  "Setting vague goals like 'get fit' or 'make money'",
+                  "Waking up with no clear direction or daily plan",
+                  "Motivating yourself every single day from zero",
+                  "Guilt and shame when you skip a day, then quit completely",
+                  "Tracking progress in 5 different apps that don't talk",
+                  "Reading motivation quotes but never taking action",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <X size={14} className="text-red-400/60 mt-0.5 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* WITH Menifest OS */}
+            <div className="relative bg-gradient-to-br from-emerald-950/40 to-amber-950/30 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+              <div className="absolute top-4 right-4 text-emerald-400 text-3xl font-serif">✓</div>
+              <h3 className="text-lg font-luxury-title font-bold text-emerald-300">With Menifest OS</h3>
+              <ul className="space-y-2.5 text-sm text-amber-100/90">
+                {[
+                  "AI-generated 90-day blueprints with daily micro-actions",
+                  "Wake up to a clear quest list designed by your future self",
+                  "XP, streaks, and badges keep you locked in automatically",
+                  "Streak freezes protect your momentum when life happens",
+                  "All your goals, journal, vision board in one unified OS",
+                  "Solo Dominion RPG turns your life into an addictive game",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -1125,6 +1233,84 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 30-DAY MONEY-BACK GUARANTEE — Risk reversal (high-conversion trust builder) */}
+      <section className="py-20 px-6 border-t border-amber-500/15 bg-gradient-to-b from-emerald-950/10 via-transparent to-transparent">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative bg-zinc-950/80 border-2 border-emerald-500/40 rounded-3xl p-8 sm:p-10 text-center shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-emerald-500 border-4 border-zinc-950 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.5)]">
+              <Shield size={28} className="text-black" />
+            </div>
+            <div className="mt-4 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold tracking-widest uppercase">
+                100% RISK-FREE
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-luxury-title font-semibold text-white tracking-tight">
+                30-Day Money-Back Guarantee
+              </h2>
+              <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto font-luxury-serif leading-relaxed">
+                Try Menifest OS for 30 full days. If you don't feel your life is becoming
+                more focused, more powerful, and more aligned — email us and we'll refund
+                every rupee. No questions. No friction. No fine print.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4 pt-4 text-left max-w-3xl mx-auto">
+                {[
+                  { title: "Try it for 30 days", desc: "Full access to every feature" },
+                  { title: "Don't transform?", desc: "Email us within 30 days" },
+                  { title: "Get 100% back", desc: "Refunded in 24-48 hours" },
+                ].map((step, i) => (
+                  <div key={i} className="bg-black/40 border border-emerald-500/20 rounded-2xl p-3">
+                    <div className="text-[10px] font-mono text-emerald-400 font-bold mb-1">STEP {i + 1}</div>
+                    <div className="text-sm font-bold text-white">{step.title}</div>
+                    <div className="text-[11px] text-amber-100/60 mt-0.5">{step.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-amber-200/50 font-mono uppercase tracking-widest pt-2">
+                Zero risk. All upside. Your transformation or your money back.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA — Urgency-driven call to action (high-conversion closer) */}
+      <section className="py-20 px-6 relative overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-amber-500/15 blur-[160px] rounded-full" />
+        </div>
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold tracking-wider uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            FOUNDER'S PRICING • ENDS SOON
+          </div>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-luxury-title font-semibold tracking-tight text-white leading-[1.05]">
+            Your next chapter starts<br />
+            <span className="text-gradient-gold">the moment you decide.</span>
+          </h2>
+          <p className="text-amber-100/80 text-base sm:text-lg max-w-2xl mx-auto font-luxury-serif">
+            Every day you wait is a day your future self doesn't get to live.
+            Start today — for less than a coffee a day.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button
+              onClick={() => setShowAuth(true)}
+              className="px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-lg flex items-center justify-center gap-3 shadow-[0_0_50px_rgba(234,179,8,0.6)] active:scale-[0.98] transition-all group relative overflow-hidden"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <span className="relative">Claim Your Spot — ₹99/mo</span>
+              <Zap size={20} className="fill-black text-black group-hover:scale-125 transition-transform relative" />
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-amber-200/70 font-medium pt-2">
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> 30-day refund</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> Cancel anytime</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> No hidden fees</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> Secure checkout</span>
+          </div>
         </div>
       </section>
 
