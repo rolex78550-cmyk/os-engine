@@ -2070,7 +2070,171 @@ Response Mime Type: application/json.`;
 });
 
 // ============================================================
-// PHASE 2 — PROOF VERIFICATION (multimodal AI)
+// SOLO DOMINION — MISSION PROOF VERIFICATION (multimodal AI)
+// Verifies that the user actually performed the mission by analyzing:
+//   - Selfie image (must show user actively performing the task)
+//   - Video oath (frames analyzed for oath recital, no fabrication)
+//   - Text oath (must match a coherent universe-affirming template)
+// ============================================================
+app.post("/api/missions/verify-proof", async (req, res) => {
+  try {
+    const {
+      missionId,
+      missionTitle,
+      missionDesc,
+      missionCategory,
+      selfieBase64,
+      videoUrl,
+      videoBase64,
+      oathText,
+      notes,
+    } = req.body || {};
+
+    if (!missionTitle) {
+      return res.status(400).json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: "Mission title missing.",
+      });
+    }
+    if (!oathText || !oathText.trim()) {
+      return res.status(400).json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: "Universe oath text is required.",
+      });
+    }
+
+    const client = getGeminiClient();
+    if (!client) {
+      // Graceful fallback — accept proof if Gemini offline but require minimum quality signals
+      const hasImage = !!selfieBase64;
+      const hasVideo = !!videoUrl || !!videoBase64;
+      const oathLen = oathText.trim().split(/\s+/).length;
+      if ((hasImage || hasVideo) && oathLen >= 12) {
+        return res.json({
+          verified: true,
+          verificationScore: 72,
+          verificationFeedback: "AI Oracle offline — proof accepted on trust. AI review will resume shortly.",
+          modelUsed: "fallback",
+          verifiedAt: new Date().toISOString(),
+          aiGenerated: false,
+        });
+      }
+      return res.json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: "AI Oracle offline. Please provide a selfie or video proof along with a meaningful oath (12+ words).",
+        aiGenerated: false,
+      });
+    }
+
+    const promptText = `You are the RUTHLESS UNIVERSE ORACLE for Menifest OS's Solo Dominion system.
+
+A user is claiming to have completed this REAL-WORLD mission:
+- Mission: "${missionTitle}"
+- Description: "${missionDesc || "—"}"
+- Category: ${missionCategory || "general"}
+
+The user has submitted:
+${selfieBase64 ? "- A SELFIE photo as proof they actually performed this task." : "- NO selfie provided."}
+${videoUrl || videoBase64 ? "- A VIDEO oath where they verbally swear to the universe they completed this task." : "- NO video oath provided."}
+- A text oath they typed/recited:
+"""
+${oathText}
+"""
+${notes ? `- Additional notes: "${notes}"` : ""}
+
+CRITICAL VERIFICATION RULES:
+1. The SELFIE (if provided) MUST VISIBLY show the user ACTIVELY performing the EXACT task described. Reject generic selfies, old photos, unrelated images, memes, screenshots, food, or stock images.
+2. The VIDEO (if provided) MUST show the user SPEAKING the oath out loud. The face must be visible, audio present. Reject silent videos, dark videos, or videos with no clear face.
+3. The OATH TEXT must be coherent, contain a genuine affirmation of completion, and reference the universe/cosmic/manifestation theme. Reject empty or nonsensical text.
+4. ALL provided proofs must be CONSISTENT with the mission title/description. If the user says "100 push-ups" but submits a photo of a book, REJECT.
+5. If a proof type is REQUIRED but MISSING, REJECT immediately.
+6. Be FAIR but STRICT. The user is on their honor to the universe. Cheating breaks the law of attraction.
+
+Return ONLY clean JSON:
+{
+  "verified": boolean,
+  "verificationScore": number (0-100, where 100 = flawless proof + oath),
+  "verificationFeedback": "1-2 sharp sentences. Direct and honest. If verified, mention what the AI saw. If rejected, explain specifically what was missing or wrong."
+}`;
+
+    const parts: any[] = [{ text: promptText }];
+    if (selfieBase64) {
+      const base64Data = selfieBase64.split(",")[1] || selfieBase64;
+      parts.push({
+        inlineData: { mimeType: "image/jpeg", data: base64Data },
+      });
+    }
+    if (videoBase64) {
+      // We send video frames as a still sample. For full video, the URL is used by the browser.
+      // Most video files are too large to inline; rely on the selfie + oath for primary verification.
+      try {
+        const base64Data = videoBase64.split(",")[1] || videoBase64;
+        // Send only first 2MB of base64 to avoid Gemini limits
+        if (base64Data.length < 2_500_000) {
+          parts.push({
+            inlineData: { mimeType: "video/webm", data: base64Data },
+          });
+        }
+      } catch {}
+    }
+
+    try {
+      const result = await generateWithFallback({
+        contents: [{ role: "user", parts }],
+        config: { responseMimeType: "application/json", temperature: 0.2 },
+      });
+
+      const parsed = JSON.parse(result.text || "{}");
+      const verified = parsed.verified === true;
+      const score = Math.max(0, Math.min(100, Number(parsed.verificationScore) || 0));
+      const feedback = parsed.verificationFeedback || (verified ? "Universe accepts your oath." : "Proof insufficient.");
+
+      // Enforce minimum score threshold
+      const finalVerified = verified && score >= 60;
+
+      return res.json({
+        verified: finalVerified,
+        verificationScore: score,
+        verificationFeedback: finalVerified
+          ? feedback
+          : score > 0
+          ? `${feedback} (Score too low — need 60+ to mark complete.)`
+          : feedback,
+        modelUsed: result.modelUsed,
+        verifiedAt: new Date().toISOString(),
+        aiGenerated: true,
+        videoUrl: videoUrl || null,
+      });
+    } catch (aiErr: any) {
+      const isQuota = aiErr?.message?.includes("quota") || aiErr?.status === "RESOURCE_EXHAUSTED";
+      if (isQuota) {
+        // Quota exhausted — accept proof on trust with warning
+        return res.json({
+          verified: true,
+          verificationScore: 68,
+          verificationFeedback: "AI quota reached — proof accepted on your honor. Universe trusts your oath for now.",
+          modelUsed: "quota-fallback",
+          verifiedAt: new Date().toISOString(),
+          aiGenerated: false,
+        });
+      }
+      throw aiErr;
+    }
+  } catch (error: any) {
+    console.error("[Mission Proof Verify] Error:", error?.message || error);
+    res.status(500).json({
+      verified: false,
+      verificationScore: 0,
+      verificationFeedback: error?.message || "Verification service error. Please try again.",
+      aiGenerated: false,
+    });
+  }
+});
+
+
 // Verifies a task completion proof (text + optional image) via Gemini.
 // Image is passed inline as base64 (no Storage needed — Gemini sees it,
 // verifies, returns a score + feedback). Nothing is persisted server-side.

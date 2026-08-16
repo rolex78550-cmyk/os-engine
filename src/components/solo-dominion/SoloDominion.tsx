@@ -25,6 +25,30 @@ interface Mission {
   icon: string;
   color: string;
   completed: boolean;
+  /** Proof requirements — AI picks based on mission description */
+  proofRequired?: ProofType;
+  /** Mission category for AI-driven proof selection */
+  category?: "fitness" | "learning" | "mindset" | "wealth" | "lifestyle" | "social" | "creative" | "general";
+  /** Recorded proof data (after user submits) */
+  proofData?: MissionProof;
+  /** When the proof was last verified */
+  verifiedAt?: string;
+}
+
+type ProofType = "selfie" | "video_oath" | "both";
+
+interface MissionProof {
+  selfieBase64?: string;
+  selfieUrl?: string;
+  videoUrl?: string;
+  videoStoragePath?: string;
+  oathText: string;
+  oathTemplate: string;
+  notes?: string;
+  verified: boolean;
+  verificationScore: number;
+  verificationFeedback: string;
+  submittedAt: string;
 }
 
 interface StreakCard {
@@ -254,6 +278,346 @@ export const SoloDominion: React.FC<any> = (props) => {
   });
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
 
+  // ============================================================
+  // PROOF VERIFICATION SYSTEM (Solo Dominion)
+  // User must submit selfie + video oath BEFORE mission is marked done.
+  // AI (Gemini multimodal) verifies content matches mission.
+  // ============================================================
+  const [proofMission, setProofMission] = useState<Mission | null>(null);
+  const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "verifying" | "result">("choose");
+  const [proofSelfieBase64, setProofSelfieBase64] = useState<string | null>(null);
+  const [proofVideoBlob, setProofVideoBlob] = useState<Blob | null>(null);
+  const [proofVideoUrl, setProofVideoUrl] = useState<string | null>(null);
+  const [proofOathTemplate, setProofOathTemplate] = useState<string>("");
+  const [proofOathText, setProofOathText] = useState<string>("");
+  const [proofNotes, setProofNotes] = useState<string>("");
+  const [proofRequired, setProofRequired] = useState<ProofType>("both");
+  const [proofVerifying, setProofVerifying] = useState(false);
+  const [proofResult, setProofResult] = useState<{ verified: boolean; score: number; feedback: string } | null>(null);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [videoRecorderSupported, setVideoRecorderSupported] = useState(true);
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
+
+  // Pre-defined oath templates — user can swipe and customize
+  const OATH_TEMPLATES = [
+    "I swear on the universe and the cosmic law of attraction that I have completed [MISSION] today with absolute integrity, and I accept full responsibility for the reality I am creating.",
+    "I solemnly swear by the infinite universe that I have genuinely performed [MISSION] on this very day, and I commit to honor my word as a true warrior of manifestation.",
+    "By the stars above and the universe within, I declare on my honor that I have fully completed [MISSION] today, in thought, word, and deed.",
+    "I call upon the universe as my witness — I have completed [MISSION] today with my full capacity, and I align myself with the consequences of truth.",
+  ];
+
+  // Decide proof type based on mission category (AI-style heuristic — runs instantly)
+  const pickProofType = (mission: Mission): ProofType => {
+    const cat = mission.category || "general";
+    const title = (mission.title + " " + mission.desc).toLowerCase();
+    // Video-required activities (physical, presence-based)
+    if (cat === "fitness" || /workout|exercise|run|push|squat|gym|yoga|meditat/i.test(title)) return "both";
+    // Selfie + oath (medium intensity, visible proof)
+    if (cat === "learning" || cat === "creative" || /read|book|journal|write|sketch|paint|cook/i.test(title)) return "both";
+    // Both required for any physical action
+    if (cat === "lifestyle" || cat === "social") return "both";
+    // Mindset / wealth — selfie is enough with oath
+    if (cat === "mindset" || cat === "wealth") return "selfie";
+    return "both";
+  };
+
+  // Open proof modal for a mission
+  const openProofModal = (mission: Mission) => {
+    if (mission.completed || !user) return;
+    const required = pickProofType(mission);
+    setProofMission(mission);
+    setProofRequired(required);
+    setProofStep("choose");
+    setProofSelfieBase64(null);
+    setProofVideoBlob(null);
+    setProofVideoUrl(null);
+    setProofOathText("");
+    setProofNotes("");
+    setProofResult(null);
+    setProofVerifying(false);
+    // Set default oath template with mission title inserted
+    const tpl = OATH_TEMPLATES[0].replace("[MISSION]", `"${mission.title}"`);
+    setProofOathTemplate(tpl);
+    setProofOathText(tpl);
+    // Check MediaRecorder support
+    setVideoRecorderSupported(typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined");
+  };
+
+  // Stop any active video stream (cleanup)
+  const stopVideoStream = () => {
+    try {
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach((t) => t.stop());
+        videoStreamRef.current = null;
+      }
+      if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
+        try { videoRecorderRef.current.stop(); } catch {}
+      }
+    } catch {}
+    setIsRecordingVideo(false);
+  };
+
+  // Start video recording (camera + mic for oath)
+  const startVideoRecording = async () => {
+    if (!videoRecorderSupported) {
+      alert("Your browser does not support video recording. Please use Chrome or Safari on a mobile device.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 1280 } },
+        audio: true,
+      });
+      videoStreamRef.current = stream;
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        videoPreviewRef.current.muted = true;
+        await videoPreviewRef.current.play().catch(() => {});
+      }
+      const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9,opus" });
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        setProofVideoBlob(blob);
+        if (proofVideoUrl) URL.revokeObjectURL(proofVideoUrl);
+        setProofVideoUrl(URL.createObjectURL(blob));
+        stopVideoStream();
+      };
+      videoRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecordingVideo(true);
+    } catch (e: any) {
+      console.warn("Camera access denied or failed:", e?.message);
+      alert("Camera/mic permission required to record your universe oath. Please allow access in your browser settings.");
+      stopVideoStream();
+    }
+  };
+
+  // Stop video recording
+  const stopVideoRecording = () => {
+    if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
+      videoRecorderRef.current.stop();
+    }
+  };
+
+  // Close proof modal
+  const closeProofModal = () => {
+    stopVideoStream();
+    setProofMission(null);
+    setProofStep("choose");
+    if (proofVideoUrl) {
+      URL.revokeObjectURL(proofVideoUrl);
+    }
+    setProofVideoUrl(null);
+    setProofVideoBlob(null);
+    setProofSelfieBase64(null);
+  };
+
+  // Handle selfie file upload
+  const handleSelfieFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert("Selfie must be under 8MB. Please use a smaller image.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setProofSelfieBase64(reader.result as string);
+    reader.onerror = () => alert("Failed to read the image. Please try another file.");
+    reader.readAsDataURL(file);
+  };
+
+  // Submit proof for AI verification
+  const submitProofForVerification = async () => {
+    if (!proofMission || !user) return;
+    if (!proofOathText.trim()) {
+      alert("Please write or select your universe oath before submitting.");
+      return;
+    }
+    if (proofRequired === "selfie" && !proofSelfieBase64) {
+      alert("Please upload a selfie showing you performing the mission.");
+      return;
+    }
+    if (proofRequired === "video_oath" && !proofVideoBlob) {
+      alert("Please record a video oath confirming you completed the mission.");
+      return;
+    }
+    if (proofRequired === "both" && (!proofSelfieBase64 || !proofVideoBlob)) {
+      alert("Both selfie AND video oath are required for this mission.");
+      return;
+    }
+
+    setProofStep("verifying");
+    setProofVerifying(true);
+
+    try {
+      // 1) Upload selfie to Firestore as base64 (small, fits in 1MB doc limit if compressed)
+      let selfieUrl: string | undefined;
+      if (proofSelfieBase64) {
+        const compressed = await compressImageForFirestore(proofSelfieBase64, 800, 0.7);
+        const selfieId = `proof_selfie_${proofMission.id}_${user.uid}_${Date.now()}`;
+        await setDoc(doc(db, "users", user.uid, "mission_proofs", selfieId), {
+          type: "selfie",
+          base64: compressed,
+          missionId: proofMission.id,
+          missionTitle: proofMission.title,
+          createdAt: new Date().toISOString(),
+        });
+        selfieUrl = compressed; // AI gets the base64 directly
+      }
+
+      // 2) Upload video to Firebase Storage (or fall back to base64)
+      let videoUrl: string | undefined;
+      if (proofVideoBlob) {
+        try {
+          // Dynamic import so the bundle doesn't fail if storage isn't configured
+          const { ref: storageRef, uploadBytes, getDownloadURL } = await import("firebase/storage");
+          const { storage } = await import("../../lib/firebase");
+          if (storage) {
+            const path = `mission_proofs/${user.uid}/${proofMission.id}_${Date.now()}.webm`;
+            const fileRef = storageRef(storage, path);
+            await uploadBytes(fileRef, proofVideoBlob, { contentType: "video/webm" });
+            videoUrl = await getDownloadURL(fileRef);
+            await setDoc(doc(db, "users", user.uid, "mission_proofs", `proof_video_${proofMission.id}_${Date.now()}`), {
+              type: "video",
+              url: videoUrl,
+              storagePath: path,
+              missionId: proofMission.id,
+              createdAt: new Date().toISOString(),
+            });
+          } else {
+            throw new Error("Storage not configured");
+          }
+        } catch (storageErr: any) {
+          console.warn("Firebase Storage upload failed, using base64 fallback:", storageErr?.message);
+          // Fallback: small base64 (warn user that only short videos will work)
+          if (proofVideoBlob.size > 2 * 1024 * 1024) {
+            throw new Error("Video too large for fallback storage. Please record a shorter oath (under 30 seconds).");
+          }
+          const base64 = await blobToBase64(proofVideoBlob);
+          videoUrl = base64;
+        }
+      }
+
+      // 3) Call AI verification endpoint
+      const res = await fetch("/api/missions/verify-proof", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          missionId: proofMission.id,
+          missionTitle: proofMission.title,
+          missionDesc: proofMission.desc,
+          missionCategory: proofMission.category || "general",
+          selfieBase64: proofSelfieBase64,
+          videoUrl,
+          videoBase64: (!videoUrl || videoUrl.startsWith("data:")) ? videoUrl : undefined,
+          oathText: proofOathText,
+          notes: proofNotes,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      const verified = !!result.verified;
+      const score = Number(result.verificationScore) || 0;
+      const feedback = result.verificationFeedback || (verified ? "Universe accepts your oath." : "Proof did not match the mission. Try again with clearer evidence.");
+
+      setProofResult({ verified, score, feedback });
+      setProofStep("result");
+
+      if (verified) {
+        // 4) Mark mission complete & save proof
+        const proof: MissionProof = {
+          selfieBase64: proofSelfieBase64 || undefined,
+          selfieUrl,
+          videoUrl,
+          videoStoragePath: videoUrl && !videoUrl.startsWith("data:") ? videoUrl : undefined,
+          oathText: proofOathText,
+          oathTemplate: proofOathTemplate,
+          notes: proofNotes || undefined,
+          verified: true,
+          verificationScore: score,
+          verificationFeedback: feedback,
+          submittedAt: new Date().toISOString(),
+        };
+        const updated = missions.map((m) =>
+          m.id === proofMission.id
+            ? {
+                ...m,
+                completed: true,
+                currentVal: m.targetVal || 100,
+                progress: `${m.targetVal || 100}/${m.targetVal || 100} ${m.unit || ""}`,
+                proofRequired,
+                proofData: proof,
+                verifiedAt: new Date().toISOString(),
+              }
+            : m
+        );
+        setMissions(updated);
+        const ref = doc(db, "users", user.uid, "solo_missions", today);
+        await setDoc(ref, { missions: updated, date: today }, { merge: true });
+
+        // Award XP and boss damage
+        const xpGain = proofMission.xp;
+        await setDoc(doc(db, "users", user.uid), {
+          xp: (profile.xp || 0) + xpGain,
+          totalXp: (profile.totalXp || 0) + xpGain,
+        }, { merge: true });
+        if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
+        attackBoss(100);
+        playVoiceover("complete");
+        showToast(`⚔️ Mission Verified! +${xpGain} XP! Universe acknowledges your oath.`);
+      }
+    } catch (e: any) {
+      console.error("Proof submission failed:", e);
+      setProofResult({ verified: false, score: 0, feedback: e?.message || "Verification failed. Please try again." });
+      setProofStep("result");
+    } finally {
+      setProofVerifying(false);
+    }
+  };
+
+  // Helper: compress an image before sending to Firestore
+  const compressImageForFirestore = (dataUrl: string, maxDim: number, quality: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
+  // Helper: convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Cleanup video stream on unmount
+  useEffect(() => {
+    return () => {
+      stopVideoStream();
+      if (proofVideoUrl) URL.revokeObjectURL(proofVideoUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // User Stats & XP
   const level = profile?.level || 1;
   const currentXP = profile?.xp || 242;
@@ -407,10 +771,10 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // Default Missions
   const defaultMissions: Mission[] = [
-    { id: "push", title: "100 Push-ups", desc: "Complete 100 push-ups today", progress: "0/100", currentVal: 0, targetVal: 100, unit: "push-ups", xp: 88, icon: "🎯", color: "#a855f7", completed: false },
-    { id: "run", title: "20 Min Run / Cardio", desc: "Go for a run or intense cardio session", progress: "0/20 min", currentVal: 0, targetVal: 20, unit: "min", xp: 77, icon: "⚡", color: "#22c55e", completed: false },
-    { id: "read", title: "30 Min Deep Reading", desc: "Read without phone or distractions", progress: "0/30 min", currentVal: 0, targetVal: 30, unit: "min", xp: 68, icon: "📖", color: "#3b82f6", completed: false },
-    { id: "journal", title: "Journal 10 Min", desc: "Write your thoughts and daily intentions", progress: "0/10 min", currentVal: 0, targetVal: 10, unit: "min", xp: 42, icon: "✏️", color: "#a855f7", completed: false },
+    { id: "push", title: "100 Push-ups", desc: "Complete 100 push-ups today", progress: "0/100", currentVal: 0, targetVal: 100, unit: "push-ups", xp: 88, icon: "🎯", color: "#a855f7", completed: false, category: "fitness" },
+    { id: "run", title: "20 Min Run / Cardio", desc: "Go for a run or intense cardio session", progress: "0/20 min", currentVal: 0, targetVal: 20, unit: "min", xp: 77, icon: "⚡", color: "#22c55e", completed: false, category: "fitness" },
+    { id: "read", title: "30 Min Deep Reading", desc: "Read without phone or distractions", progress: "0/30 min", currentVal: 0, targetVal: 30, unit: "min", xp: 68, icon: "📖", color: "#3b82f6", completed: false, category: "learning" },
+    { id: "journal", title: "Journal 10 Min", desc: "Write your thoughts and daily intentions", progress: "0/10 min", currentVal: 0, targetVal: 10, unit: "min", xp: 42, icon: "✏️", color: "#a855f7", completed: false, category: "mindset" },
   ];
 
   // Default Streaks
@@ -498,49 +862,8 @@ export const SoloDominion: React.FC<any> = (props) => {
     const mission = missions.find(m => m.id === id);
     if (!mission || mission.completed) return;
 
-    // Play Voiceover for Quest Complete!
-    playVoiceover("complete");
-    setSaving(true);
-    const updated = missions.map(m => m.id === id ? { ...m, completed: true, currentVal: m.targetVal || 100, progress: `${m.targetVal || 100}/${m.targetVal || 100} ${m.unit || ''}` } : m);
-    setMissions(updated);
-
-    try {
-      const xpGain = mission.xp;
-      const ref = doc(db, "users", user.uid, "solo_missions", today);
-      await setDoc(ref, { missions: updated, date: today }, { merge: true });
-
-      const newXP = (profile.xp || 0) + xpGain;
-      await setDoc(doc(db, "users", user.uid), {
-        xp: newXP,
-        totalXp: (profile.totalXp || 0) + xpGain,
-      }, { merge: true });
-
-      if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
-
-      // Auto attack daily boss!
-      attackBoss(100);
-
-      showToast(`⚔️ Mission Accomplished! +${xpGain} XP & -100 Boss HP!`);
-
-      // Advance linked streak
-      let targetStreak = "";
-      if (id === "push" || id === "run") targetStreak = "sixpack";
-      else if (id === "read" || id === "journal") targetStreak = "better";
-
-      if (targetStreak) {
-        const idx = streaks.findIndex(s => s.id === targetStreak);
-        if (idx !== -1) {
-          const newStreaks = [...streaks];
-          newStreaks[idx] = { ...newStreaks[idx], pct: Math.min(100, newStreaks[idx].pct + 8) };
-          setStreaks(newStreaks);
-          await setDoc(doc(db, "users", user.uid, "solo_streaks", "main"), { streaks: newStreaks }, { merge: true });
-        }
-      }
-    } catch (e) {
-      console.warn("Mission save error:", e);
-    } finally {
-      setSaving(false);
-    }
+    // Open proof modal — AI will decide which proofs are required
+    openProofModal(mission);
   };
 
   const handleIncrementMissionProgress = async (id: string, delta: number) => {
@@ -1497,6 +1820,374 @@ export const SoloDominion: React.FC<any> = (props) => {
       </div>
 
       {/* --- MODALS & DRAWERS --- */}
+
+      {/* PROOF VERIFICATION MODAL — 3-STEP WIZARD */}
+      {proofMission && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-gradient-to-b from-[#1A1530] via-[#121124] to-black border border-purple-500/40 rounded-[32px] w-full max-w-lg p-6 sm:p-7 space-y-5 shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
+            {/* Background glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Close button */}
+            <button
+              onClick={closeProofModal}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Header */}
+            <div className="relative z-10 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{proofMission.icon}</span>
+                <div>
+                  <div className="text-[10px] font-mono tracking-[2px] text-purple-300 uppercase font-bold">
+                    UNIVERSE OATH REQUIRED
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white uppercase font-serif tracking-wide">
+                    {proofMission.title}
+                  </h3>
+                </div>
+              </div>
+              <p className="text-[11px] text-zinc-400 font-mono">{proofMission.desc}</p>
+              {/* Step indicator */}
+              <div className="flex items-center gap-1.5 pt-2">
+                {(["choose", "selfie", "video", "verifying", "result"] as const).map((s, i) => (
+                  <div
+                    key={s}
+                    className={`h-1 flex-1 rounded-full transition-all ${
+                      proofStep === s
+                        ? "bg-purple-400"
+                        : ["choose", "selfie", "video", "result"].indexOf(proofStep) > i
+                        ? "bg-emerald-500/60"
+                        : "bg-white/10"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* STEP 1: Choose proof type (shown only if AI auto-picked) */}
+            {proofStep === "choose" && (
+              <div className="space-y-3 relative z-10">
+                <div className="text-[11px] font-mono text-zinc-400 bg-purple-950/30 border border-purple-500/30 p-3 rounded-xl">
+                  🤖 <strong className="text-purple-200">AI Oracle has determined:</strong>{" "}
+                  For "<span className="text-white">{proofMission.title}</span>" the universe requires{" "}
+                  <strong className="text-amber-300">
+                    {proofRequired === "both" ? "Selfie + Video Oath" : proofRequired === "selfie" ? "Selfie + Text Oath" : "Video Oath"}
+                  </strong>
+                </div>
+
+                {/* Oath template chooser */}
+                <div>
+                  <label className="text-[11px] font-mono text-white/70 block mb-1.5 font-bold uppercase">
+                    📜 Universe Oath Template
+                  </label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                    {OATH_TEMPLATES.map((tpl, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setProofOathTemplate(tpl.replace("[MISSION]", `"${proofMission.title}"`));
+                          setProofOathText(tpl.replace("[MISSION]", `"${proofMission.title}"`));
+                          playSFX("click");
+                        }}
+                        className={`w-full text-left p-2.5 rounded-xl text-[11px] font-mono leading-relaxed border transition ${
+                          proofOathText === tpl.replace("[MISSION]", `"${proofMission.title}"`)
+                            ? "bg-purple-700/40 border-purple-400/60 text-white"
+                            : "bg-black/40 border-white/10 text-zinc-300 hover:border-purple-500/40"
+                        }`}
+                      >
+                        <span className="text-amber-300 font-bold">TEMPLATE {i + 1}:</span>{" "}
+                        {tpl.replace("[MISSION]", `"${proofMission.title}"`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Editable oath text */}
+                <div>
+                  <label className="text-[11px] font-mono text-white/70 block mb-1.5 font-bold uppercase">
+                    ✏️ Your Oath (customize above if needed)
+                  </label>
+                  <textarea
+                    value={proofOathText}
+                    onChange={(e) => setProofOathText(e.target.value)}
+                    rows={3}
+                    className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-[11.5px] text-white font-mono leading-relaxed"
+                    placeholder="Type or paste your universe oath here..."
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {proofRequired !== "video_oath" && (
+                    <button
+                      onClick={() => setProofStep("selfie")}
+                      className="py-3 rounded-xl bg-emerald-700/40 hover:bg-emerald-600/50 border border-emerald-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
+                    >
+                      📸 Selfie Next
+                    </button>
+                  )}
+                  {proofRequired !== "selfie" && (
+                    <button
+                      onClick={() => setProofStep("video")}
+                      className={`py-3 rounded-xl bg-purple-700/40 hover:bg-purple-600/50 border border-purple-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        proofRequired === "video_oath" ? "col-span-2" : ""
+                      }`}
+                    >
+                      🎥 Record Video Oath
+                    </button>
+                  )}
+                  {proofRequired === "selfie" && (
+                    <button
+                      onClick={() => setProofStep("selfie")}
+                      className="col-span-2 py-3 rounded-xl bg-emerald-700/40 hover:bg-emerald-600/50 border border-emerald-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
+                    >
+                      📸 Upload Selfie Proof
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2A: Selfie upload */}
+            {proofStep === "selfie" && (
+              <div className="space-y-3 relative z-10">
+                <div className="text-[11px] font-mono text-zinc-300 bg-black/40 border border-white/10 p-3 rounded-xl">
+                  📸 Upload a <strong className="text-emerald-300">clear selfie</strong> showing you in the act of completing "<span className="text-white">{proofMission.title}</span>". AI will cross-check it with your mission description.
+                </div>
+
+                {proofSelfieBase64 ? (
+                  <div className="space-y-2">
+                    <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 aspect-[3/4] max-h-72 mx-auto">
+                      <img src={proofSelfieBase64} alt="Selfie proof" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setProofSelfieBase64(null)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-emerald-400 font-mono text-center">✓ Selfie captured</p>
+                  </div>
+                ) : (
+                  <label className="block">
+                    <div className="rounded-2xl border-2 border-dashed border-purple-500/40 bg-purple-950/20 p-8 text-center cursor-pointer hover:bg-purple-950/30 transition">
+                      <div className="text-5xl mb-2">📷</div>
+                      <p className="text-xs font-bold text-white">Tap to take/upload selfie</p>
+                      <p className="text-[10px] text-zinc-400 mt-1">JPG/PNG, max 8MB</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                        onChange={handleSelfieFile}
+                      />
+                    </div>
+                  </label>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setProofStep("choose")}
+                    className="flex-1 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-bold"
+                  >
+                    Back
+                  </button>
+                  {proofRequired === "selfie" ? (
+                    <button
+                      onClick={submitProofForVerification}
+                      disabled={!proofSelfieBase64 || proofVerifying}
+                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-black rounded-xl text-xs font-black uppercase disabled:opacity-40"
+                    >
+                      {proofVerifying ? "Verifying..." : "Submit Proof"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setProofStep("video")}
+                      disabled={!proofSelfieBase64}
+                      className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl text-xs font-bold disabled:opacity-40"
+                    >
+                      Next: Video →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2B: Video oath recording */}
+            {proofStep === "video" && (
+              <div className="space-y-3 relative z-10">
+                <div className="text-[11px] font-mono text-zinc-300 bg-black/40 border border-white/10 p-3 rounded-xl">
+                  🎥 Record a <strong className="text-purple-300">30-second oath video</strong>. Look at the camera and read your oath out loud. The universe is watching.
+                </div>
+
+                {/* OATH reminder card */}
+                <div className="bg-purple-950/40 border border-purple-400/30 p-3 rounded-xl">
+                  <div className="text-[10px] font-mono text-amber-300 font-bold mb-1">📜 YOUR OATH:</div>
+                  <p className="text-[11px] text-white font-mono leading-relaxed italic">"{proofOathText}"</p>
+                </div>
+
+                {/* Video preview / recorder */}
+                <div className="relative rounded-2xl overflow-hidden border-2 border-purple-500/50 aspect-[3/4] max-h-72 mx-auto bg-black">
+                  {proofVideoUrl ? (
+                    <>
+                      <video src={proofVideoUrl} controls className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => {
+                          if (proofVideoUrl) URL.revokeObjectURL(proofVideoUrl);
+                          setProofVideoUrl(null);
+                          setProofVideoBlob(null);
+                        }}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <video
+                        ref={videoPreviewRef}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        playsInline
+                      />
+                      {!isRecordingVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                          <div className="text-center space-y-2">
+                            <div className="text-5xl">🎥</div>
+                            <p className="text-xs text-white font-mono">Camera preview will appear here</p>
+                          </div>
+                        </div>
+                      )}
+                      {isRecordingVideo && (
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 px-2.5 py-1 rounded-full animate-pulse">
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <span className="text-[10px] font-mono text-white font-bold">RECORDING</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  {!isRecordingVideo && !proofVideoUrl && (
+                    <button
+                      onClick={startVideoRecording}
+                      disabled={!videoRecorderSupported}
+                      className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 disabled:opacity-40"
+                    >
+                      <div className="w-3 h-3 rounded-full bg-white" /> Start Recording
+                    </button>
+                  )}
+                  {isRecordingVideo && (
+                    <button
+                      onClick={stopVideoRecording}
+                      className="flex-1 py-3 bg-white text-black rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2"
+                    >
+                      <div className="w-3 h-3 rounded-sm bg-red-600" /> Stop Recording
+                    </button>
+                  )}
+                  {proofVideoUrl && (
+                    <button
+                      onClick={submitProofForVerification}
+                      disabled={proofVerifying}
+                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black rounded-xl text-xs font-black uppercase"
+                    >
+                      {proofVerifying ? "Verifying..." : "Submit Proof"}
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setProofStep(proofRequired === "video_oath" ? "choose" : "selfie")}
+                  className="w-full py-2 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-bold"
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* STEP 3: AI Verifying */}
+            {proofStep === "verifying" && (
+              <div className="space-y-4 py-8 relative z-10 text-center">
+                <div className="relative w-24 h-24 mx-auto">
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-500/30" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-400 animate-spin" />
+                  <div className="absolute inset-3 rounded-full bg-purple-900/60 flex items-center justify-center text-3xl">
+                    🤖
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white uppercase font-mono tracking-wide">
+                    AI Oracle Verifying
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 mt-1.5 font-mono">
+                    Analyzing your selfie, oath, and video frame-by-frame...
+                  </p>
+                  <p className="text-[10px] text-purple-300 mt-0.5 font-mono">
+                    The universe is watching. Truth prevails.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Result */}
+            {proofStep === "result" && proofResult && (
+              <div className="space-y-4 relative z-10">
+                <div className={`p-5 rounded-2xl border-2 text-center ${
+                  proofResult.verified
+                    ? "bg-emerald-950/30 border-emerald-400/60"
+                    : "bg-red-950/30 border-red-400/60"
+                }`}>
+                  <div className="text-5xl mb-2">
+                    {proofResult.verified ? "✨" : "⚠️"}
+                  </div>
+                  <h3 className={`text-base font-black uppercase font-mono tracking-wide ${
+                    proofResult.verified ? "text-emerald-300" : "text-red-300"
+                  }`}>
+                    {proofResult.verified ? "Universe Accepted" : "Proof Rejected"}
+                  </h3>
+                  <p className="text-[11px] text-white mt-2 font-mono leading-relaxed">
+                    {proofResult.feedback}
+                  </p>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-mono">
+                    <span className="text-zinc-400">VERIFICATION SCORE:</span>
+                    <span className={`text-lg font-black ${
+                      proofResult.verified ? "text-emerald-400" : "text-red-400"
+                    }`}>
+                      {proofResult.score}/100
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {!proofResult.verified && (
+                    <button
+                      onClick={() => setProofStep("choose")}
+                      className="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold uppercase"
+                    >
+                      Try Again
+                    </button>
+                  )}
+                  <button
+                    onClick={closeProofModal}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase ${
+                      proofResult.verified
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black"
+                        : "bg-white/10 text-white border border-white/20"
+                    }`}
+                  >
+                    {proofResult.verified ? "Continue Conquest →" : "Close"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 1. VIEW ALL MISSIONS MODAL */}
       {showMissionsModal && (

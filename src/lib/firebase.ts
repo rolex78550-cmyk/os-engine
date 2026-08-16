@@ -12,6 +12,7 @@ import {
   onSnapshot,
   getDocFromServer
 } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 import firebaseConfig from '../../firebase-applet-config.json';
 import { ProfileState, Desire, RitualItem, JournalEntry } from '../types';
@@ -50,6 +51,7 @@ const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Explicitly set local persistence so user stays logged in across sessions/refreshes
 setPersistence(auth, browserLocalPersistence)
