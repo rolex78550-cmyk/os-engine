@@ -1862,8 +1862,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* LEGACY MODALS (Welcome, Streaks, etc.) — still functional  */}
       {/* ============================================================ */}
       {showMissionsModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto shadow-2xl my-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Target size={18} className="text-purple-400" />
@@ -1972,8 +1972,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {selectedStreak && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl my-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{selectedStreak.icon}</span>
