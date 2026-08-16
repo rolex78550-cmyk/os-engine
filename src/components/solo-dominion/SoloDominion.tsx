@@ -1982,7 +1982,6 @@ export const SoloDominion: React.FC<any> = (props) => {
                   </p>
                 </div>
 
-                {/* Video preview / recorder */}
                 <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000", backgroundColor: "#000" }}>
                   {proofVideoUrl ? (
                     <>
@@ -2078,7 +2077,6 @@ export const SoloDominion: React.FC<any> = (props) => {
                   </p>
                 </div>
 
-                {/* Oath template chooser */}
                 <div>
                   <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
                     📜 Pick Template
@@ -2108,7 +2106,6 @@ export const SoloDominion: React.FC<any> = (props) => {
                   </div>
                 </div>
 
-                {/* Editable oath text */}
                 <div>
                   <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
                     ✏️ Your Oath (customize as you wish)
@@ -2217,9 +2214,11 @@ export const SoloDominion: React.FC<any> = (props) => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* 1. VIEW ALL MISSIONS MODAL */}
       {showMissionsModal && (
