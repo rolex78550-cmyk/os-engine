@@ -35,16 +35,15 @@ interface Mission {
   verifiedAt?: string;
 }
 
-type ProofType = "selfie" | "video_oath" | "both";
+type ProofType = "selfie" | "video_oath" | "text_oath" | "both";
 
 interface MissionProof {
   selfieBase64?: string;
   selfieUrl?: string;
   videoUrl?: string;
   videoStoragePath?: string;
-  oathText: string;
-  oathTemplate: string;
-  notes?: string;
+  textOath?: string;
+  proofTypeUsed: ProofType;
   verified: boolean;
   verificationScore: number;
   verificationFeedback: string;
@@ -280,18 +279,16 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // ============================================================
   // PROOF VERIFICATION SYSTEM (Solo Dominion)
-  // User must submit selfie + video oath BEFORE mission is marked done.
-  // AI (Gemini multimodal) verifies content matches mission.
+  // User picks ANY ONE of 3 proof types: Selfie / Video Oath / Text Oath.
+  // AI (Gemini multimodal) verifies if proof is real + matches the task.
   // ============================================================
   const [proofMission, setProofMission] = useState<Mission | null>(null);
-  const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "verifying" | "result">("choose");
+  const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "text" | "verifying" | "result">("choose");
   const [proofSelfieBase64, setProofSelfieBase64] = useState<string | null>(null);
   const [proofVideoBlob, setProofVideoBlob] = useState<Blob | null>(null);
   const [proofVideoUrl, setProofVideoUrl] = useState<string | null>(null);
-  const [proofOathTemplate, setProofOathTemplate] = useState<string>("");
-  const [proofOathText, setProofOathText] = useState<string>("");
+  const [proofTextOath, setProofTextOath] = useState<string>("");
   const [proofNotes, setProofNotes] = useState<string>("");
-  const [proofRequired, setProofRequired] = useState<ProofType>("both");
   const [proofVerifying, setProofVerifying] = useState(false);
   const [proofResult, setProofResult] = useState<{ verified: boolean; score: number; feedback: string } | null>(null);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
@@ -300,7 +297,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   const videoStreamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
 
-  // Pre-defined oath templates — user can swipe and customize
+  // Pre-defined text oath templates — user can pick + customize
   const OATH_TEMPLATES = [
     "I swear on the universe and the cosmic law of attraction that I have completed [MISSION] today with absolute integrity, and I accept full responsibility for the reality I am creating.",
     "I solemnly swear by the infinite universe that I have genuinely performed [MISSION] on this very day, and I commit to honor my word as a true warrior of manifestation.",
@@ -308,40 +305,18 @@ export const SoloDominion: React.FC<any> = (props) => {
     "I call upon the universe as my witness — I have completed [MISSION] today with my full capacity, and I align myself with the consequences of truth.",
   ];
 
-  // Decide proof type based on mission category (AI-style heuristic — runs instantly)
-  const pickProofType = (mission: Mission): ProofType => {
-    const cat = mission.category || "general";
-    const title = (mission.title + " " + mission.desc).toLowerCase();
-    // Video-required activities (physical, presence-based)
-    if (cat === "fitness" || /workout|exercise|run|push|squat|gym|yoga|meditat/i.test(title)) return "both";
-    // Selfie + oath (medium intensity, visible proof)
-    if (cat === "learning" || cat === "creative" || /read|book|journal|write|sketch|paint|cook/i.test(title)) return "both";
-    // Both required for any physical action
-    if (cat === "lifestyle" || cat === "social") return "both";
-    // Mindset / wealth — selfie is enough with oath
-    if (cat === "mindset" || cat === "wealth") return "selfie";
-    return "both";
-  };
-
   // Open proof modal for a mission
   const openProofModal = (mission: Mission) => {
     if (mission.completed || !user) return;
-    const required = pickProofType(mission);
     setProofMission(mission);
-    setProofRequired(required);
     setProofStep("choose");
     setProofSelfieBase64(null);
     setProofVideoBlob(null);
     setProofVideoUrl(null);
-    setProofOathText("");
+    setProofTextOath("");
     setProofNotes("");
     setProofResult(null);
     setProofVerifying(false);
-    // Set default oath template with mission title inserted
-    const tpl = OATH_TEMPLATES[0].replace("[MISSION]", `"${mission.title}"`);
-    setProofOathTemplate(tpl);
-    setProofOathText(tpl);
-    // Check MediaRecorder support
     setVideoRecorderSupported(typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined");
   };
 
@@ -414,6 +389,8 @@ export const SoloDominion: React.FC<any> = (props) => {
     setProofVideoUrl(null);
     setProofVideoBlob(null);
     setProofSelfieBase64(null);
+    setProofTextOath("");
+    setProofNotes("");
   };
 
   // Handle selfie file upload
@@ -430,23 +407,25 @@ export const SoloDominion: React.FC<any> = (props) => {
     reader.readAsDataURL(file);
   };
 
-  // Submit proof for AI verification
+  // Submit proof for AI verification (any ONE of 3 proof types)
   const submitProofForVerification = async () => {
     if (!proofMission || !user) return;
-    if (!proofOathText.trim()) {
-      alert("Please write or select your universe oath before submitting.");
+
+    // Determine which proof type the user chose
+    const proofTypeUsed: ProofType = proofSelfieBase64
+      ? "selfie"
+      : proofVideoBlob
+      ? "video_oath"
+      : proofTextOath.trim()
+      ? "text_oath"
+      : ("" as any);
+
+    if (!proofTypeUsed) {
+      alert("Please provide at least one proof: selfie, video oath, or text oath.");
       return;
     }
-    if (proofRequired === "selfie" && !proofSelfieBase64) {
-      alert("Please upload a selfie showing you performing the mission.");
-      return;
-    }
-    if (proofRequired === "video_oath" && !proofVideoBlob) {
-      alert("Please record a video oath confirming you completed the mission.");
-      return;
-    }
-    if (proofRequired === "both" && (!proofSelfieBase64 || !proofVideoBlob)) {
-      alert("Both selfie AND video oath are required for this mission.");
+    if (proofTypeUsed === "text_oath" && proofTextOath.trim().split(/\s+/).length < 10) {
+      alert("Your text oath must be at least 10 words. Make it meaningful — the universe is watching.");
       return;
     }
 
@@ -454,9 +433,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     setProofVerifying(true);
 
     try {
-      // 1) Upload selfie to Firestore as base64 (small, fits in 1MB doc limit if compressed)
+      // 1) Upload selfie to Firestore (if used)
       let selfieUrl: string | undefined;
-      if (proofSelfieBase64) {
+      if (proofSelfieBase64 && proofTypeUsed === "selfie") {
         const compressed = await compressImageForFirestore(proofSelfieBase64, 800, 0.7);
         const selfieId = `proof_selfie_${proofMission.id}_${user.uid}_${Date.now()}`;
         await setDoc(doc(db, "users", user.uid, "mission_proofs", selfieId), {
@@ -466,14 +445,14 @@ export const SoloDominion: React.FC<any> = (props) => {
           missionTitle: proofMission.title,
           createdAt: new Date().toISOString(),
         });
-        selfieUrl = compressed; // AI gets the base64 directly
+        selfieUrl = compressed;
       }
 
-      // 2) Upload video to Firebase Storage (or fall back to base64)
+      // 2) Upload video to Firebase Storage (if used)
       let videoUrl: string | undefined;
-      if (proofVideoBlob) {
+      let videoBase64Inline: string | undefined;
+      if (proofVideoBlob && proofTypeUsed === "video_oath") {
         try {
-          // Dynamic import so the bundle doesn't fail if storage isn't configured
           const { ref: storageRef, uploadBytes, getDownloadURL } = await import("firebase/storage");
           const { storage } = await import("../../lib/firebase");
           if (storage) {
@@ -493,12 +472,11 @@ export const SoloDominion: React.FC<any> = (props) => {
           }
         } catch (storageErr: any) {
           console.warn("Firebase Storage upload failed, using base64 fallback:", storageErr?.message);
-          // Fallback: small base64 (warn user that only short videos will work)
           if (proofVideoBlob.size > 2 * 1024 * 1024) {
             throw new Error("Video too large for fallback storage. Please record a shorter oath (under 30 seconds).");
           }
-          const base64 = await blobToBase64(proofVideoBlob);
-          videoUrl = base64;
+          videoBase64Inline = await blobToBase64(proofVideoBlob);
+          videoUrl = videoBase64Inline;
         }
       }
 
@@ -511,11 +489,12 @@ export const SoloDominion: React.FC<any> = (props) => {
           missionTitle: proofMission.title,
           missionDesc: proofMission.desc,
           missionCategory: proofMission.category || "general",
-          selfieBase64: proofSelfieBase64,
-          videoUrl,
-          videoBase64: (!videoUrl || videoUrl.startsWith("data:")) ? videoUrl : undefined,
-          oathText: proofOathText,
-          notes: proofNotes,
+          proofType: proofTypeUsed,
+          selfieBase64: proofTypeUsed === "selfie" ? proofSelfieBase64 : undefined,
+          videoUrl: proofTypeUsed === "video_oath" ? videoUrl : undefined,
+          videoBase64: proofTypeUsed === "video_oath" && videoBase64Inline ? videoBase64Inline : undefined,
+          textOath: proofTypeUsed === "text_oath" ? proofTextOath : undefined,
+          notes: proofNotes || undefined,
         }),
       });
       const result = await res.json().catch(() => ({}));
@@ -529,13 +508,12 @@ export const SoloDominion: React.FC<any> = (props) => {
       if (verified) {
         // 4) Mark mission complete & save proof
         const proof: MissionProof = {
-          selfieBase64: proofSelfieBase64 || undefined,
-          selfieUrl,
-          videoUrl,
-          videoStoragePath: videoUrl && !videoUrl.startsWith("data:") ? videoUrl : undefined,
-          oathText: proofOathText,
-          oathTemplate: proofOathTemplate,
-          notes: proofNotes || undefined,
+          selfieBase64: proofTypeUsed === "selfie" ? proofSelfieBase64 || undefined : undefined,
+          selfieUrl: proofTypeUsed === "selfie" ? selfieUrl : undefined,
+          videoUrl: proofTypeUsed === "video_oath" ? videoUrl : undefined,
+          videoStoragePath: proofTypeUsed === "video_oath" && videoUrl && !videoUrl.startsWith("data:") ? videoUrl : undefined,
+          textOath: proofTypeUsed === "text_oath" ? proofTextOath : undefined,
+          proofTypeUsed,
           verified: true,
           verificationScore: score,
           verificationFeedback: feedback,
@@ -548,7 +526,6 @@ export const SoloDominion: React.FC<any> = (props) => {
                 completed: true,
                 currentVal: m.targetVal || 100,
                 progress: `${m.targetVal || 100}/${m.targetVal || 100} ${m.unit || ""}`,
-                proofRequired,
                 proofData: proof,
                 verifiedAt: new Date().toISOString(),
               }
@@ -567,7 +544,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
         attackBoss(100);
         playVoiceover("complete");
-        showToast(`⚔️ Mission Verified! +${xpGain} XP! Universe acknowledges your oath.`);
+        showToast(`⚔️ Mission Verified! +${xpGain} XP! Universe acknowledges your proof.`);
       }
     } catch (e: any) {
       console.error("Proof submission failed:", e);
@@ -1821,162 +1798,158 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       {/* --- MODALS & DRAWERS --- */}
 
-      {/* PROOF VERIFICATION MODAL — 3-STEP WIZARD */}
+      {/* PROOF VERIFICATION MODAL — CLEAN WHITE/BLACK THEME */}
       {proofMission && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-gradient-to-b from-[#1A1530] via-[#121124] to-black border border-purple-500/40 rounded-[32px] w-full max-w-lg p-6 sm:p-7 space-y-5 shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
-            {/* Background glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 animate-fade-in" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}>
+          <div className="bg-white text-black w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl relative max-h-[94vh] overflow-y-auto" style={{ border: "1px solid #000" }}>
 
             {/* Close button */}
             <button
               onClick={closeProofModal}
-              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition z-20"
+              aria-label="Close"
             >
               <X size={18} />
             </button>
 
             {/* Header */}
-            <div className="relative z-10 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{proofMission.icon}</span>
-                <div>
-                  <div className="text-[10px] font-mono tracking-[2px] text-purple-300 uppercase font-bold">
-                    UNIVERSE OATH REQUIRED
+            <div className="px-5 sm:px-7 pt-6 pb-4 border-b" style={{ borderColor: "#000" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+                  {proofMission.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-mono tracking-[2.5px] uppercase font-bold" style={{ color: "#666" }}>
+                    PROOF REQUIRED
                   </div>
-                  <h3 className="text-lg sm:text-xl font-black text-white uppercase font-serif tracking-wide">
+                  <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-black leading-tight truncate">
                     {proofMission.title}
                   </h3>
                 </div>
               </div>
-              <p className="text-[11px] text-zinc-400 font-mono">{proofMission.desc}</p>
+              <p className="text-[11px] mt-2 font-mono" style={{ color: "#555" }}>{proofMission.desc}</p>
+
               {/* Step indicator */}
-              <div className="flex items-center gap-1.5 pt-2">
-                {(["choose", "selfie", "video", "verifying", "result"] as const).map((s, i) => (
+              <div className="flex items-center gap-1 pt-3">
+                {(["choose", "selfie", "video", "text", "verifying", "result"] as const).map((s) => (
                   <div
                     key={s}
-                    className={`h-1 flex-1 rounded-full transition-all ${
-                      proofStep === s
-                        ? "bg-purple-400"
-                        : ["choose", "selfie", "video", "result"].indexOf(proofStep) > i
-                        ? "bg-emerald-500/60"
-                        : "bg-white/10"
-                    }`}
+                    className="h-1 flex-1 rounded-full transition-all"
+                    style={{
+                      backgroundColor:
+                        proofStep === s
+                          ? "#000"
+                          : (proofStep === "verifying" || proofStep === "result") ||
+                            ((proofStep === "selfie" || proofStep === "video" || proofStep === "text") && s === "choose")
+                          ? "#000"
+                          : "#e5e5e5",
+                    }}
                   />
                 ))}
               </div>
             </div>
 
-            {/* STEP 1: Choose proof type (shown only if AI auto-picked) */}
+            {/* STEP 1: Choose ANY ONE proof type */}
             {proofStep === "choose" && (
-              <div className="space-y-3 relative z-10">
-                <div className="text-[11px] font-mono text-zinc-400 bg-purple-950/30 border border-purple-500/30 p-3 rounded-xl">
-                  🤖 <strong className="text-purple-200">AI Oracle has determined:</strong>{" "}
-                  For "<span className="text-white">{proofMission.title}</span>" the universe requires{" "}
-                  <strong className="text-amber-300">
-                    {proofRequired === "both" ? "Selfie + Video Oath" : proofRequired === "selfie" ? "Selfie + Text Oath" : "Video Oath"}
-                  </strong>
+              <div className="px-5 sm:px-7 py-5 space-y-4">
+                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+                  <p className="text-[11px] font-mono leading-relaxed" style={{ color: "#333" }}>
+                    🤖 <strong className="text-black">AI Oracle says:</strong> Submit{" "}
+                    <strong className="text-black">ANY ONE</strong> of the three proofs below to complete "<span className="text-black">{proofMission.title}</span>". AI will verify if your proof is real and matches the task.
+                  </p>
                 </div>
 
-                {/* Oath template chooser */}
-                <div>
-                  <label className="text-[11px] font-mono text-white/70 block mb-1.5 font-bold uppercase">
-                    📜 Universe Oath Template
-                  </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                    {OATH_TEMPLATES.map((tpl, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          setProofOathTemplate(tpl.replace("[MISSION]", `"${proofMission.title}"`));
-                          setProofOathText(tpl.replace("[MISSION]", `"${proofMission.title}"`));
-                          playSFX("click");
-                        }}
-                        className={`w-full text-left p-2.5 rounded-xl text-[11px] font-mono leading-relaxed border transition ${
-                          proofOathText === tpl.replace("[MISSION]", `"${proofMission.title}"`)
-                            ? "bg-purple-700/40 border-purple-400/60 text-white"
-                            : "bg-black/40 border-white/10 text-zinc-300 hover:border-purple-500/40"
-                        }`}
-                      >
-                        <span className="text-amber-300 font-bold">TEMPLATE {i + 1}:</span>{" "}
-                        {tpl.replace("[MISSION]", `"${proofMission.title}"`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <div className="space-y-2.5">
+                  <button
+                    onClick={() => setProofStep("selfie")}
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+                        📸
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-black uppercase text-black">Option 1 — Selfie Photo</div>
+                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
+                          Upload a clear selfie of you actively performing the task
+                        </div>
+                      </div>
+                      <span className="text-xl" style={{ color: "#000" }}>→</span>
+                    </div>
+                  </button>
 
-                {/* Editable oath text */}
-                <div>
-                  <label className="text-[11px] font-mono text-white/70 block mb-1.5 font-bold uppercase">
-                    ✏️ Your Oath (customize above if needed)
-                  </label>
-                  <textarea
-                    value={proofOathText}
-                    onChange={(e) => setProofOathText(e.target.value)}
-                    rows={3}
-                    className="w-full bg-black/60 border border-white/15 rounded-xl p-3 text-[11.5px] text-white font-mono leading-relaxed"
-                    placeholder="Type or paste your universe oath here..."
-                  />
-                </div>
+                  <button
+                    onClick={() => setProofStep("video")}
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+                        🎥
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-black uppercase text-black">Option 2 — Video Oath</div>
+                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
+                          Record a 30-sec video swearing on the universe you did the task
+                        </div>
+                      </div>
+                      <span className="text-xl" style={{ color: "#000" }}>→</span>
+                    </div>
+                  </button>
 
-                {/* Action buttons */}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {proofRequired !== "video_oath" && (
-                    <button
-                      onClick={() => setProofStep("selfie")}
-                      className="py-3 rounded-xl bg-emerald-700/40 hover:bg-emerald-600/50 border border-emerald-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
-                    >
-                      📸 Selfie Next
-                    </button>
-                  )}
-                  {proofRequired !== "selfie" && (
-                    <button
-                      onClick={() => setProofStep("video")}
-                      className={`py-3 rounded-xl bg-purple-700/40 hover:bg-purple-600/50 border border-purple-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        proofRequired === "video_oath" ? "col-span-2" : ""
-                      }`}
-                    >
-                      🎥 Record Video Oath
-                    </button>
-                  )}
-                  {proofRequired === "selfie" && (
-                    <button
-                      onClick={() => setProofStep("selfie")}
-                      className="col-span-2 py-3 rounded-xl bg-emerald-700/40 hover:bg-emerald-600/50 border border-emerald-400/40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
-                    >
-                      📸 Upload Selfie Proof
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setProofStep("text")}
+                    className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+                        ✍️
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-black uppercase text-black">Option 3 — Text Universe Oath</div>
+                        <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>
+                          Write a powerful 10+ word oath affirming you completed the task
+                        </div>
+                      </div>
+                      <span className="text-xl" style={{ color: "#000" }}>→</span>
+                    </div>
+                  </button>
                 </div>
               </div>
             )}
 
             {/* STEP 2A: Selfie upload */}
             {proofStep === "selfie" && (
-              <div className="space-y-3 relative z-10">
-                <div className="text-[11px] font-mono text-zinc-300 bg-black/40 border border-white/10 p-3 rounded-xl">
-                  📸 Upload a <strong className="text-emerald-300">clear selfie</strong> showing you in the act of completing "<span className="text-white">{proofMission.title}</span>". AI will cross-check it with your mission description.
+              <div className="px-5 sm:px-7 py-5 space-y-4">
+                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">
+                    📸 Upload a <strong>clear selfie</strong> showing you in the act of completing "<strong>{proofMission.title}</strong>". AI will verify it matches the task.
+                  </p>
                 </div>
 
                 {proofSelfieBase64 ? (
                   <div className="space-y-2">
-                    <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 aspect-[3/4] max-h-72 mx-auto">
+                    <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000" }}>
                       <img src={proofSelfieBase64} alt="Selfie proof" className="w-full h-full object-cover" />
                       <button
                         onClick={() => setProofSelfieBase64(null)}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-600"
+                        className="absolute top-2 right-2 p-1.5 rounded-full text-white"
+                        style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+                        aria-label="Remove selfie"
                       >
                         <X size={14} />
                       </button>
                     </div>
-                    <p className="text-[10px] text-emerald-400 font-mono text-center">✓ Selfie captured</p>
+                    <p className="text-[10px] font-mono text-center font-bold text-black">✓ SELFIE CAPTURED</p>
                   </div>
                 ) : (
                   <label className="block">
-                    <div className="rounded-2xl border-2 border-dashed border-purple-500/40 bg-purple-950/20 p-8 text-center cursor-pointer hover:bg-purple-950/30 transition">
+                    <div className="rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
                       <div className="text-5xl mb-2">📷</div>
-                      <p className="text-xs font-bold text-white">Tap to take/upload selfie</p>
-                      <p className="text-[10px] text-zinc-400 mt-1">JPG/PNG, max 8MB</p>
+                      <p className="text-xs font-bold text-black">Tap to take or upload selfie</p>
+                      <p className="text-[10px] font-mono mt-1" style={{ color: "#555" }}>JPG/PNG • max 8MB</p>
                       <input
                         type="file"
                         accept="image/*"
@@ -1991,46 +1964,34 @@ export const SoloDominion: React.FC<any> = (props) => {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setProofStep("choose")}
-                    className="flex-1 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-bold"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
                   >
-                    Back
+                    ← Back
                   </button>
-                  {proofRequired === "selfie" ? (
-                    <button
-                      onClick={submitProofForVerification}
-                      disabled={!proofSelfieBase64 || proofVerifying}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-black rounded-xl text-xs font-black uppercase disabled:opacity-40"
-                    >
-                      {proofVerifying ? "Verifying..." : "Submit Proof"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setProofStep("video")}
-                      disabled={!proofSelfieBase64}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl text-xs font-bold disabled:opacity-40"
-                    >
-                      Next: Video →
-                    </button>
-                  )}
+                  <button
+                    onClick={submitProofForVerification}
+                    disabled={!proofSelfieBase64 || proofVerifying}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30"
+                    style={{ backgroundColor: "#000" }}
+                  >
+                    {proofVerifying ? "Verifying..." : "Submit →"}
+                  </button>
                 </div>
               </div>
             )}
 
             {/* STEP 2B: Video oath recording */}
             {proofStep === "video" && (
-              <div className="space-y-3 relative z-10">
-                <div className="text-[11px] font-mono text-zinc-300 bg-black/40 border border-white/10 p-3 rounded-xl">
-                  🎥 Record a <strong className="text-purple-300">30-second oath video</strong>. Look at the camera and read your oath out loud. The universe is watching.
-                </div>
-
-                {/* OATH reminder card */}
-                <div className="bg-purple-950/40 border border-purple-400/30 p-3 rounded-xl">
-                  <div className="text-[10px] font-mono text-amber-300 font-bold mb-1">📜 YOUR OATH:</div>
-                  <p className="text-[11px] text-white font-mono leading-relaxed italic">"{proofOathText}"</p>
+              <div className="px-5 sm:px-7 py-5 space-y-4">
+                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">
+                    🎥 Record a <strong>30-second oath video</strong>. Look at the camera and swear to the universe you completed "<strong>{proofMission.title}</strong>".
+                  </p>
                 </div>
 
                 {/* Video preview / recorder */}
-                <div className="relative rounded-2xl overflow-hidden border-2 border-purple-500/50 aspect-[3/4] max-h-72 mx-auto bg-black">
+                <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000", backgroundColor: "#000" }}>
                   {proofVideoUrl ? (
                     <>
                       <video src={proofVideoUrl} controls className="w-full h-full object-cover" />
@@ -2040,7 +2001,9 @@ export const SoloDominion: React.FC<any> = (props) => {
                           setProofVideoUrl(null);
                           setProofVideoBlob(null);
                         }}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-600"
+                        className="absolute top-2 right-2 p-1.5 rounded-full text-white"
+                        style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+                        aria-label="Remove video"
                       >
                         <X size={14} />
                       </button>
@@ -2055,17 +2018,17 @@ export const SoloDominion: React.FC<any> = (props) => {
                         playsInline
                       />
                       {!isRecordingVideo && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
                           <div className="text-center space-y-2">
                             <div className="text-5xl">🎥</div>
-                            <p className="text-xs text-white font-mono">Camera preview will appear here</p>
+                            <p className="text-xs font-mono text-white">Camera preview will appear here</p>
                           </div>
                         </div>
                       )}
                       {isRecordingVideo && (
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 px-2.5 py-1 rounded-full animate-pulse">
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                          <span className="text-[10px] font-mono text-white font-bold">RECORDING</span>
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full animate-pulse">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#000" }} />
+                          <span className="text-[10px] font-mono text-black font-bold">RECORDING</span>
                         </div>
                       )}
                     </>
@@ -2077,7 +2040,8 @@ export const SoloDominion: React.FC<any> = (props) => {
                     <button
                       onClick={startVideoRecording}
                       disabled={!videoRecorderSupported}
-                      className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 disabled:opacity-40"
+                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2 disabled:opacity-30"
+                      style={{ backgroundColor: "#000" }}
                     >
                       <div className="w-3 h-3 rounded-full bg-white" /> Start Recording
                     </button>
@@ -2085,81 +2049,159 @@ export const SoloDominion: React.FC<any> = (props) => {
                   {isRecordingVideo && (
                     <button
                       onClick={stopVideoRecording}
-                      className="flex-1 py-3 bg-white text-black rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2"
+                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2"
+                      style={{ backgroundColor: "#000" }}
                     >
-                      <div className="w-3 h-3 rounded-sm bg-red-600" /> Stop Recording
+                      <div className="w-3 h-3 rounded-sm bg-white" /> Stop Recording
                     </button>
                   )}
                   {proofVideoUrl && (
                     <button
                       onClick={submitProofForVerification}
                       disabled={proofVerifying}
-                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black rounded-xl text-xs font-black uppercase"
+                      className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white"
+                      style={{ backgroundColor: "#000" }}
                     >
-                      {proofVerifying ? "Verifying..." : "Submit Proof"}
+                      {proofVerifying ? "Verifying..." : "Submit →"}
                     </button>
                   )}
                 </div>
 
                 <button
-                  onClick={() => setProofStep(proofRequired === "video_oath" ? "choose" : "selfie")}
-                  className="w-full py-2 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-bold"
+                  onClick={() => setProofStep("choose")}
+                  className="w-full py-2 rounded-xl text-xs font-bold border-2 text-black"
+                  style={{ borderColor: "#000", backgroundColor: "#fff" }}
                 >
                   ← Back
                 </button>
               </div>
             )}
 
+            {/* STEP 2C: Text oath */}
+            {proofStep === "text" && (
+              <div className="px-5 sm:px-7 py-5 space-y-4">
+                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+                  <p className="text-[11px] font-mono leading-relaxed text-black">
+                    ✍️ Pick a template and customize your <strong>universe oath</strong>. Min <strong>10 words</strong>. The universe reads every word.
+                  </p>
+                </div>
+
+                {/* Oath template chooser */}
+                <div>
+                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
+                    📜 Pick Template
+                  </label>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                    {OATH_TEMPLATES.map((tpl, i) => {
+                      const tplWithMission = tpl.replace("[MISSION]", `"${proofMission.title}"`);
+                      const isSelected = proofTextOath === tplWithMission;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setProofTextOath(tplWithMission);
+                            playSFX("click");
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl text-[10.5px] font-mono leading-relaxed border-2 transition"
+                          style={{
+                            borderColor: "#000",
+                            backgroundColor: isSelected ? "#000" : "#fff",
+                            color: isSelected ? "#fff" : "#333",
+                          }}
+                        >
+                          <span className="font-bold">TEMPLATE {i + 1}:</span> {tplWithMission}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Editable oath text */}
+                <div>
+                  <label className="text-[10px] font-mono block mb-1.5 font-bold uppercase text-black tracking-wider">
+                    ✏️ Your Oath (customize as you wish)
+                  </label>
+                  <textarea
+                    value={proofTextOath}
+                    onChange={(e) => setProofTextOath(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl p-3 text-[11.5px] font-mono leading-relaxed border-2 text-black"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                    placeholder="Type your universe oath here..."
+                  />
+                  <p className="text-[10px] font-mono mt-1" style={{ color: "#666" }}>
+                    Word count: {proofTextOath.trim() ? proofTextOath.trim().split(/\s+/).length : 0} (min 10)
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setProofStep("choose")}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black"
+                    style={{ borderColor: "#000", backgroundColor: "#fff" }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={submitProofForVerification}
+                    disabled={proofVerifying || proofTextOath.trim().split(/\s+/).length < 10}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30"
+                    style={{ backgroundColor: "#000" }}
+                  >
+                    {proofVerifying ? "Verifying..." : "Submit →"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* STEP 3: AI Verifying */}
             {proofStep === "verifying" && (
-              <div className="space-y-4 py-8 relative z-10 text-center">
-                <div className="relative w-24 h-24 mx-auto">
-                  <div className="absolute inset-0 rounded-full border-4 border-purple-500/30" />
-                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-400 animate-spin" />
-                  <div className="absolute inset-3 rounded-full bg-purple-900/60 flex items-center justify-center text-3xl">
+              <div className="px-5 sm:px-7 py-10 text-center">
+                <div className="relative w-20 h-20 mx-auto mb-5">
+                  <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: "#e5e5e5" }} />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: "#000" }} />
+                  <div className="absolute inset-3 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: "#000", color: "#fff" }}>
                     🤖
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-white uppercase font-mono tracking-wide">
-                    AI Oracle Verifying
-                  </h3>
-                  <p className="text-[11px] text-zinc-400 mt-1.5 font-mono">
-                    Analyzing your selfie, oath, and video frame-by-frame...
-                  </p>
-                  <p className="text-[10px] text-purple-300 mt-0.5 font-mono">
-                    The universe is watching. Truth prevails.
-                  </p>
-                </div>
+                <h3 className="text-base font-black uppercase tracking-tight text-black">
+                  AI Oracle Verifying
+                </h3>
+                <p className="text-[11px] mt-2 font-mono" style={{ color: "#555" }}>
+                  Analyzing your proof for authenticity...
+                </p>
+                <p className="text-[10px] mt-1 font-mono" style={{ color: "#888" }}>
+                  The universe is watching. Truth prevails.
+                </p>
               </div>
             )}
 
             {/* STEP 4: Result */}
             {proofStep === "result" && proofResult && (
-              <div className="space-y-4 relative z-10">
-                <div className={`p-5 rounded-2xl border-2 text-center ${
-                  proofResult.verified
-                    ? "bg-emerald-950/30 border-emerald-400/60"
-                    : "bg-red-950/30 border-red-400/60"
-                }`}>
+              <div className="px-5 sm:px-7 py-5 space-y-4">
+                <div
+                  className="p-5 rounded-2xl border-2 text-center"
+                  style={{
+                    borderColor: "#000",
+                    backgroundColor: proofResult.verified ? "#000" : "#fff",
+                    color: proofResult.verified ? "#fff" : "#000",
+                  }}
+                >
                   <div className="text-5xl mb-2">
-                    {proofResult.verified ? "✨" : "⚠️"}
+                    {proofResult.verified ? "✓" : "✕"}
                   </div>
-                  <h3 className={`text-base font-black uppercase font-mono tracking-wide ${
-                    proofResult.verified ? "text-emerald-300" : "text-red-300"
-                  }`}>
+                  <h3 className="text-base font-black uppercase tracking-tight">
                     {proofResult.verified ? "Universe Accepted" : "Proof Rejected"}
                   </h3>
-                  <p className="text-[11px] text-white mt-2 font-mono leading-relaxed">
+                  <p className="text-[11px] mt-2 font-mono leading-relaxed opacity-90">
                     {proofResult.feedback}
                   </p>
-                  <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-mono">
-                    <span className="text-zinc-400">VERIFICATION SCORE:</span>
-                    <span className={`text-lg font-black ${
-                      proofResult.verified ? "text-emerald-400" : "text-red-400"
-                    }`}>
-                      {proofResult.score}/100
-                    </span>
+                  <div className="mt-3 inline-flex items-center gap-2 text-[10px] font-mono px-3 py-1.5 rounded-full" style={{
+                    backgroundColor: proofResult.verified ? "rgba(255,255,255,0.15)" : "#f5f5f5",
+                    color: proofResult.verified ? "#fff" : "#000",
+                  }}>
+                    <span className="opacity-70">SCORE:</span>
+                    <span className="font-black text-base">{proofResult.score}/100</span>
                   </div>
                 </div>
 
@@ -2167,20 +2209,18 @@ export const SoloDominion: React.FC<any> = (props) => {
                   {!proofResult.verified && (
                     <button
                       onClick={() => setProofStep("choose")}
-                      className="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold uppercase"
+                      className="flex-1 py-3 rounded-xl text-xs font-bold border-2 text-black"
+                      style={{ borderColor: "#000", backgroundColor: "#fff" }}
                     >
                       Try Again
                     </button>
                   )}
                   <button
                     onClick={closeProofModal}
-                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase ${
-                      proofResult.verified
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black"
-                        : "bg-white/10 text-white border border-white/20"
-                    }`}
+                    className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white"
+                    style={{ backgroundColor: "#000" }}
                   >
-                    {proofResult.verified ? "Continue Conquest →" : "Close"}
+                    {proofResult.verified ? "Continue →" : "Close"}
                   </button>
                 </div>
               </div>

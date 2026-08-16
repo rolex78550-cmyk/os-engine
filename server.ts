@@ -2071,10 +2071,8 @@ Response Mime Type: application/json.`;
 
 // ============================================================
 // SOLO DOMINION — MISSION PROOF VERIFICATION (multimodal AI)
-// Verifies that the user actually performed the mission by analyzing:
-//   - Selfie image (must show user actively performing the task)
-//   - Video oath (frames analyzed for oath recital, no fabrication)
-//   - Text oath (must match a coherent universe-affirming template)
+// Accepts ANY ONE of 3 proof types: Selfie / Video Oath / Text Oath.
+// AI verifies: (a) proof is real, (b) matches the actual task.
 // ============================================================
 app.post("/api/missions/verify-proof", async (req, res) => {
   try {
@@ -2083,10 +2081,11 @@ app.post("/api/missions/verify-proof", async (req, res) => {
       missionTitle,
       missionDesc,
       missionCategory,
+      proofType,
       selfieBase64,
       videoUrl,
       videoBase64,
-      oathText,
+      textOath,
       notes,
     } = req.body || {};
 
@@ -2097,82 +2096,107 @@ app.post("/api/missions/verify-proof", async (req, res) => {
         verificationFeedback: "Mission title missing.",
       });
     }
-    if (!oathText || !oathText.trim()) {
+    if (!proofType || !["selfie", "video_oath", "text_oath"].includes(proofType)) {
       return res.status(400).json({
         verified: false,
         verificationScore: 0,
-        verificationFeedback: "Universe oath text is required.",
+        verificationFeedback: "Proof type missing. Submit selfie, video, or text oath.",
       });
+    }
+
+    // For text oath, enforce minimum word count
+    let oathText = "";
+    if (proofType === "text_oath") {
+      oathText = (textOath || "").trim();
+      if (oathText.split(/\s+/).length < 10) {
+        return res.status(400).json({
+          verified: false,
+          verificationScore: 0,
+          verificationFeedback: "Your text oath must be at least 10 words. The universe is listening — make it meaningful.",
+        });
+      }
+    } else if (proofType === "video_oath") {
+      // Video must have a written transcript to extract oath text from
+      oathText = notes || "User recorded a video oath swearing to complete the mission.";
+    } else if (proofType === "selfie") {
+      oathText = notes || "User submitted a selfie as proof of task completion.";
     }
 
     const client = getGeminiClient();
     if (!client) {
-      // Graceful fallback — accept proof if Gemini offline but require minimum quality signals
-      const hasImage = !!selfieBase64;
-      const hasVideo = !!videoUrl || !!videoBase64;
-      const oathLen = oathText.trim().split(/\s+/).length;
-      if ((hasImage || hasVideo) && oathLen >= 12) {
-        return res.json({
-          verified: true,
-          verificationScore: 72,
-          verificationFeedback: "AI Oracle offline — proof accepted on trust. AI review will resume shortly.",
-          modelUsed: "fallback",
-          verifiedAt: new Date().toISOString(),
-          aiGenerated: false,
-        });
-      }
+      // Graceful fallback — accept proof on trust if Gemini offline
       return res.json({
-        verified: false,
-        verificationScore: 0,
-        verificationFeedback: "AI Oracle offline. Please provide a selfie or video proof along with a meaningful oath (12+ words).",
+        verified: true,
+        verificationScore: 72,
+        verificationFeedback: "AI Oracle offline — proof accepted on your honor. AI verification will resume shortly.",
+        modelUsed: "fallback",
+        verifiedAt: new Date().toISOString(),
         aiGenerated: false,
       });
     }
 
-    const promptText = `You are the RUTHLESS UNIVERSE ORACLE for Menifest OS's Solo Dominion system.
+    // Build context for AI based on proof type
+    const proofDescription =
+      proofType === "selfie"
+        ? "The user submitted a SELFIE photo as proof they completed the task."
+        : proofType === "video_oath"
+        ? "The user submitted a VIDEO OATH recording themselves swearing to the universe they completed the task."
+        : "The user submitted a TEXT OATH (a written declaration to the universe) affirming they completed the task.";
 
-A user is claiming to have completed this REAL-WORLD mission:
+    const promptText = `You are the INTELLIGENT UNIVERSE ORACLE for Menifest OS's Solo Dominion system.
+
+A user claims to have completed this REAL-WORLD mission:
 - Mission: "${missionTitle}"
 - Description: "${missionDesc || "—"}"
 - Category: ${missionCategory || "general"}
 
-The user has submitted:
-${selfieBase64 ? "- A SELFIE photo as proof they actually performed this task." : "- NO selfie provided."}
-${videoUrl || videoBase64 ? "- A VIDEO oath where they verbally swear to the universe they completed this task." : "- NO video oath provided."}
-- A text oath they typed/recited:
+PROOF SUBMITTED: ${proofDescription}
+
+${proofType === "text_oath" ? `User's TEXT OATH:
 """
 ${oathText}
+"""` : `User's oath/notes:
 """
-${notes ? `- Additional notes: "${notes}"` : ""}
+${oathText}
+"""`}
 
-CRITICAL VERIFICATION RULES:
-1. The SELFIE (if provided) MUST VISIBLY show the user ACTIVELY performing the EXACT task described. Reject generic selfies, old photos, unrelated images, memes, screenshots, food, or stock images.
-2. The VIDEO (if provided) MUST show the user SPEAKING the oath out loud. The face must be visible, audio present. Reject silent videos, dark videos, or videos with no clear face.
-3. The OATH TEXT must be coherent, contain a genuine affirmation of completion, and reference the universe/cosmic/manifestation theme. Reject empty or nonsensical text.
-4. ALL provided proofs must be CONSISTENT with the mission title/description. If the user says "100 push-ups" but submits a photo of a book, REJECT.
-5. If a proof type is REQUIRED but MISSING, REJECT immediately.
-6. Be FAIR but STRICT. The user is on their honor to the universe. Cheating breaks the law of attraction.
+${selfieBase64 ? "[A selfie image is attached for visual analysis]" : ""}
+${videoUrl || videoBase64 ? "[A video file is referenced for analysis]" : ""}
+
+YOUR INTELLIGENT VERIFICATION JOB:
+
+1. **Is the proof REAL and RELEVANT?**
+   - For SELFIE: Does the image show the user ACTIVELY performing the EXACT task "${missionTitle}" described? Reject generic selfies, old photos, unrelated images, memes, screenshots, food, or stock images.
+   - For VIDEO OATH: Does the video show the user SPEAKING a real oath, with face visible and audio present? Reject silent, dark, or face-less videos.
+   - For TEXT OATH: Is it a coherent, genuine affirmation of task completion? Does it reference the universe/manifestation theme? Reject empty, nonsensical, or obviously fake text.
+
+2. **Does the proof MATCH the mission?**
+   - If user says "100 push-ups" but submits a photo of a book → REJECT
+   - If user claims "30 min reading" but oath text mentions working out → REJECT
+   - If proof is consistent with the mission title/description → ACCEPT
+
+3. **INTELLIGENT LENIENCY:**
+   - The AI is INTELLIGENT, not bureaucratic. If a proof is clearly the user's genuine attempt to fulfill the task (even if imperfect), give a passing score (60-80).
+   - If the proof is clearly fabricated, unrelated, or lazy, reject with score 0-50.
+   - Quality matters: clarity, relevance, effort.
 
 Return ONLY clean JSON:
 {
   "verified": boolean,
-  "verificationScore": number (0-100, where 100 = flawless proof + oath),
-  "verificationFeedback": "1-2 sharp sentences. Direct and honest. If verified, mention what the AI saw. If rejected, explain specifically what was missing or wrong."
+  "verificationScore": number (0-100, where 100 = flawless proof),
+  "verificationFeedback": "1-2 sharp sentences. Be direct and honest. If verified, mention what the AI saw. If rejected, explain what was missing or wrong."
 }`;
 
     const parts: any[] = [{ text: promptText }];
-    if (selfieBase64) {
+    if (selfieBase64 && proofType === "selfie") {
       const base64Data = selfieBase64.split(",")[1] || selfieBase64;
       parts.push({
         inlineData: { mimeType: "image/jpeg", data: base64Data },
       });
     }
-    if (videoBase64) {
-      // We send video frames as a still sample. For full video, the URL is used by the browser.
-      // Most video files are too large to inline; rely on the selfie + oath for primary verification.
+    if (videoBase64 && proofType === "video_oath") {
       try {
         const base64Data = videoBase64.split(",")[1] || videoBase64;
-        // Send only first 2MB of base64 to avoid Gemini limits
         if (base64Data.length < 2_500_000) {
           parts.push({
             inlineData: { mimeType: "video/webm", data: base64Data },
@@ -2184,7 +2208,7 @@ Return ONLY clean JSON:
     try {
       const result = await generateWithFallback({
         contents: [{ role: "user", parts }],
-        config: { responseMimeType: "application/json", temperature: 0.2 },
+        config: { responseMimeType: "application/json", temperature: 0.25 },
       });
 
       const parsed = JSON.parse(result.text || "{}");
@@ -2192,7 +2216,7 @@ Return ONLY clean JSON:
       const score = Math.max(0, Math.min(100, Number(parsed.verificationScore) || 0));
       const feedback = parsed.verificationFeedback || (verified ? "Universe accepts your oath." : "Proof insufficient.");
 
-      // Enforce minimum score threshold
+      // Enforce minimum score threshold for acceptance
       const finalVerified = verified && score >= 60;
 
       return res.json({
@@ -2201,17 +2225,16 @@ Return ONLY clean JSON:
         verificationFeedback: finalVerified
           ? feedback
           : score > 0
-          ? `${feedback} (Score too low — need 60+ to mark complete.)`
+          ? `${feedback} (Score ${score}/100 — need 60+ to mark complete.)`
           : feedback,
         modelUsed: result.modelUsed,
         verifiedAt: new Date().toISOString(),
         aiGenerated: true,
-        videoUrl: videoUrl || null,
+        proofType,
       });
     } catch (aiErr: any) {
       const isQuota = aiErr?.message?.includes("quota") || aiErr?.status === "RESOURCE_EXHAUSTED";
       if (isQuota) {
-        // Quota exhausted — accept proof on trust with warning
         return res.json({
           verified: true,
           verificationScore: 68,
@@ -2219,6 +2242,7 @@ Return ONLY clean JSON:
           modelUsed: "quota-fallback",
           verifiedAt: new Date().toISOString(),
           aiGenerated: false,
+          proofType,
         });
       }
       throw aiErr;
