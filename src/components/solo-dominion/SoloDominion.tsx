@@ -1801,15 +1801,16 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* PROOF VERIFICATION MODAL — CLEAN WHITE/BLACK THEME, FULL-SCREEN ON MOBILE */}
       {proofMission && (
         <div
-          className="fixed inset-0 z-[300] flex items-stretch sm:items-center justify-center sm:p-4 animate-fade-in overflow-y-auto"
-          style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}
+          className="fixed inset-0 z-[300] flex items-stretch justify-center overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
         >
           <div
-            className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl relative sm:my-4 flex flex-col"
+            className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col"
             style={{
               border: "1px solid #000",
               minHeight: "100vh",
               maxHeight: "100vh",
+              height: "100vh",
             }}
           >
 
@@ -1839,7 +1840,7 @@ export const SoloDominion: React.FC<any> = (props) => {
             </div>
 
             {/* SCROLLABLE BODY */}
-            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
 
             {/* STEP 1: Choose ANY ONE proof type */}
             {proofStep === "choose" && (
