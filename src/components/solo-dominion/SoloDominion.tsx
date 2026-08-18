@@ -1436,6 +1436,14 @@ export const SoloDominion: React.FC<any> = (props) => {
           background-color: #000000;
           background-image: none;
         }
+        .sd-hero-anime {
+          background-image:
+            linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.85) 100%),
+            url('/images/sd_jin_hero.jpg');
+          background-size: cover;
+          background-position: right center;
+          background-repeat: no-repeat;
+        }
         .sd-card-border {
           border: 1px solid rgba(255,255,255,0.08);
           transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1500,14 +1508,19 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* ============================================================ */}
       <div className="mb-6 relative z-10">
         <div
-          className="relative rounded-3xl overflow-hidden border border-white/10"
-          style={{ minHeight: "260px" }}
+          className="relative rounded-3xl overflow-hidden border border-amber-400/15"
+          style={{ minHeight: "320px" }}
         >
-          {/* Background anime image */}
-          <div className="absolute inset-0 sd-hero-banner" />
+          {/* Background anime image — Sung Jinwoo reference, right side */}
+          <div className="absolute inset-0 sd-hero-anime" />
+          {/* Bottom dark fade for legibility */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.85) 100%)" }}
+          />
           {/* Content overlay */}
-          <div className="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col md:flex-row md:items-center gap-5 min-h-[260px]">
-            <div className="flex-1 min-w-0">
+          <div className="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col md:flex-row md:items-center gap-5 min-h-[320px]">
+            <div className="flex-1 min-w-0 max-w-2xl">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="h-px w-8 bg-amber-400/60" />
                 <span className="sd-rank-badge text-[10px] text-amber-300 font-bold">
@@ -1525,7 +1538,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 <span className="text-amber-200/90 font-medium">Your discipline becomes XP.</span>
               </p>
             </div>
-            <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2">
+            <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 md:items-end">
               <button
                 onClick={() => setShowSyncModal(true)}
                 className="px-4 py-2.5 rounded-xl border border-amber-400/40 text-amber-100 hover:bg-amber-500/10 sd-mono-font text-[10px] font-bold tracking-[0.18em] uppercase flex items-center gap-2 transition active:scale-95 backdrop-blur-md"
@@ -2250,11 +2263,11 @@ const QuestBoard: React.FC<{
     const r = (q.rank || "E") as QuestRank;
     // Anime character per rank
     const RANK_ART: Record<QuestRank, string> = {
-      E: "/images/hero_solo_01.jpg",
-      D: "/images/hero_solo_01.jpg",
-      C: "/images/quest_solo_02.jpg",
-      B: "/images/quest_solo_02.jpg",
-      A: "/images/boss_solo_03.jpg",
+      E: "/images/sd_jin_hero.jpg",
+      D: "/images/sd_jin_hero.jpg",
+      C: "/images/sd_igris_red.jpg",
+      B: "/images/sd_jin_minimal.jpg",
+      A: "/images/sd_jin_shadow.jpg",
     };
     const art = RANK_ART[r] || RANK_ART.E;
     return (
@@ -2374,7 +2387,7 @@ const QuestBoard: React.FC<{
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg overflow-hidden border border-red-900/60 shrink-0">
-                <img src={resolveImageUrl("/images/boss_solo_03.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
+                <img src={resolveImageUrl("/images/sd_jin_shadow.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="sd-rank-badge text-[10px] text-red-200/80">Boss Battles</div>
@@ -2396,7 +2409,7 @@ const QuestBoard: React.FC<{
                 <div className="flex items-stretch">
                   <div className="relative w-14 shrink-0 overflow-hidden">
                     <img
-                      src={resolveImageUrl(b.bossImage || "/images/quest_solo_02.jpg")}
+                      src={resolveImageUrl(b.bossImage || "/images/sd_jin_minimal.jpg")}
                       alt={b.title}
                       onError={onImgError()}
                       className="absolute inset-0 w-full h-full object-cover"
