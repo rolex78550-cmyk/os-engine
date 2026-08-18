@@ -3,7 +3,7 @@ import {
   Target, Zap, BookOpen, Edit3, Flame, CheckCircle, ArrowRight,
   Plus, X, ChevronLeft, ChevronRight, Star,
   Trophy, Sparkles, Calendar, Edit2, Trash2, Award, Info, Gift, User, Check,
-  CreditCard, Crown
+  CreditCard, Crown, Bell
 } from "lucide-react";
 import { useAppLogic } from "../../hooks/useAppLogic";
 import { useRPG } from "../../hooks/useRPG";
@@ -14,6 +14,8 @@ import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
+import { NotificationSettings } from "../NotificationSettings";
+import { isSupported as isNotifSupported, getPermissionState, scheduleIAMAffirmation as scheduleIAMDirect, scheduleTaskReminder as scheduleTaskDirect } from "../../lib/notificationService";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -305,6 +307,9 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
 
   // (Voice system removed — see git history)
+
+  // Notification panel state
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   // ============================================================
   // PROOF VERIFICATION SYSTEM (Solo Dominion)
@@ -1371,9 +1376,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   return (
     <div
-      className="text-white relative z-30 pb-12 select-none sd-body-font" style={{ backgroundColor: "#000" }}
+      className="text-white relative z-30 pb-12 select-none sd-body-font"
       onClick={handleUserInteraction}
-      style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
+      style={{ backgroundColor: "#000", fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
     >
       {/* ============================================================ */}
       {/* GLOBAL FX — cinematic gradient + ambient particles          */}
@@ -1645,6 +1650,31 @@ export const SoloDominion: React.FC<any> = (props) => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* NOTIFICATIONS — I AM affirmations + task reminders        */}
+      {/* ============================================================ */}
+      <div className="mb-5 relative z-10">
+        <div className="flex items-center justify-between mb-2.5 px-1">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <Bell size={15} className="text-amber-300" />
+              <span className="sd-rank-badge text-[10px] text-white/80">Push Notifications</span>
+            </div>
+            <p className="text-[11px] text-white/45 tracking-tight">
+              Daily I AM affirmations · Quest reminders on your phone
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNotifPanel(true)}
+            className="text-[11px] font-medium text-white/55 hover:text-white transition-colors flex items-center gap-1"
+          >
+            Configure
+            <ChevronRight size={12} />
+          </button>
+        </div>
+        <NotificationSettings variant="card" />
       </div>
 
       {/* ============================================================ */}
@@ -2465,6 +2495,11 @@ export const SoloDominion: React.FC<any> = (props) => {
             <button onClick={() => setSelectedStreak(null)} className="w-full py-2.5 bg-white/10 text-white rounded-xl text-xs font-semibold">Done</button>
           </div>
         </div>
+      )}
+
+      {/* Notification Settings full panel (opens via bell/configure) */}
+      {showNotifPanel && (
+        <NotificationSettings variant="panel" onClose={() => setShowNotifPanel(false)} />
       )}
 
       {selectedCard && (

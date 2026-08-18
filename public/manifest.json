@@ -1,0 +1,41 @@
+{
+  "name": "Menifest OS — Focus Engine",
+  "short_name": "Menifest OS",
+  "description": "Real-life RPG progression system. Level up by completing quests, slaying boss battles, and building daily discipline.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#d4af37",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle", "health"],
+  "shortcuts": [
+    {
+      "name": "Solo Dominion",
+      "short_name": "Dominion",
+      "url": "/?tab=streaks",
+      "description": "Open your daily quest board"
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "url": "/?tab=dashboard",
+      "description": "View your stats and habits"
+    }
+  ],
+  "prefer_related_applications": false
+}
