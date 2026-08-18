@@ -1436,7 +1436,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   return (
     <div
-      className="text-white relative z-30 pb-12 select-none"
+      className="text-white relative z-30 pb-12 select-none sd-body-font"
       onClick={handleUserInteraction}
       style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
     >
@@ -1471,35 +1471,104 @@ export const SoloDominion: React.FC<any> = (props) => {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes shimmerGold {
+          0%, 100% { background-position: 0% 50%; }
+          50%      { background-position: 100% 50%; }
+        }
+        @keyframes kenBurns {
+          0%   { transform: scale(1) translateX(0); }
+          50%  { transform: scale(1.06) translateX(-1%); }
+          100% { transform: scale(1) translateX(0); }
+        }
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(20px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
         .sd-particle {
           position: absolute;
-          width: 3px;
-          height: 3px;
-          background: rgba(168,85,247,0.7);
+          width: 2px;
+          height: 2px;
+          background: rgba(212,175,55,0.5);
           border-radius: 50%;
           pointer-events: none;
           animation: floatParticle linear infinite;
-          box-shadow: 0 0 6px rgba(168,85,247,0.8);
         }
         .sd-rank-E { border-color: rgba(148,163,184,0.6) !important; }
         .sd-rank-D { border-color: rgba(34,197,94,0.6) !important; }
         .sd-rank-C { border-color: rgba(59,130,246,0.6) !important; }
         .sd-rank-B { border-color: rgba(168,85,247,0.6) !important; }
-        .sd-rank-A { border-color: rgba(251,191,36,0.7) !important; }
+        .sd-rank-A { border-color: rgba(212,175,55,0.85) !important; }
+        .sd-royal-font { font-family: 'Cinzel', 'Cormorant Garamond', serif; letter-spacing: 0.04em; }
+        .sd-body-font { font-family: 'Inter', system-ui, sans-serif; }
+        .sd-mono-font { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+        .sd-shimmer-text {
+          background: linear-gradient(90deg, #d4af37 0%, #f5e7a3 25%, #d4af37 50%, #f5e7a3 75%, #d4af37 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmerGold 4s ease-in-out infinite;
+        }
+        .sd-anime-bg {
+          background-image:
+            linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.85) 75%, rgba(0,0,0,0.95) 100%),
+            url('/images/onboarding-cinematic-loop.jpg');
+          background-size: cover;
+          background-position: center;
+          background-attachment: fixed;
+          animation: kenBurns 30s ease-in-out infinite;
+        }
+        .sd-hero-banner {
+          background-image:
+            linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.7) 100%),
+            url('/images/anime_shadow_monarch_1785176449409.jpg');
+          background-size: cover;
+          background-position: center top;
+        }
+        .sd-card-border {
+          border: 1px solid rgba(255,255,255,0.08);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sd-card-border:hover {
+          border-color: rgba(212,175,55,0.5);
+          transform: translateY(-2px);
+        }
+        .sd-divider {
+          background: linear-gradient(to right, transparent, rgba(212,175,55,0.4), transparent);
+          height: 1px;
+        }
+        .sd-rank-badge {
+          font-family: 'Cinzel', serif;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+        }
+        @media (max-width: 768px) {
+          .sd-anime-bg { background-attachment: scroll; }
+        }
       `}</style>
 
-      {/* Ambient purple particles */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        {Array.from({ length: 14 }).map((_, i) => (
+      {/* Anime cinematic background (full page) — fixed, dark, no neon */}
+      <div className="pointer-events-none fixed inset-0 -z-10 sd-anime-bg" />
+      {/* Subtle film grain overlay */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.04]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>")`,
+          mixBlendMode: "overlay",
+        }}
+      />
+      {/* Slow gold dust particles (no glow) */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
             className="sd-particle"
             style={{
-              left: `${(i * 7 + 5) % 100}%`,
+              left: `${(i * 11 + 7) % 100}%`,
               bottom: "-10vh",
-              animationDuration: `${15 + (i % 6) * 2}s`,
-              animationDelay: `${i * 0.4}s`,
-              opacity: 0.4,
+              animationDuration: `${25 + (i % 5) * 3}s`,
+              animationDelay: `${i * 0.8}s`,
+              opacity: 0.3,
             }}
           />
         ))}
@@ -1516,84 +1585,99 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {/* ============================================================ */}
-      {/* PAGE HEADER                                                 */}
+      {/* PAGE HEADER — anime hero + royal serif title                */}
       {/* ============================================================ */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
-        <div>
-          <div className="flex items-center gap-3 mb-1.5">
-            <div className="text-[10px] font-mono tracking-[4px] text-purple-400 uppercase font-bold">SOLO DOMINION v3.0</div>
-            <div className="h-px flex-1 bg-gradient-to-r from-purple-500/40 to-transparent" />
+      <div className="mb-6 relative z-10">
+        <div
+          className="relative rounded-3xl overflow-hidden border border-white/10"
+          style={{ minHeight: "260px" }}
+        >
+          {/* Background anime image */}
+          <div className="absolute inset-0 sd-hero-banner" />
+          {/* Content overlay */}
+          <div className="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col md:flex-row md:items-center gap-5 min-h-[260px]">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="h-px w-8 bg-amber-400/60" />
+                <span className="sd-rank-badge text-[10px] text-amber-300 font-bold">
+                  Solo Dominion · Shadow Archive
+                </span>
+              </div>
+              <h1 className="sd-royal-font text-[36px] sm:text-[48px] lg:text-[58px] font-bold leading-[0.95] mb-3 tracking-[0.02em]">
+                <span className="text-white">Continue Your</span>
+                <br />
+                <span className="sd-shimmer-text">Conquest</span>
+                <span className="text-amber-400/80">.</span>
+              </h1>
+              <p className="sd-body-font text-[14px] sm:text-[15px] text-white/65 max-w-xl leading-relaxed font-light">
+                Your real life is the game. Your goals are quests.{" "}
+                <span className="text-amber-200/90 font-medium">Your discipline becomes XP.</span>
+              </p>
+            </div>
+            <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2">
+              <button
+                onClick={toggleVoiceMute}
+                title={voiceMuted ? "Unmute villain voice" : "Mute villain voice"}
+                className="p-2.5 rounded-xl border border-white/15 hover:border-amber-400/40 text-white/70 hover:text-amber-200 transition active:scale-95 backdrop-blur-md"
+                style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                aria-label={voiceMuted ? "Unmute voice" : "Mute voice"}
+              >
+                {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+              <button
+                onClick={toggleReverb}
+                title={reverbOn ? "Reverb ON (scary echo)" : "Reverb OFF (clean voice)"}
+                className={`p-2.5 rounded-xl border transition active:scale-95 backdrop-blur-md ${
+                  reverbOn
+                    ? "border-red-500/60 text-red-300"
+                    : "border-white/15 text-white/50 hover:border-white/30"
+                }`}
+                style={{ backgroundColor: reverbOn ? "rgba(127,29,29,0.4)" : "rgba(0,0,0,0.5)" }}
+                aria-label={reverbOn ? "Disable echo" : "Enable echo"}
+              >
+                {reverbOn ? <AudioWaveform size={14} /> : <AudioLines size={14} />}
+              </button>
+              <button
+                onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
+                className="px-4 py-2.5 rounded-xl border border-amber-400/40 text-amber-100 hover:bg-amber-500/10 sd-mono-font text-[10px] font-bold tracking-[0.18em] uppercase flex items-center gap-2 transition active:scale-95 backdrop-blur-md"
+                style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+              >
+                <Calendar size={12} className="text-amber-300" />
+                Sync
+              </button>
+            </div>
           </div>
-          <h1 className="text-[40px] sm:text-[48px] font-extrabold tracking-[-2.5px] leading-[0.95] mb-1.5 text-white">
-            Continue your conquest.
-          </h1>
-          <p className="text-[14px] sm:text-[15px] text-white/60 tracking-tight font-medium">
-            Your real life is the game. <span className="text-purple-300">Your goals are quests.</span> Your discipline gives XP.
-          </p>
-        </div>
-        <div className="shrink-0 flex items-center gap-2">
-          <button
-            onClick={toggleVoiceMute}
-            title={voiceMuted ? "Unmute villain voice" : "Mute villain voice"}
-            className="p-2.5 rounded-xl border border-white/15 hover:border-white/30 text-white/70 hover:text-white transition active:scale-95"
-            style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-            aria-label={voiceMuted ? "Unmute voice" : "Mute voice"}
-          >
-            {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          </button>
-          <button
-            onClick={toggleReverb}
-            title={reverbOn ? "Reverb ON (scary echo)" : "Reverb OFF (clean voice)"}
-            className={`p-2.5 rounded-xl border transition active:scale-95 ${
-              reverbOn
-                ? "border-red-500/60 text-red-300 bg-red-950/40"
-                : "border-white/15 text-white/50 hover:border-white/30"
-            }`}
-            style={{ backgroundColor: reverbOn ? "rgba(127,29,29,0.3)" : "rgba(0,0,0,0.4)" }}
-            aria-label={reverbOn ? "Disable echo" : "Enable echo"}
-          >
-            {reverbOn ? <AudioWaveform size={14} /> : <AudioLines size={14} />}
-          </button>
-          <button
-            onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black tracking-wider uppercase shadow-lg shadow-purple-900/40 border border-purple-400/30 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Calendar size={14} className="text-amber-400 animate-pulse" />
-            Quantum Timeline Sync
-          </button>
+          {/* Bottom hairline divider */}
+          <div className="absolute bottom-0 left-0 right-0 h-px sd-divider" />
         </div>
       </div>
 
       {/* ============================================================ */}
-      {/* TODAY'S DOMINION — XP bar + Level + Rank                   */}
+      {/* TODAY'S DOMINION — XP bar + Level + Rank (premium dark)    */}
       {/* ============================================================ */}
       <div className="mb-6 relative z-10">
         <div
-          className="rounded-3xl border border-purple-500/30 bg-gradient-to-br from-[#1A0F2E]/90 via-[#0F0820]/90 to-[#08060F]/90 p-5 sm:p-6 relative overflow-hidden"
+          className="rounded-3xl border border-white/10 bg-black/70 backdrop-blur-md p-5 sm:p-6 relative overflow-hidden"
           style={{ animation: "fadeInUp 0.5s ease-out" }}
         >
-          {/* Decorative glow */}
-          <div className="absolute -top-32 -right-32 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+          {/* Top hairline accent */}
+          <div className="absolute top-0 left-0 right-0 h-px sd-divider" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-5">
             {/* Level + Rank block */}
             <div className="flex items-center gap-4 shrink-0">
-              <div
-                className="relative w-[88px] h-[88px] rounded-full p-[3px] flex items-center justify-center"
-                style={{ animation: "xpGlow 3s ease-in-out infinite", background: "conic-gradient(from 0deg, #a855f7, #6366f1, #ec4899, #a855f7)" }}
-              >
-                <div className="w-full h-full rounded-full bg-[#08060F] border border-white/10 flex flex-col items-center justify-center text-center">
-                  <span className="text-[10px] font-mono tracking-[1px] text-purple-300 uppercase font-bold">LEVEL</span>
-                  <span className="text-[28px] font-black text-white leading-none tracking-tight tabular-nums">{level}</span>
+              <div className="relative w-[92px] h-[92px] rounded-full p-[2px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d4af37 0%, #8a6d2c 50%, #d4af37 100%)" }}>
+                <div className="w-full h-full rounded-full bg-black border border-amber-500/30 flex flex-col items-center justify-center text-center">
+                  <span className="sd-mono-font text-[9px] tracking-[0.18em] text-amber-300 uppercase font-bold">Level</span>
+                  <span className="sd-royal-font text-[32px] font-bold text-white leading-none tracking-tight tabular-nums mt-0.5">{level}</span>
                 </div>
               </div>
               <div>
-                <div className="text-[9px] font-mono tracking-[3px] text-amber-400 uppercase font-bold">{currentTier.label}</div>
-                <div className="text-2xl sm:text-3xl font-serif font-black text-white tracking-wide uppercase drop-shadow-md">
+                <div className="sd-rank-badge text-[9px] text-amber-300/90 mb-1">{currentTier.label}</div>
+                <div className="sd-royal-font text-[22px] sm:text-[26px] font-bold text-white tracking-[0.04em]">
                   {currentTier.name}
                 </div>
-                <div className="text-[10px] font-mono text-white/50 mt-0.5 max-w-[220px] leading-snug">
+                <div className="sd-body-font text-[10.5px] text-white/55 mt-0.5 max-w-[230px] leading-snug font-light">
                   {currentTier.description}
                 </div>
               </div>
@@ -1601,35 +1685,34 @@ export const SoloDominion: React.FC<any> = (props) => {
 
             {/* XP bar + counters */}
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono tracking-[2px] text-white/60 uppercase font-bold">XP TODAY</span>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-mono font-bold">
+                  <span className="sd-rank-badge text-[10px] text-white/55">XP Today</span>
+                  <span className="px-2.5 py-0.5 border border-amber-400/30 text-amber-200 sd-mono-font text-[10px] font-bold tabular-nums">
                     {dailyXpEarned} / {DAILY_XP_CAP}
                   </span>
                 </div>
                 {nextTier ? (
-                  <span className="text-[10px] font-mono text-amber-300 font-bold uppercase">
-                    Next: {nextTier.name} @ Lv.{nextTier.level}
+                  <span className="sd-rank-badge text-[10px] text-amber-300/80">
+                    Next · {nextTier.name} @ Lv.{nextTier.level}
                   </span>
                 ) : (
-                  <span className="text-[10px] font-mono text-amber-300 font-bold uppercase">★ Apex Reached</span>
+                  <span className="sd-rank-badge text-[10px] text-amber-300">★ Apex Reached</span>
                 )}
               </div>
-              <div className="h-3 bg-black/60 rounded-full overflow-hidden border border-white/10">
+              <div className="h-[6px] bg-white/[0.06] rounded-full overflow-hidden border border-white/[0.08] relative">
                 <div
-                  className="h-full rounded-full transition-all duration-700"
+                  className="h-full transition-all duration-700"
                   style={{
                     width: `${Math.min(100, xpPercentage)}%`,
-                    background: "linear-gradient(to right, #a855f7, #6366f1, #ec4899)",
-                    boxShadow: "0 0 14px rgba(168,85,247,0.6)",
+                    background: "linear-gradient(to right, #d4af37 0%, #f5e7a3 50%, #d4af37 100%)",
                   }}
                 />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-[10px] font-mono text-white/50">
-                <span>{currentXP} / {xpNeeded} XP total</span>
-                <span>Quests done: <span className="text-emerald-400 font-bold">{todayCompletedCount}</span> / {quests.length}</span>
-                <span>Daily: <span className="text-purple-300 font-bold">{dailyXpEarned}</span> XP</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2.5 sd-mono-font text-[10px] text-white/45">
+                <span className="tabular-nums">{currentXP} / {xpNeeded} XP Total</span>
+                <span>Quests · <span className="text-emerald-300/90 font-bold tabular-nums">{todayCompletedCount}</span> / {quests.length}</span>
+                <span>Daily · <span className="text-amber-200/90 font-bold tabular-nums">{dailyXpEarned}</span> XP</span>
               </div>
             </div>
           </div>
@@ -2276,55 +2359,80 @@ const QuestBoard: React.FC<{
 
   const renderQuest = (q: Mission) => {
     const r = (q.rank || "E") as QuestRank;
+    // Anime character per rank
+    const RANK_ART: Record<QuestRank, string> = {
+      E: "/images/anime_trainee_warrior_1785176432904.jpg",
+      D: "/images/anime_trainee_warrior_1785176432904.jpg",
+      C: "/images/anime_red_warrior_1785177142520.jpg",
+      B: "/images/anime_shadow_knight_1785176768012.jpg",
+      A: "/images/anime_shadow_monarch_1785176449409.jpg",
+    };
+    const art = RANK_ART[r] || RANK_ART.E;
     return (
       <button
         key={q.id}
         onClick={() => !q.completed && onOpenQuest(q)}
         disabled={q.completed}
-        className={`group relative text-left w-full rounded-2xl border-2 transition-all p-4 ${
-          q.completed
-            ? "border-emerald-500/40 bg-emerald-950/20 opacity-80"
-            : "bg-gradient-to-br from-[#0F0820] to-black hover:border-purple-500/50 hover:scale-[1.01]"
-        }`}
-        style={{ borderColor: q.completed ? "rgba(16,185,129,0.5)" : "rgba(255,255,255,0.08)" }}
+        className={`sd-card-border group relative text-left w-full rounded-2xl overflow-hidden bg-black/65 backdrop-blur-sm ${q.completed ? "opacity-70" : ""}`}
       >
-        <div className="flex items-start gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 border-2"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)", borderColor: rankColor[r] }}
-          >
-            {categoryIcon[q.category]}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-              <span
-                className="text-[9px] font-mono font-bold tracking-[2px] uppercase px-1.5 py-0.5 rounded"
-                style={{ color: rankColor[r], backgroundColor: `${rankColor[r]}15`, border: `1px solid ${rankColor[r]}40` }}
-              >
-                {rankLabel[r]}
-              </span>
-              <span className="text-[9px] font-mono text-white/40 uppercase tracking-wider">{categoryLabel[q.category]}</span>
+        {/* Anime portrait strip on the left */}
+        <div className="flex items-stretch">
+          <div className="relative w-[68px] sm:w-[78px] shrink-0 overflow-hidden">
+            <img
+              src={resolveImageUrl(art)}
+              alt={r}
+              onError={onImgError()}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: "center 20%" }}
+            />
+            {/* Cinematic gradient over the image */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: "linear-gradient(to right, rgba(0,0,0,0.0) 60%, rgba(0,0,0,0.85) 100%), linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%)" }}
+            />
+            {/* Rank letter embossed */}
+            <div className="absolute bottom-1.5 left-1.5 sd-royal-font text-[20px] font-bold leading-none" style={{ color: rankColor[r], textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
+              {r}
             </div>
-            <div className={`text-sm font-black uppercase tracking-wide ${q.completed ? "text-emerald-300 line-through opacity-70" : "text-white"}`}>
-              {q.title}
-            </div>
-            <p className="text-[10.5px] text-white/55 mt-1 leading-snug line-clamp-2">{q.description}</p>
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-base font-black font-mono text-amber-300 tabular-nums">+{q.xp}</div>
-            <div className="text-[9px] font-mono text-white/40 uppercase tracking-wider">XP</div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 p-3.5 sm:p-4">
+            <div className="flex items-start gap-2.5">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <span
+                    className="sd-rank-badge text-[9px] px-1.5 py-0.5"
+                    style={{ color: rankColor[r], border: `1px solid ${rankColor[r]}50`, backgroundColor: `${rankColor[r]}10` }}
+                  >
+                    {rankLabel[r]}
+                  </span>
+                  <span className="sd-mono-font text-[9px] text-white/40 uppercase tracking-wider">{categoryLabel[q.category]}</span>
+                </div>
+                <div className={`sd-royal-font text-[15px] sm:text-[16px] font-semibold leading-tight ${q.completed ? "text-emerald-300/80 line-through" : "text-white"}`}>
+                  {q.title}
+                </div>
+                <p className="sd-body-font text-[11px] text-white/55 mt-1 leading-snug line-clamp-2 font-light">
+                  {q.description}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="sd-royal-font text-[18px] font-bold text-amber-300/90 tabular-nums leading-none">+{q.xp}</div>
+                <div className="sd-rank-badge text-[8.5px] text-white/40 mt-0.5">XP</div>
+              </div>
+            </div>
+            {q.completed ? (
+              <div className="mt-2.5 flex items-center gap-1.5 sd-mono-font text-[10px] font-bold text-emerald-300/80 uppercase tracking-wider">
+                <CheckCircle size={12} /> Quest Complete
+              </div>
+            ) : (
+              <div className="mt-2.5 flex items-center justify-between">
+                <span className="sd-rank-badge text-[9.5px] text-amber-200/70">Submit proof to claim</span>
+                <span className="text-white/30 text-sm">→</span>
+              </div>
+            )}
           </div>
         </div>
-        {q.completed ? (
-          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
-            <CheckCircle size={12} /> Quest Complete
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] font-mono text-purple-300 uppercase tracking-wider font-bold">Tap to submit proof</span>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">→</span>
-          </div>
-        )}
       </button>
     );
   };
@@ -2332,32 +2440,38 @@ const QuestBoard: React.FC<{
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 relative z-10">
       {/* Main + Side Quests */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-5">
         {mainQuests.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Flame size={14} className="text-purple-400" />
-              <span className="text-[10px] font-mono tracking-[3px] text-purple-300 uppercase font-bold">MAIN QUESTS</span>
+            <div className="flex items-center gap-3 mb-3">
+              <Flame size={14} className="text-amber-300" />
+              <span className="sd-rank-badge text-[10px] text-amber-200/90">Main Quests</span>
+              <div className="flex-1 h-px sd-divider" />
+              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{mainQuests.length}</span>
             </div>
-            <div className="space-y-2">{mainQuests.map(renderQuest)}</div>
+            <div className="space-y-2.5">{mainQuests.map(renderQuest)}</div>
           </div>
         )}
         {sideQuests.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Target size={14} className="text-blue-400" />
-              <span className="text-[10px] font-mono tracking-[3px] text-blue-300 uppercase font-bold">SIDE QUESTS</span>
+            <div className="flex items-center gap-3 mb-3">
+              <Target size={14} className="text-zinc-300" />
+              <span className="sd-rank-badge text-[10px] text-zinc-200/80">Side Quests</span>
+              <div className="flex-1 h-px sd-divider" />
+              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{sideQuests.length}</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{sideQuests.map(renderQuest)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">{sideQuests.map(renderQuest)}</div>
           </div>
         )}
         {disciplineQuests.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Zap size={14} className="text-amber-400" />
-              <span className="text-[10px] font-mono tracking-[3px] text-amber-300 uppercase font-bold">DISCIPLINE QUESTS</span>
+            <div className="flex items-center gap-3 mb-3">
+              <Zap size={14} className="text-amber-300" />
+              <span className="sd-rank-badge text-[10px] text-amber-200/90">Discipline Quests</span>
+              <div className="flex-1 h-px sd-divider" />
+              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{disciplineQuests.length}</span>
             </div>
-            <div className="space-y-2">{disciplineQuests.map(renderQuest)}</div>
+            <div className="space-y-2.5">{disciplineQuests.map(renderQuest)}</div>
           </div>
         )}
       </div>
@@ -2365,22 +2479,20 @@ const QuestBoard: React.FC<{
       {/* Boss Battle panel */}
       <div className="lg:col-span-1">
         <div
-          className="rounded-2xl border-2 p-4 sticky top-4"
-          style={{
-            borderColor: "rgba(239,68,68,0.4)",
-            background: "linear-gradient(180deg, rgba(127,29,29,0.18) 0%, rgba(0,0,0,0.4) 100%)",
-            animation: "bossPulse 2.4s ease-in-out infinite",
-          }}
+          className="rounded-2xl border border-red-900/40 p-4 sticky top-4 bg-black/70 backdrop-blur-md relative overflow-hidden"
         >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(239,68,68,0.5), transparent)" }} />
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">👹</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg overflow-hidden border border-red-900/60 shrink-0">
+                <img src={resolveImageUrl("/images/anime_demon_slayer.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
+              </div>
               <div>
-                <div className="text-[10px] font-mono tracking-[3px] text-red-300 uppercase font-bold">BOSS BATTLES</div>
-                <div className="text-[10px] font-mono text-white/40">High-XP challenges</div>
+                <div className="sd-rank-badge text-[10px] text-red-200/80">Boss Battles</div>
+                <div className="sd-body-font text-[10px] text-white/40 mt-0.5">High-stakes challenges</div>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/40 text-red-300 text-[9px] font-mono font-bold uppercase tracking-wider">+XP</span>
+            <span className="px-2 py-0.5 border border-red-500/40 text-red-200/80 sd-mono-font text-[9px] font-bold uppercase tracking-wider">XP+</span>
           </div>
           <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
             {bossQuests.map((b) => (
@@ -2388,30 +2500,37 @@ const QuestBoard: React.FC<{
                 key={b.id}
                 onClick={() => !b.completed && onOpenQuest(b)}
                 disabled={b.completed}
-                className={`w-full text-left rounded-xl border-2 p-2.5 transition group ${
-                  b.completed ? "border-emerald-500/40 bg-emerald-950/20 opacity-70" : "border-red-500/30 bg-black/40 hover:border-red-500/70 hover:scale-[1.01]"
+                className={`sd-card-border w-full text-left rounded-xl overflow-hidden bg-black/50 group ${
+                  b.completed ? "border-emerald-700/40 opacity-70" : ""
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-red-500/40 shrink-0">
-                    <img src={resolveImageUrl(b.bossImage || "/images/anime_red_warrior_1785177142520.jpg")} alt={b.title} onError={onImgError()} className="w-full h-full object-cover" />
+                <div className="flex items-stretch">
+                  <div className="relative w-14 shrink-0 overflow-hidden">
+                    <img
+                      src={resolveImageUrl(b.bossImage || "/images/anime_red_warrior_1785177142520.jpg")}
+                      alt={b.title}
+                      onError={onImgError()}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ objectPosition: "center 25%" }}
+                    />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to right, transparent 50%, rgba(0,0,0,0.85) 100%)" }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-mono font-bold uppercase text-red-300 leading-tight line-clamp-1">{b.title}</div>
-                    <p className="text-[9.5px] text-white/50 mt-0.5 leading-snug line-clamp-2">{b.description}</p>
+                  <div className="flex-1 min-w-0 p-2.5">
+                    <div className="sd-royal-font text-[11.5px] font-semibold text-white leading-tight line-clamp-1">{b.title}</div>
+                    <p className="sd-body-font text-[9.5px] text-white/50 mt-0.5 leading-snug line-clamp-2 font-light">{b.description}</p>
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <span
-                        className="text-[8.5px] font-mono font-bold tracking-wider uppercase px-1.5 py-0.5 rounded"
-                        style={{ color: rankColor[b.rank || "B"], backgroundColor: `${rankColor[b.rank || "B"]}15`, border: `1px solid ${rankColor[b.rank || "B"]}40` }}
+                        className="sd-rank-badge text-[8.5px] px-1.5 py-0.5"
+                        style={{ color: rankColor[b.rank || "B"], border: `1px solid ${rankColor[b.rank || "B"]}50`, backgroundColor: `${rankColor[b.rank || "B"]}10` }}
                       >
                         {rankLabel[b.rank || "B"]}
                       </span>
-                      <span className="text-[9.5px] font-mono text-amber-300 font-bold">+{b.xp} XP</span>
+                      <span className="sd-royal-font text-[11px] text-amber-300/90 font-bold tabular-nums">+{b.xp} XP</span>
                     </div>
                   </div>
                 </div>
                 {b.completed && (
-                  <div className="mt-2 flex items-center gap-1 text-[9.5px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                  <div className="px-2.5 pb-2 flex items-center gap-1 sd-mono-font text-[9.5px] font-bold text-emerald-300/80 uppercase tracking-wider">
                     <CheckCircle size={11} /> Slain
                   </div>
                 )}
