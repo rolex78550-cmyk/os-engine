@@ -3,7 +3,7 @@ import {
   Target, Zap, BookOpen, Edit3, Flame, CheckCircle, ArrowRight,
   Volume2, VolumeX, Plus, X, ChevronLeft, ChevronRight, Star,
   Trophy, Sparkles, Calendar, Edit2, Trash2, Award, Info, Gift, User, Check,
-  CreditCard, Crown
+  CreditCard, Crown, AudioLines, AudioWaveform
 } from "lucide-react";
 import { useAppLogic } from "../../hooks/useAppLogic";
 import { useRPG } from "../../hooks/useRPG";
@@ -14,7 +14,7 @@ import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
-import { speak, speakFromCategory, stopSpeaking, initVillainVoice, isVoiceAvailable } from "../../lib/villainVoice";
+import { speak, speakFromCategory, stopSpeaking, initVillainVoice, isVoiceAvailable, setReverbEnabled, isReverbEnabled } from "../../lib/villainVoice";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -338,6 +338,16 @@ export const SoloDominion: React.FC<any> = (props) => {
       const next = !m;
       try { localStorage.setItem("sd_voice_muted", next ? "1" : "0"); } catch {}
       if (next) stopSpeaking();
+      return next;
+    });
+  };
+
+  // Reverb (echo) toggle — for deep scary cathedral-like voice effect
+  const [reverbOn, setReverbOn] = useState<boolean>(() => isReverbEnabled());
+  const toggleReverb = () => {
+    setReverbOn((r) => {
+      const next = !r;
+      setReverbEnabled(next);
       return next;
     });
   };
@@ -1530,6 +1540,19 @@ export const SoloDominion: React.FC<any> = (props) => {
             aria-label={voiceMuted ? "Unmute voice" : "Mute voice"}
           >
             {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
+          <button
+            onClick={toggleReverb}
+            title={reverbOn ? "Reverb ON (scary echo)" : "Reverb OFF (clean voice)"}
+            className={`p-2.5 rounded-xl border transition active:scale-95 ${
+              reverbOn
+                ? "border-red-500/60 text-red-300 bg-red-950/40"
+                : "border-white/15 text-white/50 hover:border-white/30"
+            }`}
+            style={{ backgroundColor: reverbOn ? "rgba(127,29,29,0.3)" : "rgba(0,0,0,0.4)" }}
+            aria-label={reverbOn ? "Disable echo" : "Enable echo"}
+          >
+            {reverbOn ? <AudioWaveform size={14} /> : <AudioLines size={14} />}
           </button>
           <button
             onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
