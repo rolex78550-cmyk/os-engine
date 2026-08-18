@@ -14,6 +14,7 @@ import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
+import { speak, speakFromCategory, stopSpeaking, initVillainVoice, isVoiceAvailable } from "../../lib/villainVoice";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -201,34 +202,27 @@ export const SoloDominion: React.FC<any> = (props) => {
     }
   };
 
-  // --- REAL VOICEOVER AUDIO SYSTEM ---
+  // --- DEEP VILLAIN VOICE (Dr. Doom style) ---
+  // Uses Web Speech API with deep, slow, dramatic voice.
+  // No API calls, no tokens — pure browser native.
   const playVoiceover = (type: "complete" | "start" | "levelup" | "claim" | "rank" | "streak" | "intro") => {
-    // Force music autoplay unblock if needed
-    handleUserInteraction();
+    if (!isVoiceAvailable() || voiceMuted) return;
+    const map: Record<string, "complete" | "start" | "levelup" | "claim" | "rank" | "streak" | "intro"> = {
+      complete: "complete",
+      start: "start",
+      levelup: "levelup",
+      claim: "claim",
+      rank: "rank",
+      streak: "streak",
+      intro: "intro",
+    };
+    void speakFromCategory(map[type] || "start");
+  };
 
-    let soundPath = "";
-    if (type === "complete") soundPath = "/assets/solo-dominion/sounds/quest-complete.mp3";
-    else if (type === "start") soundPath = "/assets/solo-dominion/sounds/power-surge.mp3";
-    else if (type === "levelup") soundPath = "/assets/solo-dominion/sounds/level-up.mp3";
-    else if (type === "claim") soundPath = "/assets/solo-dominion/sounds/shadow-summon.mp3";
-    else if (type === "rank") soundPath = "/assets/solo-dominion/sounds/rank-promotion.mp3";
-    else if (type === "streak") soundPath = "/assets/solo-dominion/sounds/global-rank-climb.mp3";
-    else if (type === "intro") soundPath = "/audio/onboarding-intro.mp3";
-
-    if (soundPath) {
-      try {
-        const vo = new Audio(soundPath);
-        vo.volume = 0.9;
-        vo.play().catch((err) => {
-          console.warn("[Voiceover] Playing fallback synth SFX for:", type, err);
-          playSFX(type === "complete" ? "mission" : type === "levelup" ? "levelup" : "streak");
-        });
-      } catch (e) {
-        playSFX("mission");
-      }
-    } else {
-      playSFX("click");
-    }
+  // Workout-specific voice intros
+  const playWorkoutIntro = (workoutType: string | null) => {
+    if (!isVoiceAvailable() || voiceMuted || !workoutType) return;
+    void speakFromCategory(workoutType as any);
   };
 
   // Web Audio Synth for instant gaming SFX
@@ -335,6 +329,19 @@ export const SoloDominion: React.FC<any> = (props) => {
   });
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
 
+  // Villain voice mute toggle
+  const [voiceMuted, setVoiceMuted] = useState<boolean>(() => {
+    try { return localStorage.getItem("sd_voice_muted") === "1"; } catch { return false; }
+  });
+  const toggleVoiceMute = () => {
+    setVoiceMuted((m) => {
+      const next = !m;
+      try { localStorage.setItem("sd_voice_muted", next ? "1" : "0"); } catch {}
+      if (next) stopSpeaking();
+      return next;
+    });
+  };
+
   // ============================================================
   // PROOF VERIFICATION SYSTEM (Solo Dominion)
   // User picks ANY ONE of 3 proof types: Selfie / Video Oath / Text Oath.
@@ -374,6 +381,8 @@ export const SoloDominion: React.FC<any> = (props) => {
     const workoutType = detectWorkoutType(mission.title + " " + (mission.desc || "") + " " + (mission.id || ""));
     if (workoutType) {
       setWorkoutMission(mission);
+      // Speak the workout-specific villain intro
+      playWorkoutIntro(workoutType);
       return;
     }
 
@@ -1261,6 +1270,29 @@ export const SoloDominion: React.FC<any> = (props) => {
   const visibleStreaks = streaks.slice(streakPageIndex * 6, (streakPageIndex + 1) * 6);
   const maxStreakPages = Math.ceil(streaks.length / 6);
 
+  // ===== Villain voice page entry (first time per session) =====
+  const greetedRef = useRef(false);
+  useEffect(() => {
+    if (greetedRef.current) return;
+    greetedRef.current = true;
+    // Init voice engine (preloads best voice)
+    initVillainVoice();
+    // Wait for user to interact with the page before speaking (browser
+    // autoplay policy — speech synthesis may be blocked until first
+    // user gesture). We try anyway, but most browsers will allow the
+    // first queued utterance.
+    setTimeout(() => {
+      // First time in this session → dramatic intro
+      const hasGreeted = (() => { try { return sessionStorage.getItem("sd_greeted") === "1"; } catch { return false; } })();
+      if (!hasGreeted) {
+        try { sessionStorage.setItem("sd_greeted", "1"); } catch {}
+        void speakFromCategory("intro");
+      } else {
+        void speakFromCategory("greeting");
+      }
+    }, 1000);
+  }, []);
+
   // ============================================================
   // QUEST SYSTEM DERIVATIONS — RPG layer
   // ============================================================
@@ -1490,6 +1522,15 @@ export const SoloDominion: React.FC<any> = (props) => {
           </p>
         </div>
         <div className="shrink-0 flex items-center gap-2">
+          <button
+            onClick={toggleVoiceMute}
+            title={voiceMuted ? "Unmute villain voice" : "Mute villain voice"}
+            className="p-2.5 rounded-xl border border-white/15 hover:border-white/30 text-white/70 hover:text-white transition active:scale-95"
+            style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+            aria-label={voiceMuted ? "Unmute voice" : "Mute voice"}
+          >
+            {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
           <button
             onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black tracking-wider uppercase shadow-lg shadow-purple-900/40 border border-purple-400/30 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
