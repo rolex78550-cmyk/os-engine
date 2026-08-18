@@ -21,6 +21,44 @@ import {
   type QuestDef, type QuestRank, type QuestCategory, type QuestQuestType,
 } from "../../lib/questSystem";
 
+// Helper: convert a set of DEFAULT_QUESTS to Mission[] with proper
+// sensor-tracker targets, deduplicated against an existing user list.
+function DEFAULT_QUITS_TO_MISSION(
+  defaults: QuestDef[],
+  existing: Mission[],
+  targets: Record<string, { target: number; unit: string }>,
+): Mission[] {
+  const seen = new Set(existing.map((m) => m.id));
+  return defaults
+    .filter((d) => !seen.has(d.id))
+    .map((d) => {
+      const legacyCat: Mission["category"] =
+        d.category === "body" ? "fitness" :
+        d.category === "knowledge" ? "learning" :
+        d.category === "mind" ? "mindset" :
+        "lifestyle";
+      const t = targets[d.id];
+      return {
+        id: d.id,
+        title: d.title,
+        desc: d.description,
+        description: d.description,
+        progress: `0/${t?.target ?? 1} ${t?.unit ?? "times"}`.trim(),
+        currentVal: 0,
+        targetVal: t?.target ?? 1,
+        unit: t?.unit ?? "times",
+        xp: d.xp,
+        icon: CATEGORY_ICON[d.category],
+        color: "#a855f7",
+        completed: false,
+        category: legacyCat,
+        questType: d.questType,
+        rank: d.rank,
+        bossImage: d.bossImage,
+      } as Mission;
+    });
+}
+
 interface Mission {
   id: string;
   title: string;
@@ -809,6 +847,30 @@ export const SoloDominion: React.FC<any> = (props) => {
       if (snap.exists()) {
         const saved = snap.data().missions || [];
         setMissions(saved);
+
+        // Migrate: if user has no sensor-tracked workout missions in their
+        // saved list, persist the new defaults to Firestore. This is a
+        // one-time migration per user so refreshes don't keep re-adding.
+        const hasWorkout = saved.some((m: Mission) =>
+          detectWorkoutType(m.title + " " + (m.desc || "") + " " + (m.id || ""))
+        );
+        if (!hasWorkout && DEFAULT_QUESTS.length > 0) {
+          const DEFAULT_TARGETS_MIG: Record<string, { target: number; unit: string }> = {
+            "default-pushup-50":     { target: 50,   unit: "reps"   },
+            "default-squat-50":      { target: 50,   unit: "reps"   },
+            "default-plank-2min":    { target: 120,  unit: "sec"    },
+            "default-walk-5k":       { target: 5000, unit: "steps"  },
+            "default-meditation-10min": { target: 600, unit: "sec"  },
+          };
+          const toAdd: Mission[] = DEFAULT_QUITS_TO_MISSION(
+            DEFAULT_QUESTS,
+            saved,
+            DEFAULT_TARGETS_MIG,
+          );
+          if (toAdd.length > 0) {
+            setDoc(ref, { missions: [...saved, ...toAdd], date: today }, { merge: true }).catch(() => {});
+          }
+        }
       } else {
         setMissions(defaultMissions);
         setDoc(ref, { missions: defaultMissions, date: today }, { merge: true });
@@ -1244,37 +1306,27 @@ export const SoloDominion: React.FC<any> = (props) => {
     category: deriveCategoryFromMission(m),
   }));
 
-  // Default onboarding quests — only added once per user (when they have
-  // zero custom missions). Otherwise the user keeps their own catalogue.
+  // Default onboarding quests — ALWAYS merge new sensor-tracked workout
+  // defaults into the user's catalogue (deduplicated by ID). This ensures
+  // every user gets the 5 workout missions (push-ups, squats, plank, walk,
+  // meditation) regardless of whether they previously had custom missions.
   const seenIds = new Set(legacyQuests.map((q) => q.id));
-  const onboardingQuests: Mission[] = (legacyQuests.length === 0
-    ? DEFAULT_QUESTS.map((d) => {
-        const legacyCat: Mission["category"] =
-          d.category === "body" ? "fitness" :
-          d.category === "knowledge" ? "learning" :
-          d.category === "mind" ? "mindset" :
-          "lifestyle";
-        return {
-          id: d.id,
-          title: d.title,
-          desc: d.description,
-          description: d.description,
-          progress: "0/1",
-          currentVal: 0,
-          targetVal: 1,
-          unit: "times",
-          xp: d.xp,
-          icon: CATEGORY_ICON[d.category],
-          color: "#a855f7",
-          completed: false,
-          category: legacyCat,
-          questType: d.questType,
-          rank: d.rank,
-          bossImage: d.bossImage,
-        };
-      })
-    : []
-  ).filter((q) => !seenIds.has(q.id));
+
+  // Map of default-quest id → target value override (since DEFAULT_QUESTS
+  // is in "Mission"-shaped form, we need reps / duration / step targets)
+  const DEFAULT_TARGETS: Record<string, { target: number; unit: string }> = {
+    "default-pushup-50":     { target: 50,   unit: "reps"   },
+    "default-squat-50":      { target: 50,   unit: "reps"   },
+    "default-plank-2min":    { target: 120,  unit: "sec"    },
+    "default-walk-5k":       { target: 5000, unit: "steps"  },
+    "default-meditation-10min": { target: 600, unit: "sec"  },
+  };
+
+  const onboardingQuests: Mission[] = DEFAULT_QUITS_TO_MISSION(
+    DEFAULT_QUESTS,
+    legacyQuests,
+    DEFAULT_TARGETS,
+  );
 
   const quests: Mission[] = [...onboardingQuests, ...legacyQuests];
 
