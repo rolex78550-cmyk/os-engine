@@ -12,6 +12,7 @@ import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
+import { PushupMotionTracker } from "./PushupMotionTracker";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -301,6 +302,8 @@ export const SoloDominion: React.FC<any> = (props) => {
   // AI (Gemini multimodal) verifies if proof is real + matches the task.
   // ============================================================
   const [proofMission, setProofMission] = useState<Mission | null>(null);
+  // Push-up motion tracker state — bypasses selfie/video proof
+  const [pushupMission, setPushupMission] = useState<Mission | null>(null);
   const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "text" | "verifying" | "result">("choose");
   const [proofSelfieBase64, setProofSelfieBase64] = useState<string | null>(null);
   const [proofVideoBlob, setProofVideoBlob] = useState<Blob | null>(null);
@@ -326,6 +329,19 @@ export const SoloDominion: React.FC<any> = (props) => {
   // Open proof modal for a mission
   const openProofModal = (mission: Mission) => {
     if (mission.completed || !user) return;
+
+    // PUSH-UP mission → use motion tracker (no camera, no AI)
+    const isPushupMission =
+      /push[\s-]?up/i.test(mission.title) ||
+      /push[\s-]?up/i.test(mission.desc || "") ||
+      /push[\s-]?up/i.test(mission.id || "");
+
+    if (isPushupMission) {
+      setPushupMission(mission);
+      return;
+    }
+
+    // Other missions → use old selfie/video/text proof system
     setProofMission(mission);
     setProofStep("choose");
     setProofSelfieBase64(null);
@@ -852,6 +868,62 @@ export const SoloDominion: React.FC<any> = (props) => {
   }, [user]);
 
   // --- HANDLERS ---
+  // Handle push-up motion tracker completion
+  const handlePushupComplete = async (totalReps: number, validReps: number) => {
+    if (!pushupMission || !user) return;
+
+    const mission = pushupMission;
+    setPushupMission(null);
+
+    // Must have at least 5 valid reps
+    if (validReps < 5) {
+      showToast(`❌ Only ${validReps} reps detected. Need at least 5 to count.`);
+      return;
+    }
+
+    // Mark mission complete with motion proof data
+    const proof: MissionProof = {
+      selfieBase64: undefined,
+      selfieUrl: undefined,
+      videoUrl: undefined,
+      videoStoragePath: undefined,
+      textOath: undefined,
+      proofTypeUsed: "video_oath", // closest type for "motion proof"
+      verified: true,
+      verificationScore: Math.min(100, Math.round((validReps / (mission.targetVal || 100)) * 100)),
+      verificationFeedback: `Completed ${validReps} push-ups via motion sensor. Form verified.`,
+      submittedAt: new Date().toISOString(),
+    };
+
+    const updated = missions.map((m) =>
+      m.id === mission.id
+        ? {
+            ...m,
+            completed: true,
+            currentVal: validReps,
+            progress: `${validReps}/${mission.targetVal || validReps} ${mission.unit || ""}`.trim(),
+            proofData: proof,
+            verifiedAt: new Date().toISOString(),
+          }
+        : m
+    );
+    setMissions(updated);
+    const ref = doc(db, "users", user.uid, "solo_missions", today);
+    await setDoc(ref, { missions: updated, date: today }, { merge: true });
+
+    // Award XP
+    const xpGain = mission.xp;
+    await setDoc(doc(db, "users", user.uid), {
+      xp: (profile.xp || 0) + xpGain,
+      totalXp: (profile.totalXp || 0) + xpGain,
+    }, { merge: true });
+    if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
+    attackBoss(100);
+    playVoiceover("complete");
+    if ("vibrate" in navigator) navigator.vibrate([100, 50, 200]);
+    showToast(`⚔️ ${validReps} push-ups verified! +${xpGain} XP!`);
+  };
+
   const completeMission = async (id: string) => {
     if (!user || saving) return;
     const mission = missions.find(m => m.id === id);
@@ -1623,6 +1695,19 @@ export const SoloDominion: React.FC<any> = (props) => {
           })}
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* PUSH-UP MOTION TRACKER MODAL — Phone-sensor based            */}
+      {/* ============================================================ */}
+      {pushupMission && (
+        <PushupMotionTracker
+          missionTitle={pushupMission.title}
+          targetReps={pushupMission.targetVal || 100}
+          xpPerRep={2}
+          onComplete={handlePushupComplete}
+          onCancel={() => setPushupMission(null)}
+        />
+      )}
 
       {/* ============================================================ */}
       {/* EXISTING PROOF MODAL — kept fully functional                */}
