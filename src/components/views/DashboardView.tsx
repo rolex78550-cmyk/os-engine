@@ -1,15 +1,27 @@
 import React, { useState } from "react";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
-import { 
-  Flame, Trophy, CheckCircle, Check, ArrowUpRight, Plus, 
+import {
+  Flame, Trophy, CheckCircle, Check, ArrowUpRight, Plus,
   TrendingUp, Dumbbell, BookOpen, Target, DollarSign,
   Briefcase, GraduationCap, User, Wrench, Sparkles, X, Sun, Moon,
   Shield, Image as ImageIcon, Users, Award, ChevronRight, Zap, Play, Heart
 } from "lucide-react";
+
+// iOS 17 design tokens (no neon, no glow, no gradient text).
+// Pure neutral palette: black/white/grey with one subtle accent (#0a84ff) for
+// primary actions — same approach Strava/Apple Fitness/Whoop use.
+const ACCENT = "#0a84ff"; // iOS system blue
+const TEXT_PRIMARY = "#ffffff";
+const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const SURFACE = "#0a0a0a";
+const SURFACE_RAISED = "#141414";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+
 export const DashboardView: React.FC<any> = (props) => {
   const logic = props;
 
-  const { 
+  const {
     profile, desires = [], rituals = [], journalEntries = [], quests = [],
     visionItems = [], communityPosts = [], coins = 0, currentRank = "Civilian",
     setActiveTab, handleToggleRitual, handleQuestComplete, handleCreateGoal,
@@ -48,12 +60,12 @@ export const DashboardView: React.FC<any> = (props) => {
 
   const activeHabits = rituals.length > 0 ? rituals : defaultHabitList;
 
-  const completedHabitsCount = activeHabits.filter((r: any) => 
+  const completedHabitsCount = activeHabits.filter((r: any) =>
     r.lastCompletedDate === today || (r.completedDates || []).includes(today)
   ).length;
 
-  const habitCompletionPercent = activeHabits.length > 0 
-    ? Math.round((completedHabitsCount / activeHabits.length) * 100) 
+  const habitCompletionPercent = activeHabits.length > 0
+    ? Math.round((completedHabitsCount / activeHabits.length) * 100)
     : 0;
 
   const completedQuestsCount = quests.filter((q: any) => q.completed).length;
@@ -74,150 +86,186 @@ export const DashboardView: React.FC<any> = (props) => {
   };
 
   return (
-    <div className={`min-h-screen p-2 sm:p-4 md:p-6 space-y-6 font-sans transition-colors duration-300 ${
-      isDarkMode ? "bg-black text-white" : "bg-zinc-950 text-white"
-    }`}>
+    <div
+      className="min-h-screen p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-5 font-sans"
+      style={{ backgroundColor: "#000", color: TEXT_PRIMARY }}
+    >
 
       {/* HEADER HERO SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
+
         {/* Left Headline & Archetypes */}
-        <div className="lg:col-span-7 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl group">
-          {/* Subtle Emerald Background Glow */}
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700" />
-
-          <div className="space-y-4 relative z-10">
-            {/* Top Brand Tag */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#10b981]" />
-                <span className="text-[11px] font-mono tracking-[3px] text-emerald-400 font-bold uppercase">
-                  SIGMA MENIFEST OS • ACTIVE
-                </span>
-              </div>
-              <div className="text-xs font-mono text-zinc-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full flex items-center gap-2">
-                <span className="text-amber-300 font-bold">LEVEL {profile?.level || 1}</span>
-                <span>•</span>
-                <span className="text-emerald-300 font-bold">{currentRank}</span>
-              </div>
+        <div
+          className="lg:col-span-7 rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          {/* Top Brand Tag */}
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: "#34c759" }}
+              />
+              <span
+                className="text-[10.5px] font-semibold tracking-widest uppercase"
+                style={{ color: TEXT_SECONDARY }}
+              >
+                Menifest OS · Active
+              </span>
             </div>
-
-            {/* Giant Display Title */}
-            <div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.95]">
-                BECOME <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-teal-200 drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]">
-                  UNIGNORABLE.
-                </span>
-              </h1>
-              <p className="text-xs sm:text-sm font-mono tracking-[3px] text-zinc-400 mt-2 uppercase font-semibold">
-                FOCUS. DISCIPLINE. CONSISTENCY.
-              </p>
+            <div
+              className="text-[10.5px] font-medium px-3 py-1 rounded-full flex items-center gap-2"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.04)",
+                border: `1px solid ${HAIRLINE}`,
+                color: TEXT_SECONDARY,
+              }}
+            >
+              <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>Level {profile?.level || 1}</span>
+              <span style={{ color: TEXT_TERTIARY }}>·</span>
+              <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>{currentRank}</span>
             </div>
+          </div>
 
-            {/* Role / Focus Filter Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-2">
-              {[
-                { id: "DISCIPLINE", label: "DISCIPLINE", icon: Shield },
-                { id: "WEALTH", label: "WEALTH", icon: DollarSign },
-                { id: "MINDSET", label: "MINDSET", icon: Sparkles },
-                { id: "HEALTH", label: "HEALTH", icon: Dumbbell },
-                { id: "ACADEMY", label: "ACADEMY", icon: GraduationCap },
-              ].map((role) => {
-                const IconComp = role.icon;
-                const isActive = activeArchetype === role.id;
-                return (
-                  <button
-                    key={role.id}
-                    onClick={() => setActiveArchetype(role.id)}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all border ${
-                      isActive
-                        ? "bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-105"
-                        : "bg-zinc-900/80 border-white/10 text-zinc-400 hover:text-white hover:border-emerald-500/40"
-                    }`}
-                  >
-                    <IconComp size={13} className={isActive ? "text-emerald-300" : "text-zinc-500"} />
-                    <span>{role.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Giant Display Title */}
+          <div className="relative z-10 mt-6">
+            <h1
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[0.95]"
+              style={{ color: TEXT_PRIMARY, letterSpacing: "-0.03em" }}
+            >
+              Become<br />
+              <span style={{ color: TEXT_PRIMARY }}>Unignorable.</span>
+            </h1>
+            <p
+              className="text-[11px] sm:text-xs font-medium tracking-[0.2em] mt-3 uppercase"
+              style={{ color: TEXT_SECONDARY }}
+            >
+              Focus · Discipline · Consistency
+            </p>
+          </div>
+
+          {/* Role / Focus Filter Badges — iOS-style segmented pills */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-4 relative z-10">
+            {[
+              { id: "DISCIPLINE", label: "Discipline", icon: Shield },
+              { id: "WEALTH", label: "Wealth", icon: DollarSign },
+              { id: "MINDSET", label: "Mindset", icon: Sparkles },
+              { id: "HEALTH", label: "Health", icon: Dumbbell },
+              { id: "ACADEMY", label: "Academy", icon: GraduationCap },
+            ].map((role) => {
+              const IconComp = role.icon;
+              const isActive = activeArchetype === role.id;
+              return (
+                <button
+                  key={role.id}
+                  onClick={() => setActiveArchetype(role.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: isActive ? TEXT_PRIMARY : "rgba(255,255,255,0.04)",
+                    color: isActive ? "#000" : TEXT_SECONDARY,
+                    border: `1px solid ${isActive ? TEXT_PRIMARY : HAIRLINE}`,
+                  }}
+                >
+                  <IconComp size={12} />
+                  <span>{role.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Center: MAXIMUM ALIGNMENT — Stunning Anime Character Showcase */}
-        <div className="lg:col-span-3 relative rounded-3xl overflow-hidden border border-emerald-500/30 bg-zinc-950 min-h-[220px] group shadow-2xl shadow-emerald-500/10">
+        <div
+          className="lg:col-span-3 relative rounded-3xl overflow-hidden min-h-[220px] group"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
           {/* Stunning anime character — Awakened Jinwoo (red-eye Antares form) */}
           <img
             src={resolveImageUrl("/images/sd_jin_redeye.jpg")}
             alt="Maximum Alignment — Awakened Warrior"
             onError={onImgError("/images/shadow_monarch_avatar.jpg")}
-            className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]"
           />
 
-          {/* Cinematic color grade — deep red aura to match awakened red eyes */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-red-900/30 via-transparent to-rose-900/20 mix-blend-overlay pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/50 pointer-events-none" />
-
-          {/* Floating energy ring around character */}
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-32 h-32 rounded-full border border-red-500/30 animate-ping" style={{ animationDuration: "3s" }} />
-          </div>
-          <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_12px_#ef4444] animate-pulse" />
-          <div className="absolute top-12 right-12 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_#fcd34d] animate-pulse" style={{ animationDelay: "0.4s" }} />
-          <div className="absolute bottom-16 left-6 w-1.5 h-1.5 rounded-full bg-red-300 shadow-[0_0_8px_#fca5a5] animate-pulse" style={{ animationDelay: "0.8s" }} />
+          {/* Cinematic dark gradient (no neon color grade) */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 100%)" }}
+          />
 
           {/* Bottom label — MAXIMUM ALIGNMENT STATE */}
-          <div className="absolute bottom-3 left-3 right-3 text-center bg-black/70 backdrop-blur-md rounded-2xl py-2 px-3 border border-red-500/30 z-10 pointer-events-none">
-            <div className="text-[10px] font-mono text-red-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-              <Zap size={12} className="text-red-400 animate-bounce" />
-              MAXIMUM ALIGNMENT STATE
+          <div className="absolute bottom-3 left-3 right-3 text-center rounded-2xl py-2 px-3 z-10 pointer-events-none"
+               style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div
+              className="text-[10px] font-semibold uppercase tracking-widest flex items-center justify-center gap-1.5"
+              style={{ color: "#ff453a" }}
+            >
+              <Zap size={11} />
+              Maximum Alignment
             </div>
-            <div className="text-[9px] font-mono text-zinc-400 mt-0.5">
-              XP: {profile?.xp || 0} • Coins: {coins}
+            <div className="text-[10px] font-medium mt-0.5" style={{ color: TEXT_SECONDARY }}>
+              XP: {profile?.xp || 0} · Coins: {coins}
             </div>
           </div>
         </div>
 
         {/* Right Widget: Daily Reminder + Light/Dark Toggle */}
-        <div className="lg:col-span-2 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 flex flex-col justify-between shadow-2xl space-y-4">
+        <div
+          className="lg:col-span-2 rounded-3xl p-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
           {/* Top Toggle Switch */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">THEME</span>
-            <div className="flex items-center bg-zinc-900 border border-white/10 rounded-full p-1 gap-1">
-              <button 
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TEXT_SECONDARY }}>Theme</span>
+            <div
+              className="flex items-center rounded-full p-0.5 gap-0.5"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+            >
+              <button
                 onClick={() => setIsDarkMode(true)}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition ${
-                  isDarkMode ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400"
-                }`}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-semibold transition-colors"
+                style={{
+                  backgroundColor: isDarkMode ? "#fff" : "transparent",
+                  color: isDarkMode ? "#000" : TEXT_SECONDARY,
+                }}
               >
-                <Moon size={10} /> DARK
+                <Moon size={9} /> Dark
               </button>
-              <button 
+              <button
                 onClick={() => setIsDarkMode(false)}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition ${
-                  !isDarkMode ? "bg-emerald-500 text-black shadow-md" : "text-zinc-400"
-                }`}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-semibold transition-colors"
+                style={{
+                  backgroundColor: !isDarkMode ? "#fff" : "transparent",
+                  color: !isDarkMode ? "#000" : TEXT_SECONDARY,
+                }}
               >
-                <Sun size={10} /> LIGHT
+                <Sun size={9} /> Light
               </button>
             </div>
           </div>
 
           {/* Daily Reminder Box */}
           <div className="space-y-2 py-1">
-            <div className="text-[10px] font-mono text-emerald-400 font-bold tracking-widest uppercase flex items-center gap-1">
-              <CheckCircle size={12} className="text-emerald-400" />
-              DAILY REMINDER
+            <div
+              className="text-[10px] font-semibold tracking-widest uppercase flex items-center gap-1"
+              style={{ color: TEXT_SECONDARY }}
+            >
+              <CheckCircle size={11} style={{ color: "#34c759" }} />
+              Daily Reminder
             </div>
-            <p className="text-xs font-serif italic text-zinc-300 leading-relaxed">
-              “You don't find time. You build habits that make time work for you.”
+            <p className="text-[12px] italic leading-relaxed" style={{ color: TEXT_PRIMARY }}>
+              "You don't find time. You build habits that make time work for you."
             </p>
           </div>
 
-          <button 
+          <button
             onClick={() => setActiveTab("journal")}
-            className="w-full py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition"
+            className="w-full py-2 rounded-xl font-medium text-[11px] uppercase tracking-wider flex items-center justify-center gap-1 transition-colors"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.06)",
+              color: TEXT_PRIMARY,
+              border: `1px solid ${HAIRLINE}`,
+            }}
           >
             <span>Write Reflection</span>
             <ChevronRight size={12} />
@@ -227,16 +275,19 @@ export const DashboardView: React.FC<any> = (props) => {
       </div>
 
       {/* TOP STATS ROW: WEEKLY STREAK BAR | CURRENT STREAK | LONGEST STREAK */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-        
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
+
         {/* Weekly Streak Bar */}
-        <div className="md:col-span-6 bg-zinc-950/80 border border-emerald-500/20 rounded-2xl p-4 flex flex-col justify-between">
+        <div
+          className="md:col-span-6 rounded-2xl p-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-widest">
-              WEEKLY RESONANCE STREAK
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: TEXT_SECONDARY }}>
+              Weekly Resonance Streak
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">
-              {profile?.streak || 0} Day Active
+            <span className="text-[10px] font-semibold" style={{ color: TEXT_PRIMARY }}>
+              {profile?.streak || 0} day active
             </span>
           </div>
           <div className="grid grid-cols-7 gap-2">
@@ -244,14 +295,17 @@ export const DashboardView: React.FC<any> = (props) => {
               const isActiveDay = (profile?.streak || 0) > idx || (profile?.activeDays || []).length > idx;
               return (
                 <div key={day} className="flex flex-col items-center space-y-1.5">
-                  <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    isActiveDay 
-                      ? "bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.5)] font-extrabold"
-                      : "bg-zinc-900 border border-white/10 text-zinc-600"
-                  }`}>
-                    {isActiveDay ? <Check size={16} className="font-bold stroke-[3]" /> : idx + 1}
+                  <div
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-semibold transition-colors"
+                    style={{
+                      backgroundColor: isActiveDay ? TEXT_PRIMARY : "rgba(255,255,255,0.04)",
+                      color: isActiveDay ? "#000" : TEXT_TERTIARY,
+                      border: `1px solid ${isActiveDay ? TEXT_PRIMARY : HAIRLINE}`,
+                    }}
+                  >
+                    {isActiveDay ? <Check size={16} strokeWidth={3} /> : idx + 1}
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-400 font-bold">{day}</span>
+                  <span className="text-[10px] font-semibold" style={{ color: TEXT_SECONDARY }}>{day}</span>
                 </div>
               );
             })}
@@ -259,105 +313,120 @@ export const DashboardView: React.FC<any> = (props) => {
         </div>
 
         {/* Current Streak Card */}
-        <div className="md:col-span-3 bg-zinc-950/80 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between relative overflow-hidden">
+        <div
+          className="md:col-span-3 rounded-2xl p-4 flex items-center justify-between relative overflow-hidden"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
           <div className="space-y-1 z-10">
-            <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-widest">
-              CURRENT STREAK
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: TEXT_SECONDARY }}>
+              Current Streak
             </span>
-            <div className="text-4xl font-black text-emerald-400 tracking-tight flex items-baseline gap-1">
-              {profile?.streak || 0} <span className="text-xs font-mono text-zinc-400 font-bold">DAYS</span>
+            <div className="text-4xl font-bold tracking-tight flex items-baseline gap-1" style={{ color: TEXT_PRIMARY }}>
+              {profile?.streak || 0} <span className="text-xs font-semibold" style={{ color: TEXT_SECONDARY }}>days</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-400/80 flex items-center gap-1">
-              <TrendingUp size={12} /> {profile?.streakFreezes || 2} Freeze Shields Active
+            <span className="text-[10px] font-medium flex items-center gap-1" style={{ color: TEXT_SECONDARY }}>
+              <TrendingUp size={11} /> {profile?.streakFreezes || 2} freeze shields
             </span>
           </div>
 
-          {/* Mini Rising Trend Sparkline SVG */}
+          {/* Mini Rising Trend Sparkline SVG — neutral stroke */}
           <div className="w-20 h-14 shrink-0">
             <svg viewBox="0 0 100 60" className="w-full h-full">
-              <path 
-                d="M5 50 L25 40 L45 42 L65 20 L85 25 L95 5" 
-                fill="none" 
-                stroke="#10b981" 
-                strokeWidth="4" 
+              <path
+                d="M5 50 L25 40 L45 42 L65 20 L85 25 L95 5"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="2"
                 strokeLinecap="round"
-              />
-              <path 
-                d="M5 50 L25 40 L45 42 L65 20 L85 25 L95 5 L95 60 L5 60 Z" 
-                fill="rgba(16,185,129,0.15)" 
+                strokeOpacity="0.85"
               />
             </svg>
           </div>
         </div>
 
         {/* Longest Streak & Solo Dominion Launcher Card */}
-        <div className="md:col-span-3 bg-zinc-950/80 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:border-emerald-500/40 transition" onClick={() => setActiveTab("streaks")}>
+        <div
+          className="md:col-span-3 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-colors"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+          onClick={() => setActiveTab("streaks")}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.18)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = HAIRLINE; }}
+        >
           <div className="space-y-1">
-            <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-widest">
-              HUNTER RANK & STREAK
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: TEXT_SECONDARY }}>
+              Hunter Rank
             </span>
-            <div className="text-2xl font-black text-white tracking-tight flex items-baseline gap-1">
+            <div className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY }}>
               {currentRank}
             </div>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
+            <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: TEXT_SECONDARY }}>
               <span>Solo Dominion RPG</span>
-              <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={11} />
             </span>
           </div>
 
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-lg group-hover:scale-110 transition-transform">
-            <Trophy size={26} />
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+          >
+            <Trophy size={22} style={{ color: TEXT_PRIMARY }} />
           </div>
         </div>
 
       </div>
 
       {/* CONSISTENCY OVERVIEW & WEEKLY METRICS ROW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+
         {/* Consistency Overview Graph */}
-        <div className="lg:col-span-8 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div
+          className="lg:col-span-8 rounded-3xl p-5 space-y-4"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
             <div className="space-y-0.5">
-              <h3 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">
-                CONSISTENCY OVERVIEW
+              <h3 className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: TEXT_PRIMARY }}>
+                Consistency Overview
               </h3>
-              <p className="text-[10px] text-zinc-500">Quantum Coherence Trajectory</p>
+              <p className="text-[10px]" style={{ color: TEXT_SECONDARY }}>Quantum Coherence Trajectory</p>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1">
-              <TrendingUp size={13} /> Alignment {profile?.alignment || 80}%
+            <span
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY }}
+            >
+              <TrendingUp size={12} /> Alignment {profile?.alignment || 80}%
             </span>
           </div>
 
-          {/* Dynamic Trajectory SVG Chart */}
+          {/* Dynamic Trajectory SVG Chart — neutral strokes */}
           <div className="relative h-48 sm:h-56 w-full pt-4">
             <svg viewBox="0 0 500 200" className="w-full h-full overflow-visible">
               <line x1="0" y1="40" x2="500" y2="40" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
               <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
               <line x1="0" y1="140" x2="500" y2="140" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
 
-              <text x="0" y="45" fill="#71717a" fontSize="10" fontFamily="monospace">100%</text>
-              <text x="0" y="95" fill="#71717a" fontSize="10" fontFamily="monospace">50%</text>
-              <text x="0" y="145" fill="#71717a" fontSize="10" fontFamily="monospace">0%</text>
+              <text x="0" y="45" fill="#71717a" fontSize="10" fontFamily="system-ui">100%</text>
+              <text x="0" y="95" fill="#71717a" fontSize="10" fontFamily="system-ui">50%</text>
+              <text x="0" y="145" fill="#71717a" fontSize="10" fontFamily="system-ui">0%</text>
 
               <defs>
-                <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                <linearGradient id="neutralGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                 </linearGradient>
               </defs>
 
-              <path 
-                d="M 50 140 L 120 110 L 180 70 L 240 90 L 300 45 L 360 65 L 420 40 L 480 50" 
-                fill="none" 
-                stroke="#10b981" 
-                strokeWidth="4" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
+              <path
+                d="M 50 140 L 120 110 L 180 70 L 240 90 L 300 45 L 360 65 L 420 40 L 480 50"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              <path 
-                d="M 50 140 L 120 110 L 180 70 L 240 90 L 300 45 L 360 65 L 420 40 L 480 50 L 480 180 L 50 180 Z" 
-                fill="url(#emeraldGrad)" 
+              <path
+                d="M 50 140 L 120 110 L 180 70 L 240 90 L 300 45 L 360 65 L 420 40 L 480 50 L 480 180 L 50 180 Z"
+                fill="url(#neutralGrad)"
               />
 
               {[
@@ -365,69 +434,72 @@ export const DashboardView: React.FC<any> = (props) => {
                 { x: 240, y: 90 }, { x: 300, y: 45 }, { x: 360, y: 65 },
                 { x: 420, y: 40 }, { x: 480, y: 50 }
               ].map((pt, i) => (
-                <circle key={i} cx={pt.x} cy={pt.y} r="5" fill="#10b981" stroke="#000" strokeWidth="2" />
+                <circle key={i} cx={pt.x} cy={pt.y} r="4" fill="#ffffff" stroke="#000" strokeWidth="2" />
               ))}
             </svg>
 
-            <div className="flex justify-between text-[10px] font-mono text-zinc-500 pt-2 px-6">
-              <span>WEEK 1</span>
-              <span>WEEK 2</span>
-              <span>WEEK 3</span>
-              <span>WEEK 4</span>
-              <span className="text-emerald-400 font-bold">THIS WEEK</span>
+            <div className="flex justify-between text-[10px] font-medium pt-2 px-6" style={{ color: TEXT_SECONDARY }}>
+              <span>Week 1</span>
+              <span>Week 2</span>
+              <span>Week 3</span>
+              <span>Week 4</span>
+              <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>This week</span>
             </div>
           </div>
         </div>
 
         {/* Weekly Metrics Box */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="border-b border-white/10 pb-3">
-            <h3 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">
-              SAAS CORE METRICS
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="border-b pb-3" style={{ borderColor: HAIRLINE }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: TEXT_PRIMARY }}>
+              Core Metrics
             </h3>
           </div>
 
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <Target size={14} className="text-emerald-400" /> Focus Alignment
+          <div className="space-y-3 text-xs">
+            <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <Target size={13} style={{ color: TEXT_PRIMARY }} /> Focus Alignment
               </span>
-              <span className="font-bold text-emerald-300">{profile?.alignment || 80}%</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{profile?.alignment || 80}%</span>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <CheckCircle size={14} className="text-emerald-400" /> Habits Completed Today
+            <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <CheckCircle size={13} style={{ color: TEXT_PRIMARY }} /> Habits Completed Today
               </span>
-              <span className="font-bold text-emerald-300">{completedHabitsCount} / {activeHabits.length}</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{completedHabitsCount} / {activeHabits.length}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <Flame size={14} className="text-amber-400" /> Active RPG Quests
+            <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <Flame size={13} style={{ color: TEXT_PRIMARY }} /> Active RPG Quests
               </span>
-              <span className="font-bold text-white">{completedQuestsCount} / {quests.length}</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{completedQuestsCount} / {quests.length}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <Sparkles size={14} className="text-emerald-400" /> Desires & Goals
+            <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <Sparkles size={13} style={{ color: TEXT_PRIMARY }} /> Desires & Goals
               </span>
-              <span className="font-bold text-white">{desires.length} Tracked</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{desires.length} tracked</span>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <BookOpen size={14} className="text-emerald-400" /> Journal Reflections
+            <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <BookOpen size={13} style={{ color: TEXT_PRIMARY }} /> Journal Reflections
               </span>
-              <span className="font-bold text-white">{journalEntries.length} Entries</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{journalEntries.length} entries</span>
             </div>
 
             <div className="flex justify-between items-center py-1.5">
-              <span className="text-zinc-400 flex items-center gap-2">
-                <ImageIcon size={14} className="text-emerald-400" /> Vision Board
+              <span className="flex items-center gap-2" style={{ color: TEXT_SECONDARY }}>
+                <ImageIcon size={13} style={{ color: TEXT_PRIMARY }} /> Vision Board
               </span>
-              <span className="font-bold text-white">{visionItems.length} Visuals</span>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>{visionItems.length} visuals</span>
             </div>
           </div>
         </div>
@@ -435,128 +507,161 @@ export const DashboardView: React.FC<any> = (props) => {
       </div>
 
       {/* TRACKERS ROW: DYNAMIC HABITS | RPG QUESTS | GOALS & DESIRES */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+
         {/* 1. HIGH-VIBRATION HABITS & RITUALS (Real Firestore Data) */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
             <div className="flex items-center gap-2">
-              <CheckCircle size={16} className="text-emerald-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                HABITS & RITUALS
+              <CheckCircle size={15} style={{ color: TEXT_PRIMARY }} />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>
+                Habits & Rituals
               </h3>
             </div>
-            <button 
+            <button
               onClick={() => setActiveTab("goals")}
-              className="text-[10px] font-mono text-emerald-400 hover:underline flex items-center gap-1 font-bold"
+              className="text-[10px] font-semibold flex items-center gap-1 transition-colors"
+              style={{ color: TEXT_SECONDARY }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_PRIMARY; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_SECONDARY; }}
             >
               <span>Manage</span>
-              <ChevronRight size={12} />
+              <ChevronRight size={11} />
             </button>
           </div>
 
-          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-none">
+          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
             {activeHabits.map((habit: any) => {
               const isDone = habit.lastCompletedDate === today || (habit.completedDates || []).includes(today);
               return (
-                <div 
-                  key={habit.id} 
+                <div
+                  key={habit.id}
                   onClick={() => handleToggleRitual && handleToggleRitual(habit.id)}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                    isDone 
-                      ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-200" 
-                      : "bg-zinc-900 border-white/10 text-zinc-300 hover:border-emerald-400/50"
-                  }`}
+                  className="flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: isDone ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                    border: `1px solid ${isDone ? "rgba(255,255,255,0.18)" : HAIRLINE}`,
+                  }}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-base">{habit.icon || "🔥"}</span>
-                    <span className="text-xs font-mono font-bold truncate">{habit.label}</span>
+                    <span className="text-xs font-medium truncate" style={{ color: TEXT_PRIMARY }}>{habit.label}</span>
                   </div>
 
-                  <button className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                    isDone 
-                      ? "bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
-                      : "bg-zinc-800 border border-white/20 hover:border-emerald-400"
-                  }`}>
-                    {isDone && <Check size={14} className="stroke-[3]" />}
-                  </button>
+                  <div
+                    className="w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0"
+                    style={{
+                      backgroundColor: isDone ? TEXT_PRIMARY : "transparent",
+                      border: `1px solid ${isDone ? TEXT_PRIMARY : HAIRLINE}`,
+                    }}
+                  >
+                    {isDone && <Check size={12} strokeWidth={3} style={{ color: "#000" }} />}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="border-t border-white/10 pt-3 flex items-center justify-between text-[10px] font-mono">
-            <span className="text-zinc-400 font-bold uppercase">
+          <div className="border-t pt-3 flex items-center justify-between text-[10px] font-medium" style={{ borderColor: HAIRLINE }}>
+            <span className="uppercase" style={{ color: TEXT_SECONDARY }}>
               Progress: {completedHabitsCount}/{activeHabits.length} ({habitCompletionPercent}%)
             </span>
-            <button 
+            <button
               onClick={() => setActiveTab("goals")}
-              className="text-emerald-400 font-bold hover:underline"
+              className="font-semibold transition-colors"
+              style={{ color: TEXT_PRIMARY }}
             >
-              + Add Habit
+              + Add habit
             </button>
           </div>
         </div>
 
         {/* 2. DAILY RPG QUESTS & ADRENALINE TASKS (Real Firestore Data) */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
             <div className="flex items-center gap-2">
-              <Flame size={16} className="text-amber-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                DAILY RPG QUESTS
+              <Flame size={15} style={{ color: TEXT_PRIMARY }} />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>
+                Daily RPG Quests
               </h3>
             </div>
-            <button 
+            <button
               onClick={() => setActiveTab("streaks")}
-              className="text-[10px] font-mono text-amber-400 hover:underline flex items-center gap-1 font-bold"
+              className="text-[10px] font-semibold flex items-center gap-1 transition-colors"
+              style={{ color: TEXT_SECONDARY }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_PRIMARY; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_SECONDARY; }}
             >
               <span>Dominion</span>
-              <ChevronRight size={12} />
+              <ChevronRight size={11} />
             </button>
           </div>
 
-          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-none">
+          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
             {quests.length === 0 ? (
-              <div className="text-center py-8 text-zinc-500 text-xs font-mono">
+              <div className="text-center py-8 text-xs" style={{ color: TEXT_SECONDARY }}>
                 No active quests. Generating daily missions...
               </div>
             ) : (
               quests.map((quest: any) => (
-                <div 
-                  key={quest.id} 
-                  className={`p-3 rounded-xl border space-y-1.5 transition-all ${
-                    quest.completed 
-                      ? "bg-zinc-900/40 border-emerald-500/30 opacity-70" 
-                      : "bg-zinc-900 border-white/10 hover:border-emerald-500/40"
-                  }`}
+                <div
+                  key={quest.id}
+                  className="p-3 rounded-xl space-y-1.5 transition-colors"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${HAIRLINE}`,
+                    opacity: quest.completed ? 0.6 : 1,
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`text-xs font-mono font-bold ${quest.completed ? "line-through text-zinc-400" : "text-white"}`}>
+                    <span
+                      className="text-xs font-semibold"
+                      style={{
+                        color: quest.completed ? TEXT_SECONDARY : TEXT_PRIMARY,
+                        textDecoration: quest.completed ? "line-through" : "none",
+                      }}
+                    >
                       {quest.title}
                     </span>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
+                    <span
+                      className="text-[9.5px] font-semibold px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: "rgba(255,255,255,0.06)",
+                        color: TEXT_PRIMARY,
+                        border: `1px solid ${HAIRLINE}`,
+                      }}
+                    >
                       +{quest.xpValue || quest.xpReward || 50} XP
                     </span>
                   </div>
 
-                  <p className="text-[10px] text-zinc-400 line-clamp-2">{quest.description}</p>
+                  <p className="text-[10.5px] line-clamp-2" style={{ color: TEXT_SECONDARY }}>{quest.description}</p>
 
                   <div className="flex justify-between items-center pt-1">
-                    <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase">
-                      Category: {quest.category || "Main Quest"}
+                    <span className="text-[9.5px] font-semibold uppercase" style={{ color: TEXT_SECONDARY }}>
+                      {quest.category || "Main Quest"}
                     </span>
 
                     {!quest.completed ? (
-                      <button 
+                      <button
                         onClick={() => handleQuestComplete && handleQuestComplete(quest.id)}
-                        className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold text-[10px] uppercase shadow-md transition"
+                        className="px-3 py-1 rounded-lg font-semibold text-[10px] uppercase transition-colors"
+                        style={{
+                          backgroundColor: TEXT_PRIMARY,
+                          color: "#000",
+                        }}
                       >
-                        Complete Quest
+                        Complete
                       </button>
                     ) : (
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
-                        <Check size={12} /> Completed
+                      <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: TEXT_SECONDARY }}>
+                        <Check size={11} /> Completed
                       </span>
                     )}
                   </div>
@@ -565,117 +670,157 @@ export const DashboardView: React.FC<any> = (props) => {
             )}
           </div>
 
-          <div className="border-t border-white/10 pt-3 text-center">
-            <span className="text-[9px] font-mono text-zinc-400 tracking-wider uppercase font-bold">
-              EARN XP • LEVEL UP • CLAIM DOMINION
+          <div className="border-t pt-3 text-center" style={{ borderColor: HAIRLINE }}>
+            <span className="text-[9.5px] font-semibold tracking-widest uppercase" style={{ color: TEXT_SECONDARY }}>
+              Earn XP · Level up · Claim Dominion
             </span>
           </div>
         </div>
 
         {/* 3. MANIFESTATION GOALS & DESIRES (Real Firestore Data) */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-emerald-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                GOALS & DESIRES
+              <Sparkles size={15} style={{ color: TEXT_PRIMARY }} />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>
+                Goals & Desires
               </h3>
             </div>
-            <button 
+            <button
               onClick={() => setShowAddGoalModal(true)}
-              className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black text-[10px] font-mono font-bold transition flex items-center gap-1"
+              className="px-2 py-1 rounded font-semibold text-[10px] flex items-center gap-1 transition-colors"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.06)",
+                color: TEXT_PRIMARY,
+                border: `1px solid ${HAIRLINE}`,
+              }}
             >
-              <Plus size={12} /> Goal
+              <Plus size={11} /> Goal
             </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-none">
+          <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
             {desires.length === 0 ? (
-              <div className="text-center py-8 text-zinc-500 text-xs font-mono space-y-2">
+              <div className="text-center py-8 text-xs space-y-2" style={{ color: TEXT_SECONDARY }}>
                 <p>No desires tracked yet.</p>
-                <button 
+                <button
                   onClick={() => setShowAddGoalModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black font-bold text-xs"
+                  className="px-3 py-1.5 rounded-lg font-semibold text-xs"
+                  style={{ backgroundColor: TEXT_PRIMARY, color: "#000" }}
                 >
                   Create First Goal
                 </button>
               </div>
             ) : (
               desires.map((goal: any) => (
-                <div key={goal.id} className="bg-zinc-900/60 p-3 rounded-2xl border border-white/5 space-y-2">
+                <div
+                  key={goal.id}
+                  className="p-3 rounded-2xl space-y-2"
+                  style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+                >
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: TEXT_PRIMARY }}>
                       <span>{goal.icon || "✨"}</span>
                       <span className="truncate">{goal.title}</span>
                     </span>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 uppercase">
+                    <span
+                      className="text-[9.5px] font-semibold px-2 py-0.5 rounded uppercase"
+                      style={{
+                        backgroundColor: "rgba(255,255,255,0.06)",
+                        color: TEXT_SECONDARY,
+                      }}
+                    >
                       {goal.category}
                     </span>
                   </div>
 
-                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-emerald-400 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${goal.progress || 50}%` }}
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${goal.progress || 50}%`, backgroundColor: TEXT_PRIMARY }}
                     />
                   </div>
 
-                  <div className="flex justify-between items-center text-[9px] font-mono text-zinc-400">
+                  <div className="flex justify-between items-center text-[9.5px] font-medium" style={{ color: TEXT_SECONDARY }}>
                     <span>Belief: {goal.beliefLevel || 70}%</span>
-                    <span>State: {goal.expectedReality || "Consolidating"}</span>
+                    <span>{goal.expectedReality || "Consolidating"}</span>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <button 
+          <button
             onClick={() => setActiveTab("goals")}
-            className="w-full py-2 rounded-xl bg-zinc-900 hover:bg-white/5 border border-white/10 text-zinc-300 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition"
+            className="w-full py-2 rounded-xl font-semibold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 transition-colors"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.04)",
+              color: TEXT_PRIMARY,
+              border: `1px solid ${HAIRLINE}`,
+            }}
           >
             <span>Open Goals Engine</span>
-            <ChevronRight size={12} />
+            <ChevronRight size={11} />
           </button>
         </div>
 
       </div>
 
-      {/* SAAS ECOSYSTEM CARDS: VISION BOARD ONLY (Community and Academy removed) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* SAAS ECOSYSTEM CARDS: VISION BOARD ONLY */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
 
         {/* Vision Board Spotlight */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-4 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
             <div className="flex items-center gap-2">
-              <ImageIcon size={16} className="text-emerald-400" />
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                VISION BOARD SPOTLIGHT
+              <ImageIcon size={15} style={{ color: TEXT_PRIMARY }} />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>
+                Vision Board Spotlight
               </h3>
             </div>
-            <button onClick={() => setActiveTab("vision")} className="text-[10px] font-mono text-emerald-400 hover:underline font-bold flex items-center gap-1">
-              <span>View All</span>
-              <ChevronRight size={12} />
+            <button
+              onClick={() => setActiveTab("vision")}
+              className="text-[10px] font-semibold flex items-center gap-1 transition-colors"
+              style={{ color: TEXT_SECONDARY }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_PRIMARY; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_SECONDARY; }}
+            >
+              <span>View all</span>
+              <ChevronRight size={11} />
             </button>
           </div>
 
           {visionItems.length === 0 ? (
             <div
               onClick={() => setActiveTab("vision")}
-              className="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-500/40 transition space-y-2"
+              className="border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors space-y-2"
+              style={{ borderColor: HAIRLINE }}
             >
-              <ImageIcon size={28} className="mx-auto text-zinc-600" />
-              <div className="text-xs font-mono text-zinc-400">Upload your dream reality visuals</div>
-              <span className="inline-block px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono">
-                + Add Vision Image
+              <ImageIcon size={26} className="mx-auto" style={{ color: TEXT_TERTIARY }} />
+              <div className="text-xs font-medium" style={{ color: TEXT_SECONDARY }}>Upload your dream visuals</div>
+              <span
+                className="inline-block px-3 py-1 rounded-lg text-[10px] font-semibold"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                + Add vision image
               </span>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-hidden">
               {visionItems.slice(0, 2).map((item: any) => (
-                <div key={item.id} className="relative rounded-2xl overflow-hidden h-36 border border-white/10 group">
-                  <img src={resolveImageUrl(item.imageUrl)} alt={item.caption} onError={onImgError("/images/onboarding-hero.jpg")} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-2 left-2 right-2 text-[10px] font-mono font-bold text-white truncate">
+                <div key={item.id} className="relative rounded-2xl overflow-hidden h-36 group" style={{ border: `1px solid ${HAIRLINE}` }}>
+                  <img src={resolveImageUrl(item.imageUrl)} alt={item.caption} onError={onImgError("/images/onboarding-hero.jpg")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 60%)" }} />
+                  <div className="absolute bottom-2 left-2 right-2 text-[10px] font-semibold truncate" style={{ color: TEXT_PRIMARY }}>
                     {item.caption || "Manifest Reality"}
                   </div>
                 </div>
@@ -685,59 +830,79 @@ export const DashboardView: React.FC<any> = (props) => {
 
           <button
             onClick={() => setActiveTab("vision")}
-            className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition"
+            className="w-full py-2.5 rounded-xl font-semibold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.04)",
+              color: TEXT_PRIMARY,
+              border: `1px solid ${HAIRLINE}`,
+            }}
           >
-            <span>VISUALIZE DREAM LIFE</span>
-            <ArrowUpRight size={14} />
+            <span>Visualize Dream Life</span>
+            <ArrowUpRight size={13} />
           </button>
         </div>
-
-        {/* Community and Academy cards removed permanently */}
 
       </div>
 
       {/* BOTTOM MOTIVATION & TODAY'S PLAN ROW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+
         {/* Today's Plan Checklist */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-5 space-y-3 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-              TODAY'S ACTION PLAN
+        <div
+          className="lg:col-span-4 rounded-3xl p-5 space-y-3 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>
+              Today's Action Plan
             </h3>
-            <button 
+            <button
               onClick={() => setShowAddPlanModal(true)}
-              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black transition text-xs font-mono font-bold flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1 transition-colors"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.06)",
+                color: TEXT_PRIMARY,
+                border: `1px solid ${HAIRLINE}`,
+              }}
             >
-              <Plus size={12} /> Add
+              <Plus size={11} /> Add
             </button>
           </div>
 
-          <div className="space-y-2 font-mono text-xs">
+          <div className="space-y-2 text-xs">
             {(todayPlans || []).map((plan) => (
-              <div 
-                key={plan.id} 
-                className="group/item flex items-center justify-between p-2.5 rounded-xl border bg-zinc-900 border-white/10 text-white hover:border-emerald-400/50 transition-all"
+              <div
+                key={plan.id}
+                className="group/item flex items-center justify-between p-2.5 rounded-xl transition-colors"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.02)",
+                  border: `1px solid ${HAIRLINE}`,
+                }}
               >
-                <div 
+                <div
                   onClick={() => toggleTodayPlan(plan.id, plan.done)}
-                  className={`flex items-center gap-3 cursor-pointer select-none flex-grow ${
-                    plan.done 
-                      ? "text-zinc-400 line-through" 
-                      : "text-white"
-                  }`}
+                  className="flex items-center gap-3 cursor-pointer select-none flex-grow"
+                  style={{
+                    color: plan.done ? TEXT_SECONDARY : TEXT_PRIMARY,
+                    textDecoration: plan.done ? "line-through" : "none",
+                  }}
                 >
-                  <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-                    plan.done ? "bg-emerald-500 text-black" : "bg-zinc-800 border border-white/20"
-                  }`}>
-                    {plan.done && <Check size={12} className="stroke-[3]" />}
+                  <div
+                    className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: plan.done ? TEXT_PRIMARY : "transparent",
+                      border: `1px solid ${plan.done ? TEXT_PRIMARY : HAIRLINE}`,
+                    }}
+                  >
+                    {plan.done && <Check size={12} strokeWidth={3} style={{ color: "#000" }} />}
                   </div>
                   <span>{plan.text}</span>
                 </div>
-                <button 
+                <button
                   onClick={() => handleDeletePlan && handleDeletePlan(plan.id)}
-                  className="opacity-0 group-hover/item:opacity-100 hover:text-red-400 text-zinc-500 p-1 transition"
-                  title="Delete Item"
+                  className="opacity-0 group-hover/item:opacity-100 p-1 transition"
+                  style={{ color: TEXT_SECONDARY }}
+                  title="Delete item"
                 >
                   <X size={14} />
                 </button>
@@ -747,38 +912,47 @@ export const DashboardView: React.FC<any> = (props) => {
         </div>
 
         {/* Big Quote Box */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden group">
-          <div className="text-4xl text-emerald-500/30 font-serif font-black">“</div>
+        <div
+          className="lg:col-span-4 rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden group"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="text-4xl font-serif" style={{ color: TEXT_TERTIARY }}>"</div>
           <div className="text-center space-y-3 my-auto">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase leading-tight font-serif italic">
-              I'M BUILDING MY FUTURE, <br />
-              ONE HABIT AT A TIME.
+            <h2
+              className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight italic"
+              style={{ color: TEXT_PRIMARY }}
+            >
+              I'm building my future,<br />
+              one habit at a time.
             </h2>
-            <div className="text-xl font-serif text-emerald-400 italic">
-              Sigma Menifest OS
+            <div className="text-base font-medium italic" style={{ color: TEXT_SECONDARY }}>
+              Menifest OS
             </div>
           </div>
-          <div className="text-right text-4xl text-emerald-500/30 font-serif font-black">”</div>
+          <div className="text-right text-4xl font-serif" style={{ color: TEXT_TERTIARY }}>"</div>
         </div>
 
         {/* Note To Self */}
-        <div className="lg:col-span-4 bg-zinc-950/80 border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-between">
-          <div className="border-b border-white/10 pb-2">
-            <h3 className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">
-              NOTE TO SELF
+        <div
+          className="lg:col-span-4 rounded-3xl p-6 flex flex-col justify-between"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="border-b pb-2" style={{ borderColor: HAIRLINE }}>
+            <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: TEXT_SECONDARY }}>
+              Note to Self
             </h3>
           </div>
 
           <div className="my-auto space-y-2">
-            <p className="text-sm font-mono text-zinc-200 leading-relaxed italic">
-              “{profile?.noteToSelf || "You're not behind. You're just getting started. Keep showing up."}”
+            <p className="text-sm italic leading-relaxed" style={{ color: TEXT_PRIMARY }}>
+              "{profile?.noteToSelf || "You're not behind. You're just getting started. Keep showing up."}"
             </p>
-            <div className="text-xs font-mono text-emerald-400 font-bold text-right">
+            <div className="text-xs font-semibold text-right" style={{ color: TEXT_SECONDARY }}>
               — Future You
             </div>
           </div>
 
-          <button 
+          <button
             onClick={async () => {
               const currentNote = profile?.noteToSelf || "You're not behind. You're just getting started. Keep showing up.";
               const updated = prompt("Update your Note to Self:", currentNote);
@@ -786,21 +960,25 @@ export const DashboardView: React.FC<any> = (props) => {
                 await updateUserProfile({ noteToSelf: updated });
               }
             }}
-            className="text-[10px] font-mono text-zinc-500 hover:text-emerald-400 uppercase tracking-widest text-left"
+            className="text-[10px] font-semibold uppercase tracking-widest text-left transition-colors"
+            style={{ color: TEXT_SECONDARY }}
           >
-            ✏️ Edit Note
+            ✎ Edit note
           </button>
         </div>
 
       </div>
 
       {/* QUICK SAAS NAVIGATION BAR */}
-      <div className="bg-zinc-950 border border-emerald-500/30 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider px-2">
-          QUICK SAAS NAVIGATION:
+      <div
+        className="rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2"
+        style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-wider px-2" style={{ color: TEXT_SECONDARY }}>
+          Quick navigation
         </span>
 
-        <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           {[
             { id: "dashboard", label: "Dashboard" },
             { id: "goals", label: "Goals & Habits" },
@@ -812,7 +990,12 @@ export const DashboardView: React.FC<any> = (props) => {
             <button
               key={nav.id}
               onClick={() => setActiveTab(nav.id)}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 border border-white/10 transition"
+              className="px-3 py-1.5 rounded-full font-medium transition-colors"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.04)",
+                color: TEXT_PRIMARY,
+                border: `1px solid ${HAIRLINE}`,
+              }}
             >
               {nav.label}
             </button>
@@ -821,39 +1004,63 @@ export const DashboardView: React.FC<any> = (props) => {
       </div>
 
       {/* FOOTER BANNER */}
-      <div className="bg-zinc-950/90 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center gap-2">
-        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-          <span className="text-lg">Σ</span>
-          <span className="font-mono tracking-[4px]">SIGMA MENIFEST OS</span>
+      <div
+        className="rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center gap-2"
+        style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+      >
+        <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: TEXT_PRIMARY }}>
+          <span className="text-base">Σ</span>
+          <span className="tracking-widest">MENIFEST OS</span>
         </div>
 
-        <div className="text-xs font-mono tracking-[6px] text-zinc-400 uppercase font-black">
-          SILENCE . DISCIPLINE . DOMINANCE .
+        <div className="text-[10px] font-semibold tracking-[0.3em] uppercase" style={{ color: TEXT_SECONDARY }}>
+          Silence · Discipline · Dominance
         </div>
 
-        <div className="text-emerald-400/60 font-mono text-xs">
-          🐺 100% UNSTOPPABLE
+        <div className="text-xs font-medium" style={{ color: TEXT_SECONDARY }}>
+          100% Unstoppable
         </div>
       </div>
 
       {/* ADD TODAY'S PLAN MODAL */}
       {showAddPlanModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-emerald-500/40 rounded-3xl p-6 w-full max-w-md space-y-4">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="font-bold text-white text-base font-mono">Add Today's Action Plan</h3>
-              <button onClick={() => setShowAddPlanModal(false)} className="text-zinc-500 hover:text-white"><X size={18} /></button>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="rounded-3xl p-6 w-full max-w-md space-y-4"
+            style={{ backgroundColor: "#0a0a0a", border: `1px solid ${HAIRLINE}` }}
+          >
+            <div className="flex justify-between items-center border-b pb-3" style={{ borderColor: HAIRLINE }}>
+              <h3 className="font-semibold text-base" style={{ color: TEXT_PRIMARY }}>Add today's plan</h3>
+              <button onClick={() => setShowAddPlanModal(false)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>
+                <X size={18} />
+              </button>
             </div>
-            <input 
-              type="text" 
-              placeholder="e.g., Complete 2 chapters of mindset scripting..." 
+            <input
+              type="text"
+              placeholder="e.g., Complete 2 chapters of mindset scripting..."
               value={newPlanText}
               onChange={(e) => setNewPlanText(e.target.value)}
-              className="w-full bg-zinc-900 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-emerald-400 font-mono"
+              className="w-full rounded-2xl px-4 py-3 text-xs focus:outline-none transition-colors"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.04)",
+                border: `1px solid ${HAIRLINE}`,
+                color: TEXT_PRIMARY,
+              }}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowAddPlanModal(false)} className="px-4 py-2 rounded-xl text-xs font-mono text-zinc-400 hover:text-white">Cancel</button>
-              <button onClick={handleAddPlan} className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold font-mono text-xs shadow-lg">Add Task</button>
+              <button onClick={() => setShowAddPlanModal(false)} className="px-4 py-2 rounded-xl text-xs font-medium transition-colors" style={{ color: TEXT_SECONDARY }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPlan}
+                className="px-5 py-2 rounded-xl font-semibold text-xs transition-colors"
+                style={{ backgroundColor: TEXT_PRIMARY, color: "#000" }}
+              >
+                Add task
+              </button>
             </div>
           </div>
         </div>
@@ -861,11 +1068,19 @@ export const DashboardView: React.FC<any> = (props) => {
 
       {/* ADD GOAL MODAL */}
       {showAddGoalModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-emerald-500/40 rounded-3xl p-6 w-full max-w-md space-y-4">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="font-bold text-white text-base font-mono">Create New Desire Goal</h3>
-              <button onClick={() => setShowAddGoalModal(false)} className="text-zinc-500 hover:text-white"><X size={18} /></button>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="rounded-3xl p-6 w-full max-w-md space-y-4"
+            style={{ backgroundColor: "#0a0a0a", border: `1px solid ${HAIRLINE}` }}
+          >
+            <div className="flex justify-between items-center border-b pb-3" style={{ borderColor: HAIRLINE }}>
+              <h3 className="font-semibold text-base" style={{ color: TEXT_PRIMARY }}>Create new goal</h3>
+              <button onClick={() => setShowAddGoalModal(false)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>
+                <X size={18} />
+              </button>
             </div>
 
             <form onSubmit={async (e) => {
@@ -873,25 +1088,35 @@ export const DashboardView: React.FC<any> = (props) => {
                 await handleCreateGoal(e);
                 setShowAddGoalModal(false);
               }
-            }} className="space-y-3 font-mono text-xs">
+            }} className="space-y-3 text-xs">
               <div>
-                <label className="text-zinc-400 text-[10px] uppercase font-bold">Goal Title</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. $10k/mo Financial Freedom" 
+                <label className="text-[10px] uppercase font-semibold" style={{ color: TEXT_SECONDARY }}>Goal title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. $10k/mo Financial Freedom"
                   value={newGoalTitle}
                   onChange={(e) => setNewGoalTitle(e.target.value)}
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl p-3 text-white focus:border-emerald-400 mt-1"
+                  className="w-full rounded-xl p-3 mt-1 focus:outline-none transition-colors"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                  }}
                   required
                 />
               </div>
 
               <div>
-                <label className="text-zinc-400 text-[10px] uppercase font-bold">Category</label>
-                <select 
-                  value={newGoalCategory} 
+                <label className="text-[10px] uppercase font-semibold" style={{ color: TEXT_SECONDARY }}>Category</label>
+                <select
+                  value={newGoalCategory}
                   onChange={(e) => setNewGoalCategory(e.target.value as any)}
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl p-3 text-white mt-1"
+                  className="w-full rounded-xl p-3 mt-1 focus:outline-none transition-colors"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                  }}
                 >
                   <option value="wealth">Wealth & Abundance</option>
                   <option value="health">Health & Fitness</option>
@@ -901,10 +1126,17 @@ export const DashboardView: React.FC<any> = (props) => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-                <button type="button" onClick={() => setShowAddGoalModal(false)} className="px-4 py-2 text-zinc-400">Cancel</button>
-                <button type="submit" disabled={isCreatingGoal} className="px-5 py-2 bg-emerald-500 text-black font-bold rounded-xl">
-                  {isCreatingGoal ? "Creating..." : "Save Goal"}
+              <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: HAIRLINE }}>
+                <button type="button" onClick={() => setShowAddGoalModal(false)} className="px-4 py-2 font-medium" style={{ color: TEXT_SECONDARY }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingGoal}
+                  className="px-5 py-2 rounded-xl font-semibold transition-colors"
+                  style={{ backgroundColor: TEXT_PRIMARY, color: "#000" }}
+                >
+                  {isCreatingGoal ? "Creating..." : "Save goal"}
                 </button>
               </div>
             </form>
