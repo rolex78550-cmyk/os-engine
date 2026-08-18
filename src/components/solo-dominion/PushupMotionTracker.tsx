@@ -1,19 +1,20 @@
 /**
- * PushupMotionTracker.tsx
+ * PushupMotionTracker.tsx — Premium dark theme, no neon
  *
  * Phone-sensor based push-up rep counter. No camera, no AI, no tokens.
+ * DeviceMotion API (accelerometer + gyroscope) at 60fps.
  *
- * Detection: DeviceMotion API (accelerometer + gyroscope)
- *   - Phone chest-pocket / waist-band mein rakho
- *   - Har push-up mein gravity Z-axis flip hota hai
- *   - State machine: READY → DESCENDING → BOTTOM → ASCENDING → TOP → count++
- *   - Anti-cheat: timing check + accelerometer variance check
- *
- * XP: 2 XP per valid rep. Min 5 reps to count as "completed".
+ * Design language:
+ *  - Pure black background (#000)
+ *  - White text + muted gray accents
+ *  - No glow / no neon / no bright colors
+ *  - Inter / SF Pro typography
+ *  - Sharp 1px borders
+ *  - Calm, focused, premium feel
  */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Activity, Target, Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { X, Activity, Zap, CheckCircle, AlertCircle } from "lucide-react";
 
 interface PushupMotionTrackerProps {
   missionTitle: string;
@@ -35,7 +36,6 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
   // ===== State =====
   const [phase, setPhase] = useState<Phase>("idle");
   const [reps, setReps] = useState(0);
-  const [invalidReps, setInvalidReps] = useState(0);
   const [rejectedAttempts, setRejectedAttempts] = useState(0);
   const [permissionStatus, setPermissionStatus] = useState<"unknown" | "granted" | "denied" | "unavailable">("unknown");
   const [elapsed, setElapsed] = useState(0);
@@ -43,7 +43,7 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
   const [lastRepDuration, setLastRepDuration] = useState<number | null>(null);
   const [hapticSupported, setHapticSupported] = useState(false);
 
-  // ===== Refs (mutable, don't trigger renders) =====
+  // ===== Refs =====
   const motionListenerRef = useRef<((e: DeviceMotionEvent) => void) | null>(null);
   const phaseStartTimeRef = useRef<number>(0);
   const repStartTimeRef = useRef<number>(0);
@@ -53,43 +53,35 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  // ===== Threshold values =====
-  // Gravity Z-axis ~9.8 m/s² when phone stable
-  // Push-up: chest goes down (Z dips) then up (Z peaks)
-  const THRESHOLD_DOWN = 7.5;  // gravity must dip below this to count "going down"
-  const THRESHOLD_UP = 9.2;    // gravity must rise above this to count "rep complete"
-  const MIN_REP_DURATION = 800;  // ms — too fast = invalid (anti-cheat)
-  const MAX_REP_DURATION = 8000; // ms — too slow = invalid (form break)
-  const MIN_VARIANCE = 0.5;     // m/s² — must have actual movement, not just shaking
+  // ===== Thresholds =====
+  const THRESHOLD_DOWN = 7.5;
+  const THRESHOLD_UP = 9.2;
+  const MIN_REP_DURATION = 800;
+  const MAX_REP_DURATION = 8000;
+  const MIN_VARIANCE = 0.5;
 
   // ===== Setup =====
   useEffect(() => {
-    // Check if DeviceMotionEvent is supported
     if (typeof window === "undefined") {
       setPermissionStatus("unavailable");
       return;
     }
 
-    // iOS 13+ requires explicit permission
     // @ts-ignore
     if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
-      // iOS path
+      // iOS 13+ path
       // @ts-ignore
       DeviceMotionEvent.requestPermission()
         .then((state: string) => {
           setPermissionStatus(state === "granted" ? "granted" : "denied");
         })
-        .catch(() => {
-          setPermissionStatus("denied");
-        });
+        .catch(() => setPermissionStatus("denied"));
     } else if (typeof DeviceMotionEvent !== "undefined") {
-      // Android / Desktop — usually auto-grants
       setPermissionStatus("granted");
     } else {
       setPermissionStatus("unavailable");
     }
 
-    // Check haptic support
     setHapticSupported(typeof navigator !== "undefined" && "vibrate" in navigator);
 
     return () => {
@@ -99,6 +91,7 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
         timerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===== Elapsed timer =====
@@ -116,27 +109,22 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
     };
   }, [phase !== "idle"]);
 
-  // ===== Sensor handler =====
+  // ===== Motion handler =====
   const handleMotion = useCallback((e: DeviceMotionEvent) => {
     const accel = e.accelerationIncludingGravity;
     if (!accel || accel.x === null || accel.y === null || accel.z === null) return;
 
-    // Calculate total magnitude (Z-axis dominant for push-ups)
     const magnitude = Math.sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
     const zAxis = Math.abs(accel.z);
-
-    // Variance check — detect if phone is actually moving
     const variance = Math.abs(magnitude - lastMagnitudeRef.current);
     lastMagnitudeRef.current = magnitude;
 
-    // ===== State machine =====
     setPhase((currentPhase) => {
       const now = Date.now();
 
       switch (currentPhase) {
         case "idle":
         case "ready": {
-          // Waiting for user to start push-up (gravity dips)
           if (zAxis < THRESHOLD_DOWN && variance > MIN_VARIANCE) {
             repStartTimeRef.current = now;
             phaseStartTimeRef.current = now;
@@ -144,104 +132,80 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
           }
           return currentPhase;
         }
-
         case "descending": {
-          // Going down — gravity hits lowest point
           if (zAxis < 5.5) {
             phaseStartTimeRef.current = now;
             return "bottom";
           }
-          // If user goes back up without hitting bottom, abort
           if (zAxis > THRESHOLD_UP) {
             phaseStartTimeRef.current = now;
             return "ready";
           }
           return currentPhase;
         }
-
         case "bottom": {
-          // At bottom — waiting to come back up
           if (zAxis > THRESHOLD_UP && variance > MIN_VARIANCE) {
             phaseStartTimeRef.current = now;
             return "ascending";
           }
-          // If staying at bottom too long, abort
           if (now - phaseStartTimeRef.current > MAX_REP_DURATION) {
             phaseStartTimeRef.current = now;
             return "ready";
           }
           return currentPhase;
         }
-
         case "ascending": {
-          // Coming up — gravity back to normal
           if (zAxis > 9.5) {
-            // Rep complete!
             const repDuration = now - repStartTimeRef.current;
             const timeSinceLastRep = lastRepTimestampRef.current ? now - lastRepTimestampRef.current : Infinity;
 
-            // Anti-cheat: must be slow enough (real push-up takes time)
             if (repDuration < MIN_REP_DURATION) {
               setRejectedAttempts((r) => r + 1);
               return "ready";
             }
-
-            // Anti-cheat: if too many fast reps in a row, suspicious
             if (timeSinceLastRep < 400) {
               setRejectedAttempts((r) => r + 1);
               return "ready";
             }
 
-            // Valid rep!
             setReps((r) => r + 1);
             setLastRepDuration(repDuration);
             lastRepTimestampRef.current = now;
 
-            // Track pace (rolling average of last 5 reps)
             recentRepTimesRef.current.push(repDuration);
             if (recentRepTimesRef.current.length > 5) recentRepTimesRef.current.shift();
             const avgPace = recentRepTimesRef.current.reduce((a, b) => a + b, 0) / recentRepTimesRef.current.length;
             setPace(avgPace);
 
-            // Haptic feedback
-            if ("vibrate" in navigator) {
-              navigator.vibrate(50);
-            }
+            if ("vibrate" in navigator) navigator.vibrate(50);
 
             return "ready";
           }
           return currentPhase;
         }
-
         default:
           return currentPhase;
       }
     });
   }, []);
 
-  // ===== Start tracking =====
+  // ===== Tracking controls =====
   const startTracking = () => {
     if (permissionStatus !== "granted") {
       alert("Motion sensor permission required. Please enable motion access in your browser settings.");
       return;
     }
-
     startTimeRef.current = Date.now();
     setPhase("ready");
     setReps(0);
-    setInvalidReps(0);
     setRejectedAttempts(0);
     setElapsed(0);
     recentRepTimesRef.current = [];
-
     if ("vibrate" in navigator) navigator.vibrate(100);
-
-    // Attach motion listener
     motionListenerRef.current = handleMotion;
     window.addEventListener("devicemotion", handleMotion);
   };
 
-  // ===== Stop tracking =====
   const stopTracking = () => {
     if (motionListenerRef.current) {
       window.removeEventListener("devicemotion", motionListenerRef.current);
@@ -249,19 +213,16 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
     }
   };
 
-  // ===== Pause =====
   const pauseTracking = () => {
     stopTracking();
     setPhase((p) => (p === "idle" ? "idle" : "ready"));
   };
 
-  // ===== Complete =====
   const handleStop = () => {
     stopTracking();
-    onComplete(reps, reps); // For now, all detected reps are valid
+    onComplete(reps, reps);
   };
 
-  // ===== Cancel =====
   const handleCancel = () => {
     stopTracking();
     onCancel();
@@ -272,39 +233,37 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
   const xpEarned = reps * xpPerRep;
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
-  const paceOk = pace === null || (pace >= 1500 && pace <= 5000); // 1.5s to 5s per rep = realistic
+  const paceOk = pace === null || (pace >= 1500 && pace <= 5000);
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex bg-white text-black overflow-y-auto"
-      style={{ WebkitOverflowScrolling: "touch" }}
+      className="fixed inset-0 z-[500] flex bg-black text-white overflow-y-auto"
+      style={{
+        WebkitOverflowScrolling: "touch",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+      }}
     >
-      <div
-        className="w-full flex flex-col min-h-screen"
-        style={{ border: "1px solid #000" }}
-      >
-        {/* STICKY HEADER */}
+      <div className="w-full flex flex-col min-h-screen">
+
+        {/* HEADER */}
         <div
-          className="px-4 sm:px-6 py-3 border-b flex items-center gap-3 shrink-0"
-          style={{ borderColor: "#000", backgroundColor: "#fff", position: "sticky", top: 0, zIndex: 10 }}
+          className="px-5 sm:px-7 py-4 border-b flex items-center gap-3 shrink-0"
+          style={{ borderColor: "#1a1a1a", backgroundColor: "#0a0a0a" }}
         >
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
-            📱
-          </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[9px] font-mono tracking-[2px] uppercase font-bold" style={{ color: "#666" }}>
-              MOTION TRACKER
+            <div className="text-[10px] font-medium tracking-[3px] uppercase text-zinc-500">
+              Motion Tracker
             </div>
-            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-black leading-tight truncate">
+            <h3 className="text-base sm:text-lg font-semibold tracking-tight text-white leading-tight truncate mt-0.5">
               {missionTitle}
             </h3>
           </div>
           <button
             onClick={handleCancel}
-            className="p-1.5 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition shrink-0"
+            className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-lg transition shrink-0"
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
@@ -332,7 +291,6 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
               paceOk={paceOk}
               lastRepDuration={lastRepDuration}
               rejectedAttempts={rejectedAttempts}
-              invalidReps={invalidReps}
               onPause={pauseTracking}
               onStop={handleStop}
             />
@@ -343,7 +301,7 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
   );
 };
 
-// ===== IDLE STATE — instructions + start button =====
+// ===== IDLE STATE =====
 const IDLE_STATE: React.FC<{
   permissionStatus: string;
   targetReps: number;
@@ -353,97 +311,119 @@ const IDLE_STATE: React.FC<{
   hapticSupported: boolean;
 }> = ({ permissionStatus, targetReps, xpPerRep, onStart, onCancel, hapticSupported }) => {
   return (
-    <div className="px-4 sm:px-6 py-4 space-y-3 max-w-md mx-auto">
-      <div className="p-3 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
-        <div className="text-4xl mb-1">📱</div>
-        <h2 className="text-base font-black uppercase tracking-tight text-black">
-          Motion Tracker
-        </h2>
-        <p className="text-[10.5px] font-mono mt-1 leading-relaxed" style={{ color: "#555" }}>
-          Place your phone in your <strong>chest pocket</strong> or <strong>waistband</strong> and start doing push-ups. Each rep is counted automatically using your phone's motion sensor. No camera, no AI upload, 100% private.
+    <div className="px-5 sm:px-7 py-6 max-w-xl mx-auto w-full">
+
+      {/* Title block */}
+      <div className="mb-7">
+        <div className="flex items-center gap-2 mb-3">
+          <Activity size={18} className="text-zinc-400" />
+          <span className="text-[10px] font-medium tracking-[2.5px] uppercase text-zinc-500">
+            How it works
+          </span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight leading-tight mb-2">
+          Place your phone. Start your push-ups.
+        </h1>
+        <p className="text-[13px] text-zinc-400 leading-relaxed">
+          Your phone's motion sensor will count every rep automatically.
+          No camera. No AI upload. 100% private and offline.
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <h3 className="text-[9px] font-mono font-bold uppercase tracking-wider text-black">HOW IT WORKS</h3>
-        <div className="space-y-1 text-[10.5px] font-mono leading-snug" style={{ color: "#333" }}>
-          <div className="flex items-start gap-1.5">
-            <span className="font-black shrink-0">1.</span>
-            <span>Place your phone tightly in a chest pocket or waistband</span>
+      {/* Instructions list */}
+      <div className="space-y-3 mb-6">
+        {[
+          { n: "1", t: "Place your phone", d: "Tightly in a chest pocket or waistband. Face-down or face-up both work." },
+          { n: "2", t: "Get into position", d: "Standard push-up position. The tracker will start listening for motion." },
+          { n: "3", t: "Start your push-ups", d: "Each full rep is counted and your phone will vibrate to confirm." },
+          { n: "4", t: "Reach your goal", d: `Hit ${targetReps} reps to auto-verify and earn +${targetReps * xpPerRep} XP.` },
+        ].map((step) => (
+          <div key={step.n} className="flex items-start gap-4">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-zinc-400 shrink-0 border"
+              style={{ borderColor: "#2a2a2a" }}
+            >
+              {step.n}
+            </div>
+            <div className="flex-1 pt-0.5">
+              <div className="text-[13px] font-semibold text-white leading-snug">
+                {step.t}
+              </div>
+              <div className="text-[12px] text-zinc-500 leading-relaxed mt-0.5">
+                {step.d}
+              </div>
+            </div>
           </div>
-          <div className="flex items-start gap-1.5">
-            <span className="font-black shrink-0">2.</span>
-            <span>Get into push-up position (face-down or face-up both work)</span>
-          </div>
-          <div className="flex items-start gap-1.5">
-            <span className="font-black shrink-0">3.</span>
-            <span>Start doing push-ups — each full rep is auto-counted and your phone will vibrate</span>
-          </div>
-          <div className="flex items-start gap-1.5">
-            <span className="font-black shrink-0">4.</span>
-            <span>Once you reach {targetReps} reps, your session is automatically verified and you earn +{targetReps * xpPerRep} XP</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="p-2.5 rounded-lg border-2" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }}>
-        <div className="flex items-center gap-1.5 mb-1">
-          <Zap size={12} className="text-amber-300" />
-          <span className="text-[9px] font-mono font-bold uppercase tracking-wider">ANTI-CHEAT</span>
+      {/* Anti-cheat note */}
+      <div className="mb-6 p-3.5 rounded-lg" style={{ backgroundColor: "#0d0d0d", border: "1px solid #1f1f1f" }}>
+        <div className="flex items-center gap-2 mb-1.5">
+          <Zap size={13} className="text-zinc-400" />
+          <span className="text-[10px] font-medium tracking-[2px] uppercase text-zinc-500">
+            Anti-cheat
+          </span>
         </div>
-        <ul className="space-y-0.5 text-[10px] font-mono leading-snug opacity-90">
-          <li>✗ Tapping without moving the phone will be rejected</li>
-          <li>✗ Reps faster than 0.8 seconds will be rejected</li>
-          <li>✗ Inconsistent movement triggers a form warning</li>
+        <ul className="text-[12px] text-zinc-400 leading-relaxed space-y-0.5">
+          <li>— Tapping without moving the phone is rejected</li>
+          <li>— Reps faster than 0.8s are rejected</li>
+          <li>— Inconsistent movement triggers a form warning</li>
         </ul>
       </div>
 
+      {/* Permission warnings */}
       {permissionStatus === "denied" && (
-        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
-          <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          <div className="text-[10.5px] font-mono leading-snug">
-            <strong>Motion permission denied.</strong> Please enable motion access in your browser settings (iOS: Settings → Safari → Motion & Orientation Access).
+        <div className="mb-4 p-3.5 rounded-lg" style={{ backgroundColor: "#1a0d0d", border: "1px solid #2a1414" }}>
+          <div className="flex items-start gap-2.5">
+            <AlertCircle size={15} className="text-zinc-400 shrink-0 mt-0.5" />
+            <div className="text-[12.5px] text-zinc-300 leading-relaxed">
+              <strong className="text-white">Motion permission denied.</strong> Enable motion access in browser settings. (iOS: Settings → Safari → Motion &amp; Orientation Access)
+            </div>
           </div>
         </div>
       )}
 
       {permissionStatus === "unavailable" && (
-        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
-          <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          <div className="text-[10.5px] font-mono leading-snug">
-            <strong>Motion sensor not available.</strong> Please use a mobile device with motion sensors enabled.
+        <div className="mb-4 p-3.5 rounded-lg" style={{ backgroundColor: "#0d0d0d", border: "1px solid #1f1f1f" }}>
+          <div className="flex items-start gap-2.5">
+            <AlertCircle size={15} className="text-zinc-400 shrink-0 mt-0.5" />
+            <div className="text-[12.5px] text-zinc-300 leading-relaxed">
+              <strong className="text-white">Motion sensor not available.</strong> Please use a mobile device with motion sensors.
+            </div>
           </div>
         </div>
       )}
 
       {!hapticSupported && (
-        <p className="text-[9px] font-mono text-center" style={{ color: "#888" }}>
-          ℹ️ Haptic feedback is not available on this device
+        <p className="text-[10.5px] text-zinc-600 text-center mb-3">
+          Haptic feedback is not available on this device
         </p>
       )}
 
-      <div className="flex gap-2 pt-1">
+      {/* Actions */}
+      <div className="flex gap-2.5">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-lg text-xs font-bold border-2 text-black"
-          style={{ borderColor: "#000", backgroundColor: "#fff" }}
+          className="flex-1 py-3.5 rounded-lg text-sm font-medium text-white border transition active:scale-[0.98]"
+          style={{ borderColor: "#2a2a2a", backgroundColor: "transparent" }}
         >
           Cancel
         </button>
         <button
           onClick={onStart}
           disabled={permissionStatus !== "granted"}
-          className="flex-1 py-2.5 rounded-lg text-xs font-black uppercase text-white disabled:opacity-30"
-          style={{ backgroundColor: "#000" }}
+          className="flex-1 py-3.5 rounded-lg text-sm font-semibold text-black transition active:scale-[0.98] disabled:opacity-30"
+          style={{ backgroundColor: "#ffffff" }}
         >
-          {permissionStatus === "granted" ? "▶ Start" : "Permission Required"}
+          {permissionStatus === "granted" ? "Start tracking" : "Permission required"}
         </button>
       </div>
     </div>
   );
 };
 
-// ===== TRACKING STATE — live counter + metrics =====
+// ===== TRACKING STATE =====
 const TRACKING_STATE: React.FC<{
   phase: Phase;
   reps: number;
@@ -456,151 +436,150 @@ const TRACKING_STATE: React.FC<{
   paceOk: boolean;
   lastRepDuration: number | null;
   rejectedAttempts: number;
-  invalidReps: number;
   onPause: () => void;
   onStop: () => void;
 }> = ({
   phase, reps, targetReps, progressPct, xpEarned, minutes, seconds,
-  pace, paceOk, lastRepDuration, rejectedAttempts, invalidReps,
+  pace, paceOk, lastRepDuration, rejectedAttempts,
   onPause, onStop,
 }) => {
   return (
-    <div className="px-4 sm:px-6 py-3 space-y-2.5 max-w-md mx-auto">
-      {/* Big rep counter */}
-      <div
-        className="p-4 rounded-xl border-2 text-center"
-        style={{
-          borderColor: "#000",
-          backgroundColor: "#000",
-          color: "#fff",
-        }}
-      >
-        <div className="text-[9px] font-mono tracking-[2.5px] text-amber-300 uppercase font-bold mb-0.5">
-          REPS COMPLETED
+    <div className="px-5 sm:px-7 py-6 max-w-xl mx-auto w-full">
+
+      {/* Big rep counter — minimal, calm */}
+      <div className="mb-5">
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="text-[10px] font-medium tracking-[2.5px] uppercase text-zinc-500">
+            Reps
+          </div>
+          <div className="text-[10px] font-medium tracking-[2px] uppercase text-zinc-500">
+            of {targetReps}
+          </div>
         </div>
-        <div className="flex items-baseline justify-center gap-1.5">
-          <span className="text-5xl sm:text-6xl font-black tracking-tight tabular-nums" style={{ color: "#fff" }}>
+        <div className="flex items-baseline gap-2 mb-3">
+          <span className="text-7xl sm:text-8xl font-semibold text-white tracking-tighter tabular-nums leading-none">
             {reps}
           </span>
-          <span className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: "#666" }}>
-            / {targetReps}
+          <span className="text-3xl sm:text-4xl font-light text-zinc-600 tabular-nums leading-none">
+            /{targetReps}
           </span>
         </div>
-        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+        {/* Progress bar — thin, gray */}
+        <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${progressPct}%`,
-              background: "linear-gradient(to right, #fbbf24, #f59e0b)",
-            }}
+            className="h-full bg-white rounded-full transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
           />
         </div>
-        <div className="text-[9px] font-mono mt-1.5 opacity-70">
-          {progressPct}% complete
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-[11px] text-zinc-500 font-medium tabular-nums">
+            {progressPct}% complete
+          </span>
+          <span className="text-[11px] text-zinc-500 font-medium tabular-nums">
+            +{xpEarned} XP
+          </span>
         </div>
       </div>
 
-      {/* Status indicator — current phase */}
-      <div
-        className="p-2 rounded-lg border flex items-center gap-2"
-        style={{ borderColor: "#000", backgroundColor: "#fafafa" }}
-      >
+      {/* Status line — calm text, no pulsing dots */}
+      <div className="mb-5 py-2.5 px-3.5 rounded-lg flex items-center gap-2.5" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
         <div
-          className="w-2.5 h-2.5 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{
             backgroundColor:
-              phase === "ready" ? "#22c55e" :
-              phase === "descending" ? "#f59e0b" :
-              phase === "bottom" ? "#ef4444" :
-              phase === "ascending" ? "#3b82f6" : "#999",
-            animation: phase !== "ready" ? "pulse 0.6s infinite" : "none",
+              phase === "ready" ? "#a1a1aa" :
+              phase === "descending" ? "#71717a" :
+              phase === "bottom" ? "#52525b" :
+              phase === "ascending" ? "#d4d4d8" : "#52525b",
           }}
         />
-        <div className="flex-1 text-[10px] font-mono font-bold uppercase tracking-wider text-black">
-          {phase === "ready" && "READY — Start push-up"}
-          {phase === "descending" && "DOWN — Keep going"}
-          {phase === "bottom" && "BOTTOM — Hold"}
-          {phase === "ascending" && "UP — Push!"}
+        <div className="flex-1 text-[12.5px] font-medium text-zinc-300">
+          {phase === "ready" && "Ready — start your next push-up"}
+          {phase === "descending" && "Going down"}
+          {phase === "bottom" && "At the bottom — hold"}
+          {phase === "ascending" && "Pushing up"}
         </div>
       </div>
 
       {/* Metrics grid */}
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Time</div>
-          <div className="text-base font-black text-black font-mono tabular-nums mt-0.5">
-            {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-          </div>
-        </div>
-        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">XP</div>
-          <div className="text-base font-black text-amber-500 font-mono tabular-nums mt-0.5">
-            +{xpEarned}
-          </div>
-        </div>
-        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Pace</div>
-          <div
-            className="text-base font-black font-mono tabular-nums mt-0.5"
-            style={{ color: paceOk ? "#16a34a" : "#dc2626" }}
-          >
-            {pace ? `${(pace / 1000).toFixed(1)}s` : "—"}
-          </div>
-        </div>
-        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Last</div>
-          <div className="text-base font-black text-black font-mono tabular-nums mt-0.5">
-            {lastRepDuration ? `${(lastRepDuration / 1000).toFixed(1)}s` : "—"}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        <MetricCard label="Time" value={`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`} />
+        <MetricCard label="Avg pace" value={pace ? `${(pace / 1000).toFixed(1)}s` : "—"} status={pace === null ? "neutral" : paceOk ? "ok" : "warn"} />
+        <MetricCard label="Last rep" value={lastRepDuration ? `${(lastRepDuration / 1000).toFixed(1)}s` : "—"} />
+        <MetricCard label="XP earned" value={`+${xpEarned}`} status="ok" />
       </div>
 
       {/* Pace warning */}
       {pace !== null && !paceOk && (
-        <div className="p-2 rounded-lg border-2 flex items-start gap-1.5" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
-          <AlertCircle size={12} className="shrink-0 mt-0.5" />
-          <p className="text-[9.5px] font-mono leading-snug">
-            <strong>Pace warning:</strong> Real push-ups take 1.5-5s. Steady rhythm.
+        <div className="mb-3 p-3 rounded-lg flex items-start gap-2.5" style={{ backgroundColor: "#0d0d0d", border: "1px solid #1f1f1f" }}>
+          <AlertCircle size={14} className="text-zinc-400 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-zinc-400 leading-relaxed">
+            <strong className="text-zinc-200">Pace warning.</strong> Real push-ups take 1.5–5 seconds. Maintain a steady rhythm.
           </p>
         </div>
       )}
 
       {/* Rejected counter */}
       {rejectedAttempts > 0 && (
-        <div className="p-2 rounded-lg border-2 flex items-start gap-1.5" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
-          <AlertCircle size={12} className="shrink-0 mt-0.5" />
-          <p className="text-[9.5px] font-mono leading-snug">
-            <strong>{rejectedAttempts} rejected</strong> (too fast / fake). Slow down.
+        <div className="mb-3 p-3 rounded-lg flex items-start gap-2.5" style={{ backgroundColor: "#0d0d0d", border: "1px solid #1f1f1f" }}>
+          <AlertCircle size={14} className="text-zinc-400 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-zinc-400 leading-relaxed">
+            <strong className="text-zinc-200">{rejectedAttempts} rep{rejectedAttempts !== 1 ? "s" : ""} rejected</strong> — too fast or no movement detected. Slow down.
           </p>
         </div>
       )}
 
-      {/* Anti-cheat info */}
+      {/* Form verified */}
       {reps >= 3 && (
-        <div className="p-2 rounded-lg border flex items-center gap-1.5" style={{ borderColor: "#16a34a", backgroundColor: "#f0fdf4", color: "#14532d" }}>
-          <CheckCircle size={12} className="shrink-0" />
-          <p className="text-[9.5px] font-mono leading-snug">
-            <strong>Form verified.</strong> Real movement detected.
+        <div className="mb-5 p-3 rounded-lg flex items-start gap-2.5" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <CheckCircle size={14} className="text-zinc-400 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-zinc-400 leading-relaxed">
+            <strong className="text-zinc-200">Form verified.</strong> Real movement and consistent pace detected.
           </p>
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="flex gap-2 pt-1">
+      {/* Actions */}
+      <div className="flex gap-2.5">
         <button
           onClick={onPause}
-          className="flex-1 py-2.5 rounded-lg text-xs font-bold border-2 text-black"
-          style={{ borderColor: "#000", backgroundColor: "#fff" }}
+          className="flex-1 py-3.5 rounded-lg text-sm font-medium text-white border transition active:scale-[0.98]"
+          style={{ borderColor: "#2a2a2a", backgroundColor: "transparent" }}
         >
-          ⏸ Pause
+          Pause
         </button>
         <button
           onClick={onStop}
-          className="flex-1 py-2.5 rounded-lg text-xs font-black uppercase text-white"
-          style={{ backgroundColor: "#000" }}
+          className="flex-1 py-3.5 rounded-lg text-sm font-semibold text-black transition active:scale-[0.98]"
+          style={{ backgroundColor: "#ffffff" }}
         >
-          ⏹ Save
+          Save session
         </button>
+      </div>
+    </div>
+  );
+};
+
+// ===== Reusable metric card =====
+const MetricCard: React.FC<{
+  label: string;
+  value: string;
+  status?: "ok" | "warn" | "neutral";
+}> = ({ label, value, status = "neutral" }) => {
+  const valueColor =
+    status === "ok" ? "text-zinc-100" :
+    status === "warn" ? "text-zinc-300" :
+    "text-white";
+  return (
+    <div
+      className="p-3 rounded-lg"
+      style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}
+    >
+      <div className="text-[10px] font-medium tracking-[2px] uppercase text-zinc-500 mb-1">
+        {label}
+      </div>
+      <div className={`text-2xl font-semibold tracking-tight tabular-nums ${valueColor}`}>
+        {value}
       </div>
     </div>
   );
