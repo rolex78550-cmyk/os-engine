@@ -1355,7 +1355,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   return (
     <div
-      className="text-white relative z-30 pb-12 select-none sd-body-font"
+      className="text-white relative z-30 pb-12 select-none sd-body-font" style={{ backgroundColor: "#000" }}
       onClick={handleUserInteraction}
       style={{ fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
     >
@@ -1429,20 +1429,12 @@ export const SoloDominion: React.FC<any> = (props) => {
           animation: shimmerGold 4s ease-in-out infinite;
         }
         .sd-anime-bg {
-          background-image:
-            linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.88) 75%, rgba(0,0,0,0.97) 100%),
-            url('/images/hero_solo_01.jpg');
-          background-size: cover;
-          background-position: center 30%;
-          background-attachment: fixed;
-          animation: kenBurns 30s ease-in-out infinite;
+          background-color: #000000;
+          background-image: none;
         }
         .sd-hero-banner {
-          background-image:
-            linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.75) 100%),
-            url('/images/quest_solo_02.jpg');
-          background-size: cover;
-          background-position: center 25%;
+          background-color: #000000;
+          background-image: none;
         }
         .sd-card-border {
           border: 1px solid rgba(255,255,255,0.08);
@@ -1462,7 +1454,7 @@ export const SoloDominion: React.FC<any> = (props) => {
           text-transform: uppercase;
         }
         @media (max-width: 768px) {
-          .sd-anime-bg { background-attachment: scroll; }
+          /* no-op now that bg is solid black */
         }
       `}</style>
 
