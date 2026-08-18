@@ -147,30 +147,30 @@ export const DashboardView: React.FC<any> = (props) => {
 
         {/* Center: MAXIMUM ALIGNMENT — Stunning Anime Character Showcase */}
         <div className="lg:col-span-3 relative rounded-3xl overflow-hidden border border-emerald-500/30 bg-zinc-950 min-h-[220px] group shadow-2xl shadow-emerald-500/10">
-          {/* Stunning anime character — Shadow Monarch as default (the awakened form) */}
+          {/* Stunning anime character — Awakened Jinwoo (red-eye Antares form) */}
           <img
-            src={resolveImageUrl("/images/anime_shadow_monarch_1785176449409.jpg")}
+            src={resolveImageUrl("/images/sd_jin_redeye.jpg")}
             alt="Maximum Alignment — Awakened Warrior"
             onError={onImgError("/images/shadow_monarch_avatar.jpg")}
             className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
           />
 
-          {/* Cinematic color grade — emerald/purple aura to amplify the "alignment" feel */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/30 via-transparent to-purple-500/20 mix-blend-overlay pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 pointer-events-none" />
+          {/* Cinematic color grade — deep red aura to match awakened red eyes */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-red-900/30 via-transparent to-rose-900/20 mix-blend-overlay pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/50 pointer-events-none" />
 
           {/* Floating energy ring around character */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-32 h-32 rounded-full border border-emerald-400/30 animate-ping" style={{ animationDuration: "3s" }} />
+            <div className="w-32 h-32 rounded-full border border-red-500/30 animate-ping" style={{ animationDuration: "3s" }} />
           </div>
-          <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981] animate-pulse" />
+          <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_12px_#ef4444] animate-pulse" />
           <div className="absolute top-12 right-12 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_#fcd34d] animate-pulse" style={{ animationDelay: "0.4s" }} />
-          <div className="absolute bottom-16 left-6 w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9] animate-pulse" style={{ animationDelay: "0.8s" }} />
+          <div className="absolute bottom-16 left-6 w-1.5 h-1.5 rounded-full bg-red-300 shadow-[0_0_8px_#fca5a5] animate-pulse" style={{ animationDelay: "0.8s" }} />
 
           {/* Bottom label — MAXIMUM ALIGNMENT STATE */}
-          <div className="absolute bottom-3 left-3 right-3 text-center bg-black/70 backdrop-blur-md rounded-2xl py-2 px-3 border border-emerald-500/30 z-10 pointer-events-none">
-            <div className="text-[10px] font-mono text-emerald-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-              <Zap size={12} className="text-emerald-400 animate-bounce" />
+          <div className="absolute bottom-3 left-3 right-3 text-center bg-black/70 backdrop-blur-md rounded-2xl py-2 px-3 border border-red-500/30 z-10 pointer-events-none">
+            <div className="text-[10px] font-mono text-red-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
+              <Zap size={12} className="text-red-400 animate-bounce" />
               MAXIMUM ALIGNMENT STATE
             </div>
             <div className="text-[9px] font-mono text-zinc-400 mt-0.5">
