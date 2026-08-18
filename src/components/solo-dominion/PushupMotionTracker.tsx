@@ -276,48 +276,40 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.92)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-      }}
+      className="fixed inset-0 z-[500] flex bg-white text-black overflow-y-auto"
+      style={{ WebkitOverflowScrolling: "touch" }}
     >
       <div
-        className="bg-white text-black w-full sm:max-w-md sm:rounded-3xl shadow-2xl flex flex-col my-auto"
-        style={{
-          border: "1px solid #000",
-          minHeight: phase === "idle" ? "auto" : "90vh",
-          maxHeight: "100vh",
-        }}
+        className="w-full flex flex-col min-h-screen"
+        style={{ border: "1px solid #000" }}
       >
         {/* STICKY HEADER */}
         <div
-          className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
+          className="px-4 sm:px-6 py-3 border-b flex items-center gap-3 shrink-0"
           style={{ borderColor: "#000", backgroundColor: "#fff", position: "sticky", top: 0, zIndex: 10 }}
         >
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>
             📱
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[9px] font-mono tracking-[2.5px] uppercase font-bold" style={{ color: "#666" }}>
+            <div className="text-[9px] font-mono tracking-[2px] uppercase font-bold" style={{ color: "#666" }}>
               MOTION TRACKER
             </div>
-            <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-black leading-tight truncate">
+            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-black leading-tight truncate">
               {missionTitle}
             </h3>
           </div>
           <button
             onClick={handleCancel}
-            className="p-2 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition shrink-0"
+            className="p-1.5 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition shrink-0"
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* BODY */}
-        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
+        <div className="flex-1">
           {phase === "idle" ? (
             <IDLE_STATE
               permissionStatus={permissionStatus}
@@ -361,46 +353,45 @@ const IDLE_STATE: React.FC<{
   hapticSupported: boolean;
 }> = ({ permissionStatus, targetReps, xpPerRep, onStart, onCancel, hapticSupported }) => {
   return (
-    <div className="px-5 sm:px-7 py-5 space-y-4">
-      <div className="p-4 rounded-xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
-        <div className="text-5xl mb-2">📱</div>
-        <h2 className="text-lg font-black uppercase tracking-tight text-black">
+    <div className="px-4 sm:px-6 py-4 space-y-3 max-w-md mx-auto">
+      <div className="p-3 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+        <div className="text-4xl mb-1">📱</div>
+        <h2 className="text-base font-black uppercase tracking-tight text-black">
           AI Motion Tracker
         </h2>
-        <p className="text-[11px] font-mono mt-1.5 leading-relaxed" style={{ color: "#555" }}>
-          Place your phone in your <strong>chest pocket</strong> or <strong>waistband</strong> and start doing push-ups.
-          The motion sensor will count each rep automatically. No camera, no AI upload, 100% private.
+        <p className="text-[10.5px] font-mono mt-1 leading-relaxed" style={{ color: "#555" }}>
+          Phone <strong>chest pocket</strong> ya <strong>waistband</strong> mein rakho aur push-ups shuru karo. Har rep auto-count hoga — no camera, no AI, 100% private.
         </p>
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-[10px] font-mono font-bold uppercase tracking-wider text-black">📋 HOW IT WORKS</h3>
-        <div className="space-y-1.5 text-[11px] font-mono leading-relaxed" style={{ color: "#333" }}>
-          <div className="flex items-start gap-2">
-            <span className="font-black">1.</span>
-            <span>Phone ko chest pocket / waistband mein rakh do (tight fit)</span>
+      <div className="space-y-1.5">
+        <h3 className="text-[9px] font-mono font-bold uppercase tracking-wider text-black">HOW IT WORKS</h3>
+        <div className="space-y-1 text-[10.5px] font-mono leading-snug" style={{ color: "#333" }}>
+          <div className="flex items-start gap-1.5">
+            <span className="font-black shrink-0">1.</span>
+            <span>Phone chest pocket / waistband mein tight fit karke rakho</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-black">2.</span>
-            <span>Push-up position mein aa jao (phone face-down ya face-up)</span>
+          <div className="flex items-start gap-1.5">
+            <span className="font-black shrink-0">2.</span>
+            <span>Push-up position lo (face-down ya face-up, dono chalega)</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-black">3.</span>
-            <span>Push-ups karte raho — har full rep auto-count hoga + vibrate hoga</span>
+          <div className="flex items-start gap-1.5">
+            <span className="font-black shrink-0">3.</span>
+            <span>Push-ups karo — har full rep auto-count + phone vibrate hoga</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-black">4.</span>
-            <span>{targetReps} reps complete hone pe automatic verify hoga + {targetReps * xpPerRep} XP mil jayega</span>
+          <div className="flex items-start gap-1.5">
+            <span className="font-black shrink-0">4.</span>
+            <span>{targetReps} reps pe automatic +{targetReps * xpPerRep} XP milega</span>
           </div>
         </div>
       </div>
 
-      <div className="p-3 rounded-xl border-2" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }}>
-        <div className="flex items-center gap-2 mb-1.5">
-          <Zap size={14} className="text-amber-300" />
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider">SMART ANTI-CHEAT</span>
+      <div className="p-2.5 rounded-lg border-2" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }}>
+        <div className="flex items-center gap-1.5 mb-1">
+          <Zap size={12} className="text-amber-300" />
+          <span className="text-[9px] font-mono font-bold uppercase tracking-wider">ANTI-CHEAT</span>
         </div>
-        <ul className="space-y-1 text-[10.5px] font-mono leading-relaxed opacity-90">
+        <ul className="space-y-0.5 text-[10px] font-mono leading-snug opacity-90">
           <li>✗ Phone hilaya bina tap = reject</li>
           <li>✗ Too-fast reps (less than 0.8s) = reject</li>
           <li>✗ Inconsistent movement = form warning</li>
@@ -408,33 +399,33 @@ const IDLE_STATE: React.FC<{
       </div>
 
       {permissionStatus === "denied" && (
-        <div className="p-3 rounded-xl border-2 flex items-start gap-2" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <div className="text-[11px] font-mono leading-relaxed">
-            <strong>Motion permission denied.</strong> Please enable motion access in your browser settings (iOS: Settings → Safari → Motion & Orientation Access).
+        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <div className="text-[10.5px] font-mono leading-snug">
+            <strong>Motion permission denied.</strong> Enable motion access in browser settings (iOS: Settings → Safari → Motion & Orientation Access).
           </div>
         </div>
       )}
 
       {permissionStatus === "unavailable" && (
-        <div className="p-3 rounded-xl border-2 flex items-start gap-2" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <div className="text-[11px] font-mono leading-relaxed">
-            <strong>Motion sensor not available.</strong> Your device may not support motion tracking. Please use a mobile device with motion sensors.
+        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <div className="text-[10.5px] font-mono leading-snug">
+            <strong>Motion sensor not available.</strong> Use a mobile device with motion sensors.
           </div>
         </div>
       )}
 
       {!hapticSupported && (
-        <p className="text-[10px] font-mono text-center" style={{ color: "#888" }}>
+        <p className="text-[9px] font-mono text-center" style={{ color: "#888" }}>
           ℹ️ Haptic feedback unavailable on this device
         </p>
       )}
 
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="flex-1 py-3 rounded-xl text-xs font-bold border-2 text-black"
+          className="flex-1 py-2.5 rounded-lg text-xs font-bold border-2 text-black"
           style={{ borderColor: "#000", backgroundColor: "#fff" }}
         >
           Cancel
@@ -442,10 +433,10 @@ const IDLE_STATE: React.FC<{
         <button
           onClick={onStart}
           disabled={permissionStatus !== "granted"}
-          className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30"
+          className="flex-1 py-2.5 rounded-lg text-xs font-black uppercase text-white disabled:opacity-30"
           style={{ backgroundColor: "#000" }}
         >
-          {permissionStatus === "granted" ? "▶ Start Tracking" : "Permission Required"}
+          {permissionStatus === "granted" ? "▶ Start" : "Permission Required"}
         </button>
       </div>
     </div>
@@ -474,28 +465,28 @@ const TRACKING_STATE: React.FC<{
   onPause, onStop,
 }) => {
   return (
-    <div className="px-5 sm:px-7 py-5 space-y-4">
+    <div className="px-4 sm:px-6 py-3 space-y-2.5 max-w-md mx-auto">
       {/* Big rep counter */}
       <div
-        className="p-6 rounded-2xl border-2 text-center relative overflow-hidden"
+        className="p-4 rounded-xl border-2 text-center"
         style={{
           borderColor: "#000",
           backgroundColor: "#000",
           color: "#fff",
         }}
       >
-        <div className="text-[10px] font-mono tracking-[3px] text-amber-300 uppercase font-bold mb-1">
+        <div className="text-[9px] font-mono tracking-[2.5px] text-amber-300 uppercase font-bold mb-0.5">
           REPS COMPLETED
         </div>
-        <div className="flex items-baseline justify-center gap-2">
-          <span className="text-6xl sm:text-7xl font-black tracking-tight tabular-nums" style={{ color: "#fff" }}>
+        <div className="flex items-baseline justify-center gap-1.5">
+          <span className="text-5xl sm:text-6xl font-black tracking-tight tabular-nums" style={{ color: "#fff" }}>
             {reps}
           </span>
-          <span className="text-2xl sm:text-3xl font-black tabular-nums" style={{ color: "#666" }}>
+          <span className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: "#666" }}>
             / {targetReps}
           </span>
         </div>
-        <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
@@ -504,18 +495,18 @@ const TRACKING_STATE: React.FC<{
             }}
           />
         </div>
-        <div className="text-[10px] font-mono mt-2 opacity-70">
+        <div className="text-[9px] font-mono mt-1.5 opacity-70">
           {progressPct}% complete
         </div>
       </div>
 
       {/* Status indicator — current phase */}
       <div
-        className="p-3 rounded-xl border flex items-center gap-3"
+        className="p-2 rounded-lg border flex items-center gap-2"
         style={{ borderColor: "#000", backgroundColor: "#fafafa" }}
       >
         <div
-          className="w-3 h-3 rounded-full"
+          className="w-2.5 h-2.5 rounded-full shrink-0"
           style={{
             backgroundColor:
               phase === "ready" ? "#22c55e" :
@@ -525,40 +516,40 @@ const TRACKING_STATE: React.FC<{
             animation: phase !== "ready" ? "pulse 0.6s infinite" : "none",
           }}
         />
-        <div className="flex-1 text-[11px] font-mono font-bold uppercase tracking-wider text-black">
-          {phase === "ready" && "READY — Start your push-up"}
-          {phase === "descending" && "DESCENDING — Going down"}
+        <div className="flex-1 text-[10px] font-mono font-bold uppercase tracking-wider text-black">
+          {phase === "ready" && "READY — Start push-up"}
+          {phase === "descending" && "DOWN — Keep going"}
           {phase === "bottom" && "BOTTOM — Hold"}
-          {phase === "ascending" && "ASCENDING — Push up!"}
+          {phase === "ascending" && "UP — Push!"}
         </div>
       </div>
 
       {/* Metrics grid */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="p-3 rounded-xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[9px] font-mono tracking-wider text-black/60 uppercase font-bold">Time</div>
-          <div className="text-xl font-black text-black font-mono tabular-nums mt-0.5">
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
+          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Time</div>
+          <div className="text-base font-black text-black font-mono tabular-nums mt-0.5">
             {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
           </div>
         </div>
-        <div className="p-3 rounded-xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[9px] font-mono tracking-wider text-black/60 uppercase font-bold">XP Earned</div>
-          <div className="text-xl font-black text-amber-500 font-mono tabular-nums mt-0.5">
+        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
+          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">XP</div>
+          <div className="text-base font-black text-amber-500 font-mono tabular-nums mt-0.5">
             +{xpEarned}
           </div>
         </div>
-        <div className="p-3 rounded-xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[9px] font-mono tracking-wider text-black/60 uppercase font-bold">Avg Pace</div>
+        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
+          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Pace</div>
           <div
-            className="text-xl font-black font-mono tabular-nums mt-0.5"
+            className="text-base font-black font-mono tabular-nums mt-0.5"
             style={{ color: paceOk ? "#16a34a" : "#dc2626" }}
           >
             {pace ? `${(pace / 1000).toFixed(1)}s` : "—"}
           </div>
         </div>
-        <div className="p-3 rounded-xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-          <div className="text-[9px] font-mono tracking-wider text-black/60 uppercase font-bold">Last Rep</div>
-          <div className="text-xl font-black text-black font-mono tabular-nums mt-0.5">
+        <div className="p-2 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
+          <div className="text-[8px] font-mono tracking-wider text-black/60 uppercase font-bold">Last</div>
+          <div className="text-base font-black text-black font-mono tabular-nums mt-0.5">
             {lastRepDuration ? `${(lastRepDuration / 1000).toFixed(1)}s` : "—"}
           </div>
         </div>
@@ -566,49 +557,49 @@ const TRACKING_STATE: React.FC<{
 
       {/* Pace warning */}
       {pace !== null && !paceOk && (
-        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
-          <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          <p className="text-[10px] font-mono leading-relaxed">
-            <strong>Pace warning:</strong> Real push-ups take 1.5-5s. Keep steady rhythm for valid reps.
+        <div className="p-2 rounded-lg border-2 flex items-start gap-1.5" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
+          <AlertCircle size={12} className="shrink-0 mt-0.5" />
+          <p className="text-[9.5px] font-mono leading-snug">
+            <strong>Pace warning:</strong> Real push-ups take 1.5-5s. Steady rhythm.
           </p>
         </div>
       )}
 
       {/* Rejected counter */}
       {rejectedAttempts > 0 && (
-        <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
-          <AlertCircle size={14} className="shrink-0 mt-0.5" />
-          <p className="text-[10px] font-mono leading-relaxed">
-            <strong>{rejectedAttempts} rep(s) rejected</strong> (too fast / fake). Slow down for valid count.
+        <div className="p-2 rounded-lg border-2 flex items-start gap-1.5" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
+          <AlertCircle size={12} className="shrink-0 mt-0.5" />
+          <p className="text-[9.5px] font-mono leading-snug">
+            <strong>{rejectedAttempts} rejected</strong> (too fast / fake). Slow down.
           </p>
         </div>
       )}
 
       {/* Anti-cheat info */}
       {reps >= 3 && (
-        <div className="p-2.5 rounded-lg border flex items-center gap-2" style={{ borderColor: "#16a34a", backgroundColor: "#f0fdf4", color: "#14532d" }}>
-          <CheckCircle size={14} className="shrink-0" />
-          <p className="text-[10px] font-mono leading-relaxed">
-            <strong>Form verified.</strong> Real movement + consistent pace detected.
+        <div className="p-2 rounded-lg border flex items-center gap-1.5" style={{ borderColor: "#16a34a", backgroundColor: "#f0fdf4", color: "#14532d" }}>
+          <CheckCircle size={12} className="shrink-0" />
+          <p className="text-[9.5px] font-mono leading-snug">
+            <strong>Form verified.</strong> Real movement detected.
           </p>
         </div>
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-1">
         <button
           onClick={onPause}
-          className="flex-1 py-3 rounded-xl text-xs font-bold border-2 text-black"
+          className="flex-1 py-2.5 rounded-lg text-xs font-bold border-2 text-black"
           style={{ borderColor: "#000", backgroundColor: "#fff" }}
         >
           ⏸ Pause
         </button>
         <button
           onClick={onStop}
-          className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white"
+          className="flex-1 py-2.5 rounded-lg text-xs font-black uppercase text-white"
           style={{ backgroundColor: "#000" }}
         >
-          ⏹ Stop & Save
+          ⏹ Save
         </button>
       </div>
     </div>
