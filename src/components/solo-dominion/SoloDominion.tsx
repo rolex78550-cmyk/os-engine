@@ -12,7 +12,8 @@ import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
-import { PushupMotionTracker } from "./PushupMotionTracker";
+import { WorkoutTracker } from "./WorkoutTracker";
+import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -302,8 +303,8 @@ export const SoloDominion: React.FC<any> = (props) => {
   // AI (Gemini multimodal) verifies if proof is real + matches the task.
   // ============================================================
   const [proofMission, setProofMission] = useState<Mission | null>(null);
-  // Push-up motion tracker state — bypasses selfie/video proof
-  const [pushupMission, setPushupMission] = useState<Mission | null>(null);
+  // Unified workout tracker state — handles push-ups, squats, plank, walking, meditation
+  const [workoutMission, setWorkoutMission] = useState<Mission | null>(null);
   const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "text" | "verifying" | "result">("choose");
   const [proofSelfieBase64, setProofSelfieBase64] = useState<string | null>(null);
   const [proofVideoBlob, setProofVideoBlob] = useState<Blob | null>(null);
@@ -330,14 +331,11 @@ export const SoloDominion: React.FC<any> = (props) => {
   const openProofModal = (mission: Mission) => {
     if (mission.completed || !user) return;
 
-    // PUSH-UP mission → use motion tracker (no camera, no AI)
-    const isPushupMission =
-      /push[\s-]?up/i.test(mission.title) ||
-      /push[\s-]?up/i.test(mission.desc || "") ||
-      /push[\s-]?up/i.test(mission.id || "");
-
-    if (isPushupMission) {
-      setPushupMission(mission);
+    // WORKOUT mission (push-up, squat, plank, walking, meditation)
+    // → use unified motion sensor tracker (no camera, no AI)
+    const workoutType = detectWorkoutType(mission.title + " " + (mission.desc || "") + " " + (mission.id || ""));
+    if (workoutType) {
+      setWorkoutMission(mission);
       return;
     }
 
@@ -868,16 +866,20 @@ export const SoloDominion: React.FC<any> = (props) => {
   }, [user]);
 
   // --- HANDLERS ---
-  // Handle push-up motion tracker completion
-  const handlePushupComplete = async (totalReps: number, validReps: number) => {
-    if (!pushupMission || !user) return;
+  // Handle workout completion (unified for push-ups, squats, plank, walking, meditation)
+  const handleWorkoutComplete = async (state: RepState) => {
+    if (!workoutMission || !user) return;
 
-    const mission = pushupMission;
-    setPushupMission(null);
+    const mission = workoutMission;
+    setWorkoutMission(null);
 
-    // Must have at least 5 valid reps
-    if (validReps < 5) {
-      showToast(`❌ Only ${validReps} reps detected. Need at least 5 to count.`);
+    // Validation
+    const isTimeBased = state.metadata?.isTimeBased;
+    const minRequired = isTimeBased ? 10 : 5; // 10s for plank/meditation, 5 reps for others
+
+    if (state.count < minRequired) {
+      const unit = isTimeBased ? "seconds" : "reps";
+      showToast(`❌ Only ${state.count} ${unit} detected. Need at least ${minRequired}.`);
       return;
     }
 
@@ -888,10 +890,10 @@ export const SoloDominion: React.FC<any> = (props) => {
       videoUrl: undefined,
       videoStoragePath: undefined,
       textOath: undefined,
-      proofTypeUsed: "video_oath", // closest type for "motion proof"
+      proofTypeUsed: "video_oath",
       verified: true,
-      verificationScore: Math.min(100, Math.round((validReps / (mission.targetVal || 100)) * 100)),
-      verificationFeedback: `Completed ${validReps} push-ups via motion sensor. Form verified.`,
+      verificationScore: Math.min(100, Math.round((state.count / (mission.targetVal || 100)) * 100)),
+      verificationFeedback: `${state.type} completed: ${state.count} ${isTimeBased ? "seconds" : "reps"}. Form verified via motion sensor.`,
       submittedAt: new Date().toISOString(),
     };
 
@@ -900,8 +902,8 @@ export const SoloDominion: React.FC<any> = (props) => {
         ? {
             ...m,
             completed: true,
-            currentVal: validReps,
-            progress: `${validReps}/${mission.targetVal || validReps} ${mission.unit || ""}`.trim(),
+            currentVal: state.count,
+            progress: `${state.count}/${mission.targetVal || state.count} ${mission.unit || ""}`.trim(),
             proofData: proof,
             verifiedAt: new Date().toISOString(),
           }
@@ -921,7 +923,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     attackBoss(100);
     playVoiceover("complete");
     if ("vibrate" in navigator) navigator.vibrate([100, 50, 200]);
-    showToast(`⚔️ ${validReps} push-ups verified! +${xpGain} XP!`);
+    showToast(`⚔️ ${state.count} ${state.type} verified! +${xpGain} XP!`);
   };
 
   const completeMission = async (id: string) => {
@@ -1697,15 +1699,23 @@ export const SoloDominion: React.FC<any> = (props) => {
       </div>
 
       {/* ============================================================ */}
-      {/* PUSH-UP MOTION TRACKER MODAL — Phone-sensor based            */}
+      {/* UNIFIED WORKOUT TRACKER MODAL — Push-ups, Squats, Plank, Walk, Meditation */}
       {/* ============================================================ */}
-      {pushupMission && (
-        <PushupMotionTracker
-          missionTitle={pushupMission.title}
-          targetReps={pushupMission.targetVal || 100}
-          xpPerRep={2}
-          onComplete={handlePushupComplete}
-          onCancel={() => setPushupMission(null)}
+      {workoutMission && detectWorkoutType(workoutMission.title + " " + (workoutMission.desc || "") + " " + (workoutMission.id || "")) && (
+        <WorkoutTracker
+          workoutType={detectWorkoutType(workoutMission.title + " " + (workoutMission.desc || "") + " " + (workoutMission.id || ""))!}
+          missionTitle={workoutMission.title}
+          targetValue={workoutMission.targetVal || 100}
+          onComplete={(state) => {
+            handleWorkoutComplete({
+              ...state,
+              metadata: {
+                ...state.metadata,
+                isTimeBased: ["plank", "meditation"].includes(state.type),
+              },
+            });
+          }}
+          onCancel={() => setWorkoutMission(null)}
         />
       )}
 
