@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { ProfileState, SubscriptionData, RitualItem, Desire, JournalEntry, VisionItem, CommunityPost } from "../../types";
 import { resolveImageUrl, onImgError, FALLBACK_AVATAR } from "../../lib/imageHelper";
+import { WallpaperEngine } from "../WallpaperEngine";
 
 interface ProfileViewProps {
   user: any;
@@ -789,6 +790,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             ))}
           </div>
         )}
+      </div>
+
+      {/* I AM WALLPAPER ENGINE — your wallpaper, rotating affirmations every 10 min */}
+      <div className="mb-2.5 sm:mb-3">
+        <WallpaperEngine
+          notify={notify}
+          refreshSignal={0}
+        />
       </div>
 
       {/* RANK + LEVEL + GLOBAL RANK ROW */}
