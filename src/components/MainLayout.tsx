@@ -242,62 +242,81 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 </button>
               </div>
             )}
-            <header className="sticky top-0 z-50 -mt-1 py-2 px-3 sm:px-4 bg-[#0a0b10]/95 backdrop-blur-2xl border-b border-amber-500/20 flex items-center justify-between gap-2.5 mb-2 sm:mb-3 rounded-b-2xl sm:rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-              {/* App Brand Header */}
+            <header
+              className="sticky top-0 z-50 -mt-1 py-2.5 px-3 sm:px-4 flex items-center justify-between gap-2.5 mb-2 sm:mb-3"
+              style={{
+                backgroundColor: "rgba(10,11,16,0.72)",
+                backdropFilter: "saturate(180%) blur(24px)",
+                WebkitBackdropFilter: "saturate(180%) blur(24px)",
+              }}
+            >
+              {/* App Brand Header — iOS clean style */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 border border-amber-400/60 flex items-center justify-center shadow-[0_0_12px_rgba(234,179,8,0.4)] shrink-0">
-                  <span className="text-black font-luxury-title font-bold text-xs tracking-tighter">MO</span>
+                <div className="w-8 h-8 rounded-[10px] bg-white/[0.06] flex items-center justify-center shrink-0">
+                  <span className="text-white font-bold text-[13px] tracking-tighter">M</span>
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-sm font-luxury-title font-bold text-white tracking-tight truncate">
+                  <h2 className="text-[15px] font-bold text-white tracking-tight truncate">
                     Menifest OS
                   </h2>
-                  <div className="text-[9px] font-mono text-amber-300/80 uppercase tracking-wider truncate">
-                    {activeTab === 'streaks' ? 'Solo Dominion' : activeTab}
+                  <div className="text-[10px] font-medium text-white/45 tracking-tight truncate">
+                    {activeTab === 'streaks' ? 'Solo Dominion' : activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'goals' ? 'Goals' : activeTab === 'vision' ? 'Vision Board' : activeTab === 'journal' ? 'Journal' : activeTab === 'profile' ? 'Profile' : activeTab}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Subscribe / Upgrade button — visible on ALL screens for non-paid users */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Subscribe / Upgrade — iOS-style small pill (no shadow, no glow) */}
                 {!hasPaidAccess && (
                   <button
                     onClick={() => setShowPricingPage?.(true)}
-                    className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 text-black font-bold text-[11px] sm:text-xs hover:scale-[1.03] transition-all shadow-lg shrink-0"
+                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full bg-white text-black text-[11px] sm:text-xs font-semibold hover:bg-white/90 transition-colors shrink-0"
                   >
-                    <Crown size={14} className="fill-black shrink-0" />
-                    <span>{trialEnded ? 'Subscribe' : isOnTrial ? 'Subscribe' : 'Premium'}</span>
+                    <Crown size={12} className="fill-black shrink-0" />
+                    <span className="hidden sm:inline">{trialEnded ? 'Subscribe' : isOnTrial ? 'Subscribe' : 'Premium'}</span>
+                    <span className="sm:hidden">Go</span>
                   </button>
                 )}
 
-                {/* Notification Bell */}
+                {/* Notification Bell — iOS-style icon button (no border, no bg) */}
                 <div className="relative">
-                  <button onClick={() => setShowNotificationCenter(!showNotificationCenter)} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05]">
-                    <Bell size={18} />
+                  <button
+                    onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                    className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.06] transition-colors"
+                    aria-label="Notifications"
+                  >
+                    <Bell size={18} className="text-white/85" />
                     {unreadNotificationCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-amber-400 text-black text-[10px] font-black flex items-center justify-center">
-                        {unreadNotificationCount}
+                      <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center tabular-nums">
+                        {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
                       </span>
                     )}
                   </button>
                   <AnimatePresence>
                     {showNotificationCenter && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="fixed right-3 top-20 z-[80] w-[calc(100vw-24px)] max-w-sm overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-2xl sm:absolute sm:right-0 sm:top-12 sm:w-96">
-                        <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                          <h3 className="font-bold">Daily Signals</h3>
-                          <button onClick={() => setReadNotificationIds(dynamicNotifications.map(n => n.id))} className="text-[10px] uppercase font-mono text-amber-200/50">Mark Read</button>
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{ duration: 0.18 }}
+                        className="fixed right-3 top-[60px] z-[80] w-[calc(100vw-24px)] max-w-sm overflow-hidden rounded-2xl border border-white/[0.08] shadow-2xl sm:absolute sm:right-0 sm:top-12 sm:w-96"
+                        style={{ backgroundColor: "rgba(10,11,16,0.96)", backdropFilter: "blur(20px)" }}
+                      >
+                        <div className="p-4 border-b border-white/[0.06] flex justify-between items-center">
+                          <h3 className="text-[15px] font-semibold text-white">Notifications</h3>
+                          <button onClick={() => setReadNotificationIds(dynamicNotifications.map(n => n.id))} className="text-[11px] font-medium text-white/45 hover:text-white/80">Mark all read</button>
                         </div>
-                        <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2">
+                        <div className="max-h-[60vh] overflow-y-auto p-2 space-y-1">
                           {dynamicNotifications.length === 0 ? (
-                            <p className="p-6 text-center text-white/30 text-sm">No new signals</p>
+                            <p className="p-8 text-center text-white/35 text-sm">No new signals</p>
                           ) : (
                             dynamicNotifications.map(n => (
-                              <button key={n.id} onClick={() => openNotificationAction(n.id, n.action)} className="w-full p-3 text-left rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all">
+                              <button key={n.id} onClick={() => openNotificationAction(n.id, n.action)} className="w-full p-3 text-left rounded-xl hover:bg-white/[0.05] transition-colors">
                                 <div className="flex gap-3">
-                                  <span className="text-lg">{n.icon}</span>
+                                  <span className="text-base">{n.icon}</span>
                                   <div>
-                                    <h4 className="text-xs font-bold">{n.title}</h4>
-                                    <p className="text-[10px] text-white/50">{n.body}</p>
+                                    <h4 className="text-[13px] font-semibold text-white">{n.title}</h4>
+                                    <p className="text-[11px] text-white/50 mt-0.5">{n.body}</p>
                                   </div>
                                 </div>
                               </button>
@@ -308,10 +327,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     )}
                   </AnimatePresence>
                 </div>
-                
-                {/* Mobile Profile Menu */}
+
+                {/* Mobile Profile Avatar — iOS-style (no border, just round) */}
                 <div className="lg:hidden relative">
-                  <button onClick={() => setShowMobileProfileMenu(!showMobileProfileMenu)} className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center font-bold text-xs overflow-hidden">
+                  <button
+                    onClick={() => setShowMobileProfileMenu(!showMobileProfileMenu)}
+                    className="w-9 h-9 rounded-full overflow-hidden hover:opacity-80 transition-opacity"
+                    aria-label="Profile menu"
+                  >
                     <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover" />
                   </button>
 
@@ -326,24 +349,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -8, scale: 0.96 }}
                           transition={{ duration: 0.18 }}
-                          className="absolute right-0 top-12 z-[90] w-[calc(100vw-32px)] max-w-[300px] rounded-[24px] border border-white/10 bg-black/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+                          className="absolute right-0 top-12 z-[90] w-[calc(100vw-32px)] max-w-[300px] rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden"
+                          style={{ backgroundColor: "rgba(10,11,16,0.96)", backdropFilter: "blur(20px)" }}
                         >
                           {/* Profile Header */}
-                          <div className="p-5 border-b border-white/5 bg-gradient-to-b from-amber-500/[0.06] to-transparent">
+                          <div className="p-4 border-b border-white/[0.06]">
                             <div className="flex items-center gap-3">
-                              <div className="relative w-11 h-11 rounded-full bg-neutral-900 border border-amber-500/20 flex items-center justify-center font-bold text-sm text-amber-200 shrink-0 overflow-hidden">
-                                <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover rounded-full" />
+                              <div className="w-11 h-11 rounded-full overflow-hidden shrink-0">
+                                <img src={resolveImageUrl(profile?.avatarUrl) || FALLBACK_AVATAR} alt="Avatar" onError={onImgError()} className="w-full h-full object-cover" />
                               </div>
-                              <div className="min-w-0">
-                                <h4 className="text-sm font-semibold text-white truncate">{profile?.name || "Seeker"}</h4>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[10px] font-mono text-amber-200/50 uppercase">Level {profile?.level || 1}</span>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-[14px] font-semibold text-white truncate">{profile?.name || "Seeker"}</h4>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] text-white/45">Level {profile?.level || 1}</span>
                                   {isPremium ? (
-                                    <span className="flex items-center gap-1 text-[9px] font-mono uppercase font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded-full border border-amber-400/20">
-                                      <Crown size={8} /> Premium
+                                    <span className="flex items-center gap-1 text-[9px] font-semibold text-amber-400">
+                                      <Crown size={9} /> Premium
                                     </span>
                                   ) : (
-                                    <span className="text-[9px] font-mono uppercase font-bold text-white/40 bg-white/5 px-1.5 py-0.5 rounded-full">Free</span>
+                                    <span className="text-[9px] text-white/35">Free</span>
                                   )}
                                 </div>
                               </div>
@@ -351,7 +375,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                           </div>
 
                           {/* Navigation */}
-                          <div className="p-2">
+                          <div className="p-1.5">
                             {[
                               { id: "profile", label: "Profile", icon: User },
                               { id: "vision", label: "Vision Board", icon: ImageIcon },
@@ -359,18 +383,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                               <button
                                 key={item.id}
                                 onClick={() => { setActiveTab(item.id); logPageVisit(item.id); setShowMobileProfileMenu(false); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-stone-300 hover:text-amber-50 hover:bg-white/[0.04] transition-all"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-white/85 hover:bg-white/[0.06] transition-colors"
                               >
-                                <item.icon size={16} className="text-amber-400/70" />
-                                {item.label}
-                                {activeTab === item.id && <CheckCircle size={14} className="ml-auto text-amber-400" />}
+                                <item.icon size={16} className="text-white/55" />
+                                <span>{item.label}</span>
+                                {activeTab === item.id && <CheckCircle size={14} className="ml-auto text-white" />}
                               </button>
                             ))}
 
                             {user?.email === "asartist20@gmail.com" && (
                               <button
                                 onClick={() => { setActiveTab("admin"); logPageVisit("admin"); setShowMobileProfileMenu(false); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/5 transition-all"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-rose-300/80 hover:bg-rose-500/10 transition-colors"
                               >
                                 <Shield size={16} />
                                 Admin Panel
@@ -379,19 +403,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                           </div>
 
                           {/* Upgrade / Logout */}
-                          <div className="p-2 border-t border-white/5 space-y-1">
+                          <div className="p-1.5 border-t border-white/[0.06] space-y-1">
                             {(!isPremium || isOnTrial) && (
                               <button
                                 onClick={() => { setShowPricingPage?.(true); setShowMobileProfileMenu(false); }}
-                                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-black bg-gradient-to-r from-amber-400 to-amber-600 hover:scale-[1.02] transition-all"
+                                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-black bg-white hover:bg-white/90 transition-colors"
                               >
-                                <span className="flex items-center gap-2"><Crown size={16} /> {isOnTrial ? 'Choose a Plan' : 'Upgrade to Premium'}</span>
-                                <ChevronRight size={16} />
+                                <span className="flex items-center gap-2"><Crown size={14} /> {isOnTrial ? 'Choose a Plan' : 'Upgrade to Premium'}</span>
+                                <ChevronRight size={14} />
                               </button>
                             )}
                             <button
                               onClick={() => { setShowMobileProfileMenu(false); signOut(); }}
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/5 transition-all"
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-rose-300/80 hover:bg-rose-500/10 transition-colors"
                             >
                               <LogOut size={16} />
                               Log Out

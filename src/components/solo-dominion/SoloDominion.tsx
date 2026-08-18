@@ -881,6 +881,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // Live leaderboard
   const [leaders, setLeaders] = useState<any[]>([]);
+  // Leaderboard UI state — filter tab + full open modal
+  const [leaderboardFilter, setLeaderboardFilter] = useState<"all" | "weekly" | "guild">("all");
+  const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   useEffect(() => {
     const unsub = subscribeGlobalLeaderboard(5, (entries: any[]) => {
       if (entries?.length) {
@@ -1216,6 +1219,19 @@ export const SoloDominion: React.FC<any> = (props) => {
     { rank: 4, name: "Valkyrie Prime", level: "19 • Knight", xp: 742100, isYou: false },
     { rank: 5, name: "Astra Master", level: "15 • Scout", xp: 512000, isYou: false },
   ];
+
+  // Filter leaderboard by tab — for full leaderboard modal
+  const filteredLeaderboard = (() => {
+    // In a real backend, this would query by date range / guild ID.
+    // Here we just shuffle by filter so the UI is responsive.
+    if (leaderboardFilter === "all") return leaderboardPreview;
+    if (leaderboardFilter === "weekly") {
+      // Sort by descending XP, take top 10 (mock "weekly" data)
+      return [...leaderboardPreview].sort((a, b) => b.xp - a.xp).slice(0, 10);
+    }
+    // guild — show only top 3 + current user
+    return leaderboardPreview.filter((l) => l.rank <= 3 || l.isYou).slice(0, 5);
+  })();
 
   const visibleStreaks = streaks.slice(streakPageIndex * 6, (streakPageIndex + 1) * 6);
   const maxStreakPages = Math.ceil(streaks.length / 6);
@@ -1644,6 +1660,230 @@ export const SoloDominion: React.FC<any> = (props) => {
         categoryIcon={CATEGORY_ICON}
         categoryLabel={CATEGORY_LABEL}
       />
+
+      {/* ============================================================ */}
+      {/* GLOBAL LEADERBOARD — iOS app style (Strava / Apple Fitness) */}
+      {/* Dynamic: real-time Firestore data, top 5 preview + full modal */}
+      {/* ============================================================ */}
+      <div className="mt-8 relative z-10">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <Trophy size={15} className="text-amber-300" />
+              <span className="sd-rank-badge text-[10px] text-white/80">Global Leaderboard</span>
+            </div>
+            <p className="text-[11px] text-white/45 tracking-tight">
+              Live rankings · {leaderboardPreview.length} hunters competing
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFullLeaderboard(true)}
+            className="text-[11px] font-medium text-white/55 hover:text-white transition-colors flex items-center gap-1"
+          >
+            See all
+            <ChevronRight size={12} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] mb-3">
+          {([
+            { id: "all", label: "All Time" },
+            { id: "weekly", label: "This Week" },
+            { id: "guild", label: "Guild" },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setLeaderboardFilter(tab.id)}
+              className={`flex-1 text-[11px] font-semibold py-1.5 rounded-full transition-all ${
+                leaderboardFilter === tab.id
+                  ? "bg-white text-black"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          className="rounded-2xl overflow-hidden border border-white/[0.06]"
+          style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
+        >
+          {leaderboardPreview.slice(0, 5).map((entry, idx) => {
+            const isYou = entry.isYou;
+            const rankColor =
+              entry.rank === 1 ? "#d4af37" :
+              entry.rank === 2 ? "#c0c0c0" :
+              entry.rank === 3 ? "#cd7f32" :
+              "rgba(255,255,255,0.3)";
+            return (
+              <div
+                key={entry.rank}
+                className={`flex items-center gap-3 px-3.5 py-3 ${idx !== 0 ? "border-t border-white/[0.04]" : ""} ${
+                  isYou ? "bg-white/[0.04]" : ""
+                }`}
+              >
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0"
+                  style={{
+                    backgroundColor: entry.rank <= 3 ? `${rankColor}15` : "rgba(255,255,255,0.05)",
+                    color: entry.rank <= 3 ? rankColor : "rgba(255,255,255,0.45)",
+                    border: entry.rank <= 3 ? `1px solid ${rankColor}40` : "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  {entry.rank}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[13px] font-semibold truncate ${isYou ? "text-amber-300" : "text-white"}`}>
+                    {isYou ? "You" : entry.name}
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate mt-0.5">
+                    {entry.level}
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="text-[13px] font-bold tabular-nums text-white">
+                    {entry.xp >= 1000 ? `${(entry.xp / 1000).toFixed(1)}K` : entry.xp}
+                  </div>
+                  <div className="text-[9px] text-white/40 uppercase tracking-tight">XP</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* FULL LEADERBOARD MODAL — iOS sticky header */}
+      {showFullLeaderboard && (
+        <div
+          className="fixed inset-0 z-[400] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="rounded-3xl w-full max-w-md shadow-2xl my-auto sd-modal-card flex flex-col"
+            style={{ backgroundColor: "rgba(10,11,16,0.95)", maxHeight: "min(720px, calc(100vh - 32px))" }}
+          >
+            <div className="sticky top-0 z-10 rounded-t-3xl px-4 sm:px-5 py-3 flex items-center gap-3 shrink-0 border-b border-white/[0.06]" style={{ backgroundColor: "rgba(10,11,16,0.95)" }}>
+              <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+                <Trophy size={16} className="text-amber-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[15px] font-bold text-white tracking-tight">Leaderboard</h3>
+                <p className="text-[10px] text-white/45 tracking-tight">
+                  {leaderboardPreview.length} hunters · live updates
+                </p>
+              </div>
+              <button
+                onClick={() => setShowFullLeaderboard(false)}
+                className="p-1.5 text-white/55 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-4 sm:px-5 pt-3 pb-2 sticky top-[64px] z-[5]" style={{ backgroundColor: "rgba(10,11,16,0.95)" }}>
+              <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04]">
+                {([
+                  { id: "all", label: "All Time" },
+                  { id: "weekly", label: "This Week" },
+                  { id: "guild", label: "Guild" },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setLeaderboardFilter(tab.id)}
+                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-full transition-all ${
+                      leaderboardFilter === tab.id
+                        ? "bg-white text-black"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 pb-4">
+              {filteredLeaderboard.length === 0 ? (
+                <div className="text-center py-12 text-white/40 text-[13px]">
+                  No hunters in this category yet
+                </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden border border-white/[0.06]" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                  {filteredLeaderboard.map((entry, idx) => {
+                    const isYou = entry.isYou;
+                    const rankColor =
+                      entry.rank === 1 ? "#d4af37" :
+                      entry.rank === 2 ? "#c0c0c0" :
+                      entry.rank === 3 ? "#cd7f32" :
+                      "rgba(255,255,255,0.3)";
+                    return (
+                      <div
+                        key={`${entry.rank}-${idx}`}
+                        className={`flex items-center gap-3 px-3.5 py-3 ${idx !== 0 ? "border-t border-white/[0.04]" : ""} ${
+                          isYou ? "bg-amber-500/[0.06]" : ""
+                        }`}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold tabular-nums shrink-0"
+                          style={{
+                            backgroundColor: entry.rank <= 3 ? `${rankColor}15` : "rgba(255,255,255,0.05)",
+                            color: entry.rank <= 3 ? rankColor : "rgba(255,255,255,0.45)",
+                            border: entry.rank <= 3 ? `1px solid ${rankColor}40` : "1px solid rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          {entry.rank}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-[13px] font-semibold truncate ${isYou ? "text-amber-300" : "text-white"}`}>
+                            {isYou ? "You" : entry.name}
+                          </div>
+                          <div className="text-[10px] text-white/40 truncate mt-0.5">
+                            {entry.level}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[13px] font-bold tabular-nums text-white">
+                            {entry.xp >= 1000 ? `${(entry.xp / 1000).toFixed(1)}K` : entry.xp}
+                          </div>
+                          <div className="text-[9px] text-white/40 uppercase tracking-tight">XP</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {(() => {
+                const me = leaderboardPreview.find((l) => l.isYou);
+                if (!me) return null;
+                return (
+                  <div className="mt-4 p-3 rounded-2xl border border-white/[0.06]" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-[12px] font-bold tabular-nums shrink-0">
+                        {me.rank}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12px] font-semibold text-amber-300 truncate">Your rank</div>
+                        <div className="text-[10px] text-white/45 mt-0.5">
+                          Top {Math.round((me.rank / leaderboardPreview.length) * 100)}% globally
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[14px] font-bold tabular-nums text-white">{me.xp >= 1000 ? `${(me.xp / 1000).toFixed(1)}K` : me.xp}</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-tight">XP</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* SOLO DOMINION • REWARDS — character evolution cards        */}
