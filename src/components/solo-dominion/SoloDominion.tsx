@@ -1461,6 +1461,16 @@ export const SoloDominion: React.FC<any> = (props) => {
           letter-spacing: 0.15em;
           text-transform: uppercase;
         }
+        /* Modal scrollbar — clean dark, no bright colors */
+        .sd-modal-scroll::-webkit-scrollbar { width: 6px; }
+        .sd-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sd-modal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+        .sd-modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        @keyframes sd-modal-in {
+          from { opacity: 0; transform: translateY(8px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .sd-modal-card { animation: sd-modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
         @media (max-width: 768px) {
           /* no-op now that bg is solid black */
         }
@@ -1497,7 +1507,7 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* FLOATING TOAST                                              */}
       {/* ============================================================ */}
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-[400] bg-gradient-to-r from-purple-950/95 to-indigo-950/95 border border-purple-400/60 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-bounce">
+        <div className="fixed top-20 right-6 z-[400] bg-black/95 border border-amber-400/30 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-bounce">
           <Sparkles size={18} className="text-yellow-400 animate-spin" />
           <span className="text-xs font-bold tracking-wide">{toastMsg}</span>
         </div>
@@ -1825,12 +1835,12 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* ============================================================ */}
       {proofMission && (
         <div
-          className="fixed inset-0 z-[300] flex items-stretch justify-center overflow-y-auto"
+          className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
         >
           <div
-            className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col"
-            style={{ border: "1px solid #000", minHeight: "100vh", maxHeight: "100vh", height: "100vh" }}
+            className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col my-auto sd-modal-card"
+            style={{ border: "1px solid #000", maxHeight: "calc(100vh - 32px)" }}
           >
             <div
               className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
@@ -1856,7 +1866,7 @@ export const SoloDominion: React.FC<any> = (props) => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
+            <div className="flex-1 overflow-y-auto sd-modal-scroll" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
 
             {proofStep === "choose" && (
               <div className="px-5 sm:px-7 py-5 space-y-4">
@@ -2058,8 +2068,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* LEGACY MODALS (Welcome, Streaks, etc.) — still functional  */}
       {/* ============================================================ */}
       {showMissionsModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto shadow-2xl my-auto">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Target size={18} className="text-purple-400" />
@@ -2097,8 +2107,8 @@ export const SoloDominion: React.FC<any> = (props) => {
           (welcome card, sync, etc. — full logic lives below as standalone
           functions so the existing data flow keeps working). */}
       {showWelcomeCardModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#121124] border border-emerald-500/50 rounded-[32px] w-full max-w-lg p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden text-center">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-[#121124] border border-emerald-500/50 rounded-[32px] w-full max-w-lg p-5 sm:p-7 space-y-5 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
             <button
               onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
               className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
@@ -2135,8 +2145,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {showSyncModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-4">
-          <div className="bg-[#121124] border border-purple-500/50 rounded-[32px] w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative text-center">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-[#121124] border border-purple-500/50 rounded-[32px] w-full max-w-md p-5 sm:p-7 space-y-5 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
             <button onClick={() => setShowSyncModal(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">
               <X size={20} />
             </button>
@@ -2168,8 +2178,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {selectedStreak && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl my-auto">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{selectedStreak.icon}</span>
@@ -2203,10 +2213,10 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {selectedCard && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
           <div
-            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl relative"
-            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}` }}
+            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-5 sm:p-7 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll"
+            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "calc(100vh - 32px)" }}
           >
             <button onClick={() => setSelectedCard(null)} className="absolute top-3 right-3 p-2 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 z-20">
               <X size={18} />
