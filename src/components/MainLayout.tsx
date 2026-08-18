@@ -83,29 +83,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <ParticleBackground />
       <UniversePortalAnimation event={universePortalEvent} onComplete={() => setUniversePortalEvent(null)} />
 
-      {/* FULL PAGE DRAMATIC BACKGROUND — Dashboard + Solo Dominion (entire page cover exactly like reference) */}
+      {/* FULL PAGE DRAMATIC BACKGROUND — removed per user request (pure black) */}
       {(activeTab === "dashboard" || activeTab === "streaks") && (
-        <>
-          <div
-            className="fixed inset-0 z-[1] pointer-events-none"
-            style={{
-              backgroundImage: activeTab === "dashboard" 
-                ? `url('/assets/dashboard-bg.jpg')` 
-                : `url('/assets/solo-dominion-hero.jpg')`,
-              backgroundSize: "cover",
-              backgroundPosition: activeTab === "dashboard" ? "center 30%" : "-12% 24%",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          {/* Subtle cinematic overlay for readability */}
-          <div className="fixed inset-0 z-[2] pointer-events-none bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
-          <div className="fixed inset-0 z-[2] pointer-events-none bg-gradient-to-r from-black/30 via-transparent to-black/10" />
-
-          {/* Bottom dramatic vignette + shadow (exactly like reference image) */}
-          <div className="fixed inset-x-0 bottom-0 h-[58%] z-[3] pointer-events-none bg-gradient-to-b from-transparent via-black/50 to-black/92" />
-          <div className="fixed inset-x-0 bottom-0 h-[38%] z-[3] pointer-events-none bg-gradient-to-b from-transparent via-black/75 to-black" />
-          <div className="fixed inset-x-0 bottom-0 h-[26%] z-[3] pointer-events-none bg-[radial-gradient(ellipse_at_bottom,#000_30%,transparent_80%)]" />
-        </>
+        <div
+          className="fixed inset-0 z-[1] pointer-events-none bg-black"
+          aria-hidden="true"
+        />
       )}
 
       {/* Top Toast Notification */}
