@@ -1835,12 +1835,12 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* ============================================================ */}
       {proofMission && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
         >
           <div
             className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col my-auto sd-modal-card"
-            style={{ border: "1px solid #000", maxHeight: "calc(100vh - 32px)" }}
+            style={{ border: "1px solid #000", maxHeight: "min(720px, calc(100vh - 32px))" }}
           >
             <div
               className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
@@ -1869,14 +1869,14 @@ export const SoloDominion: React.FC<any> = (props) => {
             <div className="flex-1 overflow-y-auto sd-modal-scroll" style={{ WebkitOverflowScrolling: "touch", minHeight: 0 }}>
 
             {proofStep === "choose" && (
-              <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+              <div className="px-5 sm:px-6 py-4 space-y-3">
+                <div className="p-2.5 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
                   <p className="text-[11px] font-mono leading-relaxed" style={{ color: "#333" }}>
                     🤖 <strong className="text-black">AI Oracle says:</strong> Submit{" "}
                     <strong className="text-black">ANY ONE</strong> of the three proofs below to complete "<span className="text-black">{proofMission.title}</span>". AI will verify if your proof is real and matches the task.
                   </p>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {[
                     { id: "selfie", emoji: "📸", title: "Option 1 — Selfie Photo", desc: "Upload a clear selfie of you actively performing the task" },
                     { id: "video", emoji: "🎥", title: "Option 2 — Video Oath", desc: "Record a 30-sec video swearing on the universe you did the task" },
@@ -1885,16 +1885,16 @@ export const SoloDominion: React.FC<any> = (props) => {
                     <button
                       key={opt.id}
                       onClick={() => setProofStep(opt.id as any)}
-                      className="w-full p-4 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
+                      className="w-full p-3 rounded-2xl border-2 text-left transition group hover:shadow-lg active:scale-[0.99]"
                       style={{ borderColor: "#000", backgroundColor: "#fff" }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>{opt.emoji}</div>
-                        <div className="flex-1">
-                          <div className="text-sm font-black uppercase text-black">{opt.title}</div>
-                          <div className="text-[10.5px] font-mono" style={{ color: "#555" }}>{opt.desc}</div>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: "#000", color: "#fff" }}>{opt.emoji}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-black uppercase text-black truncate">{opt.title}</div>
+                          <div className="text-[10px] font-mono mt-0.5" style={{ color: "#555" }}>{opt.desc}</div>
                         </div>
-                        <span className="text-xl" style={{ color: "#000" }}>→</span>
+                        <span className="text-base" style={{ color: "#000" }}>→</span>
                       </div>
                     </button>
                   ))}
@@ -1903,13 +1903,13 @@ export const SoloDominion: React.FC<any> = (props) => {
             )}
 
             {proofStep === "selfie" && (
-              <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+              <div className="px-5 sm:px-6 py-4 space-y-3">
+                <div className="p-2.5 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
                   <p className="text-[11px] font-mono leading-relaxed text-black">📸 Upload a <strong>clear selfie</strong> showing you in the act of completing "<strong>{proofMission.title}</strong>".</p>
                 </div>
                 {proofSelfieBase64 ? (
                   <div className="space-y-2">
-                    <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000" }}>
+                    <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-64 mx-auto" style={{ borderColor: "#000" }}>
                       <img src={proofSelfieBase64} alt="Selfie proof" className="w-full h-full object-cover" />
                       <button onClick={() => setProofSelfieBase64(null)} className="absolute top-2 right-2 p-1.5 rounded-full text-white" style={{ backgroundColor: "rgba(0,0,0,0.7)" }} aria-label="Remove selfie">
                         <X size={14} />
@@ -1919,17 +1919,17 @@ export const SoloDominion: React.FC<any> = (props) => {
                   </div>
                 ) : (
                   <label className="block">
-                    <div className="rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
-                      <div className="text-5xl mb-2">📷</div>
+                    <div className="rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition" style={{ borderColor: "#000", backgroundColor: "#fff" }}>
+                      <div className="text-4xl mb-1.5">📷</div>
                       <p className="text-xs font-bold text-black">Tap to take or upload selfie</p>
-                      <p className="text-[10px] font-mono mt-1" style={{ color: "#555" }}>JPG/PNG • max 8MB</p>
+                      <p className="text-[10px] font-mono mt-0.5" style={{ color: "#555" }}>JPG/PNG • max 8MB</p>
                       <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleSelfieFile} />
                     </div>
                   </label>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setProofStep("choose")} className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
-                  <button onClick={submitProofForVerification} disabled={!proofSelfieBase64 || proofVerifying} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30" style={{ backgroundColor: "#000" }}>
+                  <button onClick={() => setProofStep("choose")} className="flex-1 py-2 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
+                  <button onClick={submitProofForVerification} disabled={!proofSelfieBase64 || proofVerifying} className="flex-1 py-2 rounded-xl text-xs font-black uppercase text-white disabled:opacity-30" style={{ backgroundColor: "#000" }}>
                     {proofVerifying ? "Verifying..." : "Submit →"}
                   </button>
                 </div>
@@ -1937,11 +1937,11 @@ export const SoloDominion: React.FC<any> = (props) => {
             )}
 
             {proofStep === "video" && (
-              <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+              <div className="px-5 sm:px-6 py-4 space-y-3">
+                <div className="p-2.5 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
                   <p className="text-[11px] font-mono leading-relaxed text-black">🎥 Record a <strong>30-second oath video</strong> swearing you completed "<strong>{proofMission.title}</strong>".</p>
                 </div>
-                <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-80 mx-auto" style={{ borderColor: "#000", backgroundColor: "#000" }}>
+                <div className="relative rounded-2xl overflow-hidden border-2 aspect-[3/4] max-h-64 mx-auto" style={{ borderColor: "#000", backgroundColor: "#000" }}>
                   {proofVideoUrl ? (
                     <>
                       <video src={proofVideoUrl} controls className="w-full h-full object-cover" />
@@ -1954,9 +1954,9 @@ export const SoloDominion: React.FC<any> = (props) => {
                       <video ref={videoPreviewRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                       {!isRecordingVideo && (
                         <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
-                          <div className="text-center space-y-2">
-                            <div className="text-5xl">🎥</div>
-                            <p className="text-xs font-mono text-white">Camera preview will appear here</p>
+                          <div className="text-center space-y-1.5">
+                            <div className="text-4xl">🎥</div>
+                            <p className="text-[10px] font-mono text-white">Camera preview will appear here</p>
                           </div>
                         </div>
                       )}
@@ -1971,28 +1971,28 @@ export const SoloDominion: React.FC<any> = (props) => {
                 </div>
                 <div className="flex gap-2">
                   {!isRecordingVideo && !proofVideoUrl && (
-                    <button onClick={startVideoRecording} disabled={!videoRecorderSupported} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2 disabled:opacity-30" style={{ backgroundColor: "#000" }}>
-                      <div className="w-3 h-3 rounded-full bg-white" /> Start Recording
+                    <button onClick={startVideoRecording} disabled={!videoRecorderSupported} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2 disabled:opacity-30" style={{ backgroundColor: "#000" }}>
+                      <div className="w-2.5 h-2.5 rounded-full bg-white" /> Start Recording
                     </button>
                   )}
                   {isRecordingVideo && (
-                    <button onClick={stopVideoRecording} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#000" }}>
-                      <div className="w-3 h-3 rounded-sm bg-white" /> Stop Recording
+                    <button onClick={stopVideoRecording} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#000" }}>
+                      <div className="w-2.5 h-2.5 rounded-sm bg-white" /> Stop Recording
                     </button>
                   )}
                   {proofVideoUrl && (
-                    <button onClick={submitProofForVerification} disabled={proofVerifying} className="flex-1 py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: "#000" }}>
+                    <button onClick={submitProofForVerification} disabled={proofVerifying} className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: "#000" }}>
                       {proofVerifying ? "Verifying..." : "Submit →"}
                     </button>
                   )}
                 </div>
-                <button onClick={() => setProofStep("choose")} className="w-full py-2 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
+                <button onClick={() => setProofStep("choose")} className="w-full py-1.5 rounded-xl text-xs font-bold border-2 text-black" style={{ borderColor: "#000", backgroundColor: "#fff" }}>← Back</button>
               </div>
             )}
 
             {proofStep === "text" && (
-              <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div className="p-3 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
+              <div className="px-5 sm:px-6 py-4 space-y-3">
+                <div className="p-2.5 rounded-xl border" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
                   <p className="text-[11px] font-mono leading-relaxed text-black">✍️ Pick a template and customize your <strong>universe oath</strong>. Min <strong>10 words</strong>.</p>
                 </div>
                 <div>
@@ -2026,7 +2026,7 @@ export const SoloDominion: React.FC<any> = (props) => {
             )}
 
             {proofStep === "verifying" && (
-              <div className="px-5 sm:px-7 py-10 text-center">
+              <div className="px-5 sm:px-6 py-8 text-center">
                 <div className="relative w-20 h-20 mx-auto mb-5">
                   <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: "#e5e5e5" }} />
                   <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: "#000" }} />
@@ -2039,8 +2039,8 @@ export const SoloDominion: React.FC<any> = (props) => {
             )}
 
             {proofStep === "result" && proofResult && (
-              <div className="px-5 sm:px-7 py-5 space-y-4">
-                <div className="p-5 rounded-2xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: proofResult.verified ? "#000" : "#fff", color: proofResult.verified ? "#fff" : "#000" }}>
+              <div className="px-5 sm:px-6 py-4 space-y-3">
+                <div className="p-4 rounded-2xl border-2 text-center" style={{ borderColor: "#000", backgroundColor: proofResult.verified ? "#000" : "#fff", color: proofResult.verified ? "#fff" : "#000" }}>
                   <div className="text-5xl mb-2">{proofResult.verified ? "✓" : "✕"}</div>
                   <h3 className="text-base font-black uppercase tracking-tight">{proofResult.verified ? "Universe Accepted" : "Proof Rejected"}</h3>
                   <p className="text-[11px] mt-2 font-mono leading-relaxed opacity-90">{proofResult.feedback}</p>
@@ -2068,8 +2068,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* LEGACY MODALS (Welcome, Streaks, etc.) — still functional  */}
       {/* ============================================================ */}
       {showMissionsModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
+        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Target size={18} className="text-purple-400" />
@@ -2107,28 +2107,28 @@ export const SoloDominion: React.FC<any> = (props) => {
           (welcome card, sync, etc. — full logic lives below as standalone
           functions so the existing data flow keeps working). */}
       {showWelcomeCardModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-[#121124] border border-emerald-500/50 rounded-[32px] w-full max-w-lg p-5 sm:p-7 space-y-5 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-[#121124] border border-emerald-500/50 rounded-[28px] w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl relative my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
             <button
               onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
-              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
+              className="absolute top-3 right-3 p-1.5 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
-            <div className="space-y-2 relative z-10">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Sparkles size={14} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
+            <div className="space-y-1.5 relative z-10 pr-8">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                <Sparkles size={12} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase font-serif tracking-wide">SEEKER TRAINEE CARD</h2>
-              <p className="text-xs text-emerald-200 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
+              <h2 className="text-xl sm:text-2xl font-black text-white uppercase font-serif tracking-wide leading-tight">SEEKER TRAINEE CARD</h2>
+              <p className="text-[10px] text-emerald-200/80 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
             </div>
-            <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-6 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
+            <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-4 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
               <img src={resolveImageUrl(CHARACTER_TIERS[0].image)} alt="Seeker" onError={onImgError()} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none" />
-              <div className="relative z-10 space-y-3">
-                <div className="text-[10px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
-                <div className="text-sm font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
-                <div className="text-[10px] text-zinc-300 font-mono italic pt-2">"{CHARACTER_TIERS[0].quote}"</div>
-                <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-zinc-400 flex justify-between">
+              <div className="relative z-10 space-y-2">
+                <div className="text-[9px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
+                <div className="text-xs font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
+                <div className="text-[10px] text-zinc-300 font-mono italic leading-snug">"{CHARACTER_TIERS[0].quote}"</div>
+                <div className="pt-2 border-t border-white/10 text-[9px] font-mono text-zinc-400 flex justify-between">
                   <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
                   <span className="text-emerald-400 font-bold">UNLOCKED</span>
                 </div>
@@ -2136,50 +2136,50 @@ export const SoloDominion: React.FC<any> = (props) => {
             </div>
             <button
               onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("🎉 WELCOME SEEKER CARD CLAIMED!"); }}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-sm font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2 relative z-10"
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2 relative z-10"
             >
-              <Award size={18} /> CLAIM WELCOME CARD & ENTER
+              <Award size={16} /> CLAIM WELCOME CARD & ENTER
             </button>
           </div>
         </div>
       )}
 
       {showSyncModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-[#121124] border border-purple-500/50 rounded-[32px] w-full max-w-md p-5 sm:p-7 space-y-5 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
-            <button onClick={() => setShowSyncModal(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">
-              <X size={20} />
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-[#121124] border border-purple-500/50 rounded-[28px] w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl relative my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
+            <button onClick={() => setShowSyncModal(false)} className="absolute top-3 right-3 p-1.5 text-white/50 hover:text-white">
+              <X size={18} />
             </button>
-            <div className="space-y-2">
-              <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Calendar size={12} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
+            <div className="space-y-1.5 pr-8">
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                <Calendar size={11} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
               </span>
-              <h3 className="text-xl font-black text-white font-serif uppercase tracking-wide">Sync Commitment Streak</h3>
-              <p className="text-[11px] text-white/50 leading-relaxed">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
+              <h3 className="text-lg font-black text-white font-serif uppercase tracking-wide leading-tight">Sync Commitment Streak</h3>
+              <p className="text-[10px] text-white/50 leading-relaxed">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
             </div>
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-4">
+            <div className="bg-black/40 p-3.5 rounded-2xl border border-white/5 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
-                <span className="text-3xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
+                <span className="text-[10px] font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
+                <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
               </div>
-              <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-2 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-              <div className="flex justify-between text-[10px] font-mono text-zinc-500">
+              <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-1.5 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+              <div className="flex justify-between text-[9px] font-mono text-zinc-500">
                 <span>1 Day</span>
                 <span>42 Days (Milestone)</span>
                 <span>100 Days</span>
               </div>
             </div>
-            <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
-              {isSyncing ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING TIMELINE...</> : <><Calendar size={14} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
+            <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
+              {isSyncing ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING...</> : <><Calendar size={12} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
             </button>
-            <span className="text-[9.5px] font-mono text-zinc-500 block">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
+            <span className="text-[9px] font-mono text-zinc-500 block text-center">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
           </div>
         </div>
       )}
 
       {selectedStreak && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl my-auto sd-modal-card sd-modal-scroll" style={{ maxHeight: "calc(100vh - 32px)" }}>
+        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card" style={{ maxHeight: "min(520px, calc(100vh - 32px))", overflowY: "auto" }}>
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{selectedStreak.icon}</span>
@@ -2213,10 +2213,10 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {selectedCard && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
+        <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
           <div
-            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-5 sm:p-7 shadow-2xl relative my-auto sd-modal-card sd-modal-scroll"
-            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "calc(100vh - 32px)" }}
+            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-4 sm:p-5 shadow-2xl relative my-auto sd-modal-card"
+            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}
           >
             <button onClick={() => setSelectedCard(null)} className="absolute top-3 right-3 p-2 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 z-20">
               <X size={18} />
