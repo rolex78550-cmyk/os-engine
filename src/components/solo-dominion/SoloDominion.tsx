@@ -1421,7 +1421,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         .sd-body-font { font-family: 'Inter', system-ui, sans-serif; }
         .sd-mono-font { font-family: 'JetBrains Mono', 'Courier New', monospace; }
         .sd-shimmer-text {
-          background: linear-gradient(90deg, #d4af37 0%, #f5e7a3 25%, #d4af37 50%, #f5e7a3 75%, #d4af37 100%);
+          background: linear-gradient(90deg, #b8941f 0%, #f5e7a3 25%, #d4af37 50%, #f5e7a3 75%, #b8941f 100%);
           background-size: 200% 100%;
           -webkit-background-clip: text;
           background-clip: text;
@@ -1430,19 +1430,19 @@ export const SoloDominion: React.FC<any> = (props) => {
         }
         .sd-anime-bg {
           background-image:
-            linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.85) 75%, rgba(0,0,0,0.95) 100%),
-            url('/images/anime_warrior_dark_01.jpg');
+            linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.88) 75%, rgba(0,0,0,0.97) 100%),
+            url('/images/hero_solo_01.jpg');
           background-size: cover;
-          background-position: center;
+          background-position: center 30%;
           background-attachment: fixed;
           animation: kenBurns 30s ease-in-out infinite;
         }
         .sd-hero-banner {
           background-image:
-            linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.7) 100%),
-            url('/images/anime_knight_dark_02.jpg');
+            linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.75) 100%),
+            url('/images/quest_solo_02.jpg');
           background-size: cover;
-          background-position: center top;
+          background-position: center 25%;
         }
         .sd-card-border {
           border: 1px solid rgba(255,255,255,0.08);
@@ -2258,11 +2258,11 @@ const QuestBoard: React.FC<{
     const r = (q.rank || "E") as QuestRank;
     // Anime character per rank
     const RANK_ART: Record<QuestRank, string> = {
-      E: "/images/anime_warrior_dark_01.jpg",
-      D: "/images/anime_warrior_dark_01.jpg",
-      C: "/images/anime_knight_dark_02.jpg",
-      B: "/images/anime_knight_dark_02.jpg",
-      A: "/images/anime_throne_dark_03.jpg",
+      E: "/images/hero_solo_01.jpg",
+      D: "/images/hero_solo_01.jpg",
+      C: "/images/quest_solo_02.jpg",
+      B: "/images/quest_solo_02.jpg",
+      A: "/images/boss_solo_03.jpg",
     };
     const art = RANK_ART[r] || RANK_ART.E;
     return (
@@ -2382,7 +2382,7 @@ const QuestBoard: React.FC<{
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg overflow-hidden border border-red-900/60 shrink-0">
-                <img src={resolveImageUrl("/images/anime_throne_dark_03.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
+                <img src={resolveImageUrl("/images/boss_solo_03.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="sd-rank-badge text-[10px] text-red-200/80">Boss Battles</div>
@@ -2404,7 +2404,7 @@ const QuestBoard: React.FC<{
                 <div className="flex items-stretch">
                   <div className="relative w-14 shrink-0 overflow-hidden">
                     <img
-                      src={resolveImageUrl(b.bossImage || "/images/anime_knight_dark_02.jpg")}
+                      src={resolveImageUrl(b.bossImage || "/images/quest_solo_02.jpg")}
                       alt={b.title}
                       onError={onImgError()}
                       className="absolute inset-0 w-full h-full object-cover"

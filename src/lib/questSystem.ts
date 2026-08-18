@@ -50,11 +50,11 @@ export const RANK_XP: Record<QuestRank, { min: number; max: number }> = {
 };
 
 export const RANK_COLOR: Record<QuestRank, string> = {
-  E: "#94a3b8",  // slate-400
-  D: "#22c55e",  // green-500
-  C: "#3b82f6",  // blue-500
-  B: "#a855f7",  // purple-500
-  A: "#f59e0b",  // amber-500
+  E: "#8a8d91",  // silver (Seeker)
+  D: "#c4b06a",  // bronze-gold
+  C: "#d4af37",  // gold
+  B: "#e8c547",  // bright gold
+  A: "#f5e7a3",  // cream-gold (Apex)
 };
 
 export const RANK_LABEL: Record<QuestRank, string> = {
@@ -203,7 +203,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 250,
     questType: "boss",
     description: "Complete 3 hours of uninterrupted deep work. No phone. No excuses. Slay the demon.",
-    bossImage: "/images/anime_knight_dark_02.jpg",
+    bossImage: "/images/quest_solo_02.jpg",
   },
   {
     id: "boss-comfort",
@@ -213,7 +213,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 200,
     questType: "boss",
     description: "Complete the task you have been actively avoiding for the past 7 days. Today you face it.",
-    bossImage: "/images/anime_throne_dark_03.jpg",
+    bossImage: "/images/boss_solo_03.jpg",
   },
   {
     id: "boss-distraction",
@@ -223,7 +223,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 200,
     questType: "boss",
     description: "Complete a 4-hour social media and news detox. Reclaim your attention.",
-    bossImage: "/images/anime_knight_dark_02.jpg",
+    bossImage: "/images/quest_solo_02.jpg",
   },
   {
     id: "boss-fear",
@@ -233,7 +233,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 200,
     questType: "boss",
     description: "Take one concrete action that genuinely makes you uncomfortable — send the DM, make the call, publish the work.",
-    bossImage: "/images/anime_knight_dark_02.jpg",
+    bossImage: "/images/quest_solo_02.jpg",
   },
   {
     id: "boss-doubt",
@@ -243,7 +243,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 250,
     questType: "boss",
     description: "Publish or show your work publicly. A post, a repo, a video, a portfolio piece. Make it real.",
-    bossImage: "/images/anime_throne_dark_03.jpg",
+    bossImage: "/images/boss_solo_03.jpg",
   },
   {
     id: "boss-chaos",
@@ -253,7 +253,7 @@ export const BOSS_QUESTS: QuestDef[] = [
     xp: 150,
     questType: "boss",
     description: "Completely organize your workspace, files or one full life system. Order from chaos.",
-    bossImage: "/images/anime_knight_dark_02.jpg",
+    bossImage: "/images/quest_solo_02.jpg",
   },
 ];
 
@@ -284,11 +284,11 @@ export const CHARACTER_TIERS: CharacterTier[] = [
     level: 1,
     name: "SEEKER",
     title: "CIVILIAN SEEKER",
-    image: "/images/anime_warrior_dark_01.jpg",
+    image: "/images/hero_solo_01.jpg",
     accent: "slate",
-    borderGlow: "rgba(148, 163, 184, 0.6)",
-    iconBg: "from-slate-500 via-zinc-600 to-neutral-700",
-    ornamentColor: "text-slate-200",
+    borderGlow: "rgba(212, 175, 55, 0.45)",
+    iconBg: "from-zinc-700 via-zinc-800 to-neutral-900",
+    ornamentColor: "text-amber-200",
     badge: "👤 SEEKER TRAINEE",
     description: "The first step. You have entered the dominion of your own life.",
     quote: "A journey of a thousand leagues begins with a single deliberate habit.",
@@ -300,11 +300,11 @@ export const CHARACTER_TIERS: CharacterTier[] = [
     level: 5,
     name: "DEMON SLAYER",
     title: "DEMON SLAYER",
-    image: "/images/anime_warrior_dark_01.jpg",
+    image: "/images/hero_solo_01.jpg",
     accent: "slate",
-    borderGlow: "rgba(148, 163, 184, 0.7)",
-    iconBg: "from-zinc-500 via-slate-600 to-neutral-700",
-    ornamentColor: "text-slate-200",
+    borderGlow: "rgba(212, 175, 55, 0.55)",
+    iconBg: "from-zinc-700 via-zinc-800 to-neutral-900",
+    ornamentColor: "text-amber-200",
     badge: "⚔️ DEMON SLAYER",
     description: "You have tasted blood against your own excuses. The demons no longer scare you.",
     quote: "Cut through doubt.\nSlay your demons.\nBecome unstoppable.",
@@ -316,11 +316,11 @@ export const CHARACTER_TIERS: CharacterTier[] = [
     level: 12,
     name: "CRIMSON BERSERKER",
     title: "CRIMSON BERSERKER",
-    image: "/images/anime_knight_dark_02.jpg",
+    image: "/images/quest_solo_02.jpg",
     accent: "slate",
-    borderGlow: "rgba(148, 163, 184, 0.6)",
-    iconBg: "from-zinc-500 via-slate-600 to-neutral-700",
-    ornamentColor: "text-slate-200",
+    borderGlow: "rgba(212, 175, 55, 0.6)",
+    iconBg: "from-zinc-700 via-zinc-800 to-neutral-900",
+    ornamentColor: "text-amber-200",
     badge: "⚔️ CRIMSON BERSERKER",
     description: "Forged in crimson fire. Physical and mental willpower rising infinitely.",
     quote: "Rage is temporary.\nDiscipline is eternal.\nChoose your legacy.",
@@ -332,11 +332,11 @@ export const CHARACTER_TIERS: CharacterTier[] = [
     level: 25,
     name: "SHADOW COMMANDER",
     title: "SHADOW COMMANDER",
-    image: "/images/anime_knight_dark_02.jpg",
+    image: "/images/quest_solo_02.jpg",
     accent: "slate",
-    borderGlow: "rgba(148, 163, 184, 0.6)",
-    iconBg: "from-slate-500 via-zinc-600 to-neutral-700",
-    ornamentColor: "text-slate-200",
+    borderGlow: "rgba(212, 175, 55, 0.7)",
+    iconBg: "from-zinc-700 via-zinc-800 to-neutral-900",
+    ornamentColor: "text-amber-200",
     badge: "⚔️ SHADOW KNIGHT",
     description: "Master of focus. The world is ruled by those who operate in the shadows.",
     quote: "The world is ruled\nby those who operate\nin the shadows.",
@@ -348,11 +348,11 @@ export const CHARACTER_TIERS: CharacterTier[] = [
     level: 50,
     name: "COSMIC SHADOW MONARCH",
     title: "COSMIC SHADOW MONARCH",
-    image: "/images/anime_throne_dark_03.jpg",
+    image: "/images/boss_solo_03.jpg",
     accent: "amber",
-    borderGlow: "rgba(251, 191, 36, 0.7)",
-    iconBg: "from-amber-400 via-yellow-500 to-orange-500",
-    ornamentColor: "text-amber-300",
+    borderGlow: "rgba(212, 175, 55, 0.85)",
+    iconBg: "from-amber-500 via-yellow-600 to-amber-700",
+    ornamentColor: "text-amber-200",
     badge: "👑 COSMIC MONARCH",
     description: "Peak reality creation. You do not chase the universe — you become something it cannot ignore.",
     quote: "You don't chase the universe.\nYou become something\nit bows to.",
