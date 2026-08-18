@@ -2108,71 +2108,86 @@ export const SoloDominion: React.FC<any> = (props) => {
           functions so the existing data flow keeps working). */}
       {showWelcomeCardModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-[#121124] border border-emerald-500/50 rounded-[28px] w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl relative my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
-            <button
-              onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
-              className="absolute top-3 right-3 p-1.5 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition z-20"
-            >
-              <X size={16} />
-            </button>
-            <div className="space-y-1.5 relative z-10 pr-8">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Sparkles size={12} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white uppercase font-serif tracking-wide leading-tight">SEEKER TRAINEE CARD</h2>
-              <p className="text-[10px] text-emerald-200/80 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
+          <div className="bg-[#121124] border border-emerald-500/50 rounded-[28px] w-full max-w-lg shadow-2xl relative my-auto sd-modal-card flex flex-col" style={{ maxHeight: "min(640px, calc(100vh - 32px))" }}>
+            {/* STICKY HEADER */}
+            <div className="sticky top-0 z-10 bg-[#121124] rounded-t-[28px] border-b border-emerald-500/30 px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0">
+              <div className="flex-1 min-w-0">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                  <Sparkles size={11} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
+                </span>
+                <h2 className="text-lg sm:text-xl font-black text-white uppercase font-serif tracking-wide leading-tight mt-1">SEEKER TRAINEE CARD</h2>
+                <p className="text-[10px] text-emerald-200/80 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
+              </div>
+              <button
+                onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition shrink-0"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-4 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
-              <img src={resolveImageUrl(CHARACTER_TIERS[0].image)} alt="Seeker" onError={onImgError()} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none" />
-              <div className="relative z-10 space-y-2">
-                <div className="text-[9px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
-                <div className="text-xs font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
-                <div className="text-[10px] text-zinc-300 font-mono italic leading-snug">"{CHARACTER_TIERS[0].quote}"</div>
-                <div className="pt-2 border-t border-white/10 text-[9px] font-mono text-zinc-400 flex justify-between">
-                  <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
-                  <span className="text-emerald-400 font-bold">UNLOCKED</span>
+
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 py-4 space-y-3">
+              <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-4 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
+                <img src={resolveImageUrl(CHARACTER_TIERS[0].image)} alt="Seeker" onError={onImgError()} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none" />
+                <div className="relative z-10 space-y-2">
+                  <div className="text-[9px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
+                  <div className="text-xs font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
+                  <div className="text-[10px] text-zinc-300 font-mono italic leading-snug">"{CHARACTER_TIERS[0].quote}"</div>
+                  <div className="pt-2 border-t border-white/10 text-[9px] font-mono text-zinc-400 flex justify-between">
+                    <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
+                    <span className="text-emerald-400 font-bold">UNLOCKED</span>
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("🎉 WELCOME SEEKER CARD CLAIMED!"); }}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2"
+              >
+                <Award size={16} /> CLAIM WELCOME CARD & ENTER
+              </button>
             </div>
-            <button
-              onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("🎉 WELCOME SEEKER CARD CLAIMED!"); }}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2 relative z-10"
-            >
-              <Award size={16} /> CLAIM WELCOME CARD & ENTER
-            </button>
           </div>
         </div>
       )}
 
       {showSyncModal && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-[#121124] border border-purple-500/50 rounded-[28px] w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl relative my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
-            <button onClick={() => setShowSyncModal(false)} className="absolute top-3 right-3 p-1.5 text-white/50 hover:text-white">
-              <X size={18} />
-            </button>
-            <div className="space-y-1.5 pr-8">
-              <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                <Calendar size={11} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
-              </span>
-              <h3 className="text-lg font-black text-white font-serif uppercase tracking-wide leading-tight">Sync Commitment Streak</h3>
-              <p className="text-[10px] text-white/50 leading-relaxed">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
-            </div>
-            <div className="bg-black/40 p-3.5 rounded-2xl border border-white/5 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
-                <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
+          <div className="bg-[#121124] border border-purple-500/50 rounded-[28px] w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col" style={{ maxHeight: "min(640px, calc(100vh - 32px))" }}>
+            {/* STICKY HEADER */}
+            <div className="sticky top-0 z-10 bg-[#121124] rounded-t-[28px] border-b border-purple-500/30 px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0">
+              <div className="flex-1 min-w-0">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
+                  <Calendar size={11} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white font-serif uppercase tracking-wide leading-tight mt-1">Sync Commitment Streak</h3>
+                <p className="text-[10px] text-white/50 leading-relaxed mt-0.5">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
               </div>
-              <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-1.5 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-              <div className="flex justify-between text-[9px] font-mono text-zinc-500">
-                <span>1 Day</span>
-                <span>42 Days (Milestone)</span>
-                <span>100 Days</span>
-              </div>
+              <button onClick={() => setShowSyncModal(false)} className="p-1.5 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition shrink-0" aria-label="Close">
+                <X size={16} />
+              </button>
             </div>
-            <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
-              {isSyncing ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING...</> : <><Calendar size={12} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
-            </button>
-            <span className="text-[9px] font-mono text-zinc-500 block text-center">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
+
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 py-4 space-y-3">
+              <div className="bg-black/40 p-3.5 rounded-2xl border border-white/5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
+                  <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
+                </div>
+                <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-1.5 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                <div className="flex justify-between text-[9px] font-mono text-zinc-500">
+                  <span>1 Day</span>
+                  <span>42 Days (Milestone)</span>
+                  <span>100 Days</span>
+                </div>
+              </div>
+              <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSyncing ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING...</> : <><Calendar size={12} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
+              </button>
+              <span className="text-[9px] font-mono text-zinc-500 block text-center">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
+            </div>
           </div>
         </div>
       )}
@@ -2215,37 +2230,44 @@ export const SoloDominion: React.FC<any> = (props) => {
       {selectedCard && (
         <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
           <div
-            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md p-4 sm:p-5 shadow-2xl relative my-auto sd-modal-card"
-            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}
+            className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col"
+            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
           >
-            <button onClick={() => setSelectedCard(null)} className="absolute top-3 right-3 p-2 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 z-20">
-              <X size={18} />
-            </button>
-            <div className="text-center space-y-2 mb-4">
-              <span className={`text-[10px] font-mono font-bold tracking-[3px] uppercase ${selectedCard.ornamentColor}`}>{selectedCard.label}</span>
-              <h3 className="text-2xl font-serif font-black uppercase tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{selectedCard.name}</h3>
-              <p className="text-[11px] font-mono text-white/50">UNLOCKED AT LEVEL {selectedCard.level}</p>
-            </div>
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border-2 mb-4" style={{ borderColor: selectedCard.borderGlow }}>
-              <img src={resolveImageUrl(selectedCard.image)} alt={selectedCard.name} onError={onImgError()} className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)" }} />
-              <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                <p className="text-[12px] font-serif italic text-white text-center leading-snug whitespace-pre-line drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">{selectedCard.quote}</p>
+            {/* STICKY HEADER */}
+            <div className="sticky top-0 z-10 bg-[#0A0612] rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ borderColor: selectedCard.borderGlow }}>
+              <div className="flex-1 min-w-0 text-center">
+                <span className={`text-[10px] font-mono font-bold tracking-[3px] uppercase ${selectedCard.ornamentColor}`}>{selectedCard.label}</span>
+                <h3 className="text-lg sm:text-xl font-serif font-black uppercase tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] mt-0.5">{selectedCard.name}</h3>
+                <p className="text-[10px] font-mono text-white/50">UNLOCKED AT LEVEL {selectedCard.level}</p>
               </div>
+              <button onClick={() => setSelectedCard(null)} className="p-1.5 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition shrink-0" aria-label="Close">
+                <X size={16} />
+              </button>
             </div>
-            <div className="space-y-2 bg-black/40 p-3 rounded-2xl border border-white/10">
-              <span className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider block">PERKS & MULTIPLIERS</span>
-              <ul className="space-y-1.5 text-[11px] text-zinc-200 font-mono">
-                {(selectedCard.perks || []).map((p: string, i: number) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <Sparkles size={12} className="text-emerald-400 shrink-0" />{p}
-                  </li>
-                ))}
-              </ul>
+
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 py-4 space-y-3">
+              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border-2" style={{ borderColor: selectedCard.borderGlow }}>
+                <img src={resolveImageUrl(selectedCard.image)} alt={selectedCard.name} onError={onImgError()} className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)" }} />
+                <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                  <p className="text-[11px] font-serif italic text-white text-center leading-snug whitespace-pre-line drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">{selectedCard.quote}</p>
+                </div>
+              </div>
+              <div className="space-y-2 bg-black/40 p-3 rounded-2xl border border-white/10">
+                <span className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider block">PERKS & MULTIPLIERS</span>
+                <ul className="space-y-1.5 text-[11px] text-zinc-200 font-mono">
+                  {(selectedCard.perks || []).map((p: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <Sparkles size={12} className="text-emerald-400 shrink-0" />{p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button onClick={() => setSelectedCard(null)} className="w-full py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: selectedCard.borderGlow, color: "#000" }}>
+                CLOSE
+              </button>
             </div>
-            <button onClick={() => setSelectedCard(null)} className="w-full mt-4 py-3 rounded-xl text-xs font-black uppercase text-white" style={{ backgroundColor: selectedCard.borderGlow, color: "#000" }}>
-              CLOSE
-            </button>
           </div>
         </div>
       )}

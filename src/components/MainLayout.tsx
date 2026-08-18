@@ -1,8 +1,9 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import {
   Sparkles, LayoutDashboard, Flame, Target, ImageIcon, BookOpen, Crown, User, Shield, LogOut, LogIn, RefreshCw, Bell, ChevronRight, CheckCircle, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+// (Key approach removed — using helper child component below for scroll-to-top)
 import ParticleBackground from "./ParticleBackground";
 import UniversePortalAnimation from "./UniversePortalAnimation";
 import { getTrialInfo } from "../lib/subscription";
@@ -90,6 +91,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           aria-hidden="true"
         />
       )}
+
+      {/* Helper: scroll to top on every page change so user lands at the top */}
+      <NavScrollToTop activeTab={activeTab} />
 
       {/* Top Toast Notification */}
       <AnimatePresence>
@@ -455,4 +459,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </nav>
     </div>
   );
+};
+
+/**
+ * NavScrollToTop — tiny helper that scrolls the page to top whenever
+ * the active tab changes. This makes navigation feel like separate
+ * pages (Dashboard → Goals → Profile) instead of one long scroll.
+ */
+const NavScrollToTop: React.FC<{ activeTab: string }> = ({ activeTab }) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Defer to next frame so the new tab content has time to mount
+      // before we scroll — otherwise the height is still the previous
+      // page's height and we land in the middle.
+      requestAnimationFrame(() => {
+        try {
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        } catch {
+          window.scrollTo(0, 0);
+        }
+      });
+    }
+  }, [activeTab]);
+  return null;
 };
