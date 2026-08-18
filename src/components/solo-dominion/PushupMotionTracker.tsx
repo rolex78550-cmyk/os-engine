@@ -357,10 +357,10 @@ const IDLE_STATE: React.FC<{
       <div className="p-3 rounded-lg border-2 text-center" style={{ borderColor: "#000", backgroundColor: "#fafafa" }}>
         <div className="text-4xl mb-1">📱</div>
         <h2 className="text-base font-black uppercase tracking-tight text-black">
-          AI Motion Tracker
+          Motion Tracker
         </h2>
         <p className="text-[10.5px] font-mono mt-1 leading-relaxed" style={{ color: "#555" }}>
-          Phone <strong>chest pocket</strong> ya <strong>waistband</strong> mein rakho aur push-ups shuru karo. Har rep auto-count hoga — no camera, no AI, 100% private.
+          Place your phone in your <strong>chest pocket</strong> or <strong>waistband</strong> and start doing push-ups. Each rep is counted automatically using your phone's motion sensor. No camera, no AI upload, 100% private.
         </p>
       </div>
 
@@ -369,19 +369,19 @@ const IDLE_STATE: React.FC<{
         <div className="space-y-1 text-[10.5px] font-mono leading-snug" style={{ color: "#333" }}>
           <div className="flex items-start gap-1.5">
             <span className="font-black shrink-0">1.</span>
-            <span>Phone chest pocket / waistband mein tight fit karke rakho</span>
+            <span>Place your phone tightly in a chest pocket or waistband</span>
           </div>
           <div className="flex items-start gap-1.5">
             <span className="font-black shrink-0">2.</span>
-            <span>Push-up position lo (face-down ya face-up, dono chalega)</span>
+            <span>Get into push-up position (face-down or face-up both work)</span>
           </div>
           <div className="flex items-start gap-1.5">
             <span className="font-black shrink-0">3.</span>
-            <span>Push-ups karo — har full rep auto-count + phone vibrate hoga</span>
+            <span>Start doing push-ups — each full rep is auto-counted and your phone will vibrate</span>
           </div>
           <div className="flex items-start gap-1.5">
             <span className="font-black shrink-0">4.</span>
-            <span>{targetReps} reps pe automatic +{targetReps * xpPerRep} XP milega</span>
+            <span>Once you reach {targetReps} reps, your session is automatically verified and you earn +{targetReps * xpPerRep} XP</span>
           </div>
         </div>
       </div>
@@ -392,9 +392,9 @@ const IDLE_STATE: React.FC<{
           <span className="text-[9px] font-mono font-bold uppercase tracking-wider">ANTI-CHEAT</span>
         </div>
         <ul className="space-y-0.5 text-[10px] font-mono leading-snug opacity-90">
-          <li>✗ Phone hilaya bina tap = reject</li>
-          <li>✗ Too-fast reps (less than 0.8s) = reject</li>
-          <li>✗ Inconsistent movement = form warning</li>
+          <li>✗ Tapping without moving the phone will be rejected</li>
+          <li>✗ Reps faster than 0.8 seconds will be rejected</li>
+          <li>✗ Inconsistent movement triggers a form warning</li>
         </ul>
       </div>
 
@@ -402,7 +402,7 @@ const IDLE_STATE: React.FC<{
         <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2", color: "#7f1d1d" }}>
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <div className="text-[10.5px] font-mono leading-snug">
-            <strong>Motion permission denied.</strong> Enable motion access in browser settings (iOS: Settings → Safari → Motion & Orientation Access).
+            <strong>Motion permission denied.</strong> Please enable motion access in your browser settings (iOS: Settings → Safari → Motion & Orientation Access).
           </div>
         </div>
       )}
@@ -411,14 +411,14 @@ const IDLE_STATE: React.FC<{
         <div className="p-2.5 rounded-lg border-2 flex items-start gap-2" style={{ borderColor: "#f59e0b", backgroundColor: "#fffbeb", color: "#78350f" }}>
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <div className="text-[10.5px] font-mono leading-snug">
-            <strong>Motion sensor not available.</strong> Use a mobile device with motion sensors.
+            <strong>Motion sensor not available.</strong> Please use a mobile device with motion sensors enabled.
           </div>
         </div>
       )}
 
       {!hapticSupported && (
         <p className="text-[9px] font-mono text-center" style={{ color: "#888" }}>
-          ℹ️ Haptic feedback unavailable on this device
+          ℹ️ Haptic feedback is not available on this device
         </p>
       )}
 
