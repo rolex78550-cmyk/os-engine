@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Target, Zap, BookOpen, Edit3, Flame, CheckCircle, ArrowRight,
-  Volume2, VolumeX, Plus, X, ChevronLeft, ChevronRight, Star,
+  Plus, X, ChevronLeft, ChevronRight, Star,
   Trophy, Sparkles, Calendar, Edit2, Trash2, Award, Info, Gift, User, Check,
-  CreditCard, Crown, AudioLines, AudioWaveform
+  CreditCard, Crown
 } from "lucide-react";
 import { useAppLogic } from "../../hooks/useAppLogic";
 import { useRPG } from "../../hooks/useRPG";
@@ -14,7 +14,6 @@ import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
-import { speak, speakFromCategory, stopSpeaking, initVillainVoice, isVoiceAvailable, setReverbEnabled, isReverbEnabled } from "../../lib/villainVoice";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
@@ -202,30 +201,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     }
   };
 
-  // --- DEEP VILLAIN VOICE (Dr. Doom style) ---
-  // Uses Web Speech API with deep, slow, dramatic voice.
-  // No API calls, no tokens — pure browser native.
-  const playVoiceover = (type: "complete" | "start" | "levelup" | "claim" | "rank" | "streak" | "intro") => {
-    if (!isVoiceAvailable() || voiceMuted) return;
-    const map: Record<string, "complete" | "start" | "levelup" | "claim" | "rank" | "streak" | "intro"> = {
-      complete: "complete",
-      start: "start",
-      levelup: "levelup",
-      claim: "claim",
-      rank: "rank",
-      streak: "streak",
-      intro: "intro",
-    };
-    void speakFromCategory(map[type] || "start");
-  };
-
-  // Workout-specific voice intros
-  const playWorkoutIntro = (workoutType: string | null) => {
-    if (!isVoiceAvailable() || voiceMuted || !workoutType) return;
-    void speakFromCategory(workoutType as any);
-  };
-
-  // Web Audio Synth for instant gaming SFX
+  // --- WEB AUDIO SYNTH FOR INSTANT GAMING SFX ---
   const playSFX = (type: "mission" | "levelup" | "streak" | "click" | "claim") => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -296,7 +272,6 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [inspectUser, setInspectUser] = useState<any | null>(null);
 
   const openRankModal = () => {
-    playVoiceover("rank");
     setShowRankModal(true);
   };
 
@@ -329,28 +304,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   });
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
 
-  // Villain voice mute toggle
-  const [voiceMuted, setVoiceMuted] = useState<boolean>(() => {
-    try { return localStorage.getItem("sd_voice_muted") === "1"; } catch { return false; }
-  });
-  const toggleVoiceMute = () => {
-    setVoiceMuted((m) => {
-      const next = !m;
-      try { localStorage.setItem("sd_voice_muted", next ? "1" : "0"); } catch {}
-      if (next) stopSpeaking();
-      return next;
-    });
-  };
-
-  // Reverb (echo) toggle — for deep scary cathedral-like voice effect
-  const [reverbOn, setReverbOn] = useState<boolean>(() => isReverbEnabled());
-  const toggleReverb = () => {
-    setReverbOn((r) => {
-      const next = !r;
-      setReverbEnabled(next);
-      return next;
-    });
-  };
+  // (Voice system removed — see git history)
 
   // ============================================================
   // PROOF VERIFICATION SYSTEM (Solo Dominion)
@@ -391,8 +345,6 @@ export const SoloDominion: React.FC<any> = (props) => {
     const workoutType = detectWorkoutType(mission.title + " " + (mission.desc || "") + " " + (mission.id || ""));
     if (workoutType) {
       setWorkoutMission(mission);
-      // Speak the workout-specific villain intro
-      playWorkoutIntro(workoutType);
       return;
     }
 
@@ -632,7 +584,6 @@ export const SoloDominion: React.FC<any> = (props) => {
         }, { merge: true });
         if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
         attackBoss(100);
-        playVoiceover("complete");
         showToast(`⚔️ Mission Verified! +${xpGain} XP! Universe acknowledges your proof.`);
       }
     } catch (e: any) {
@@ -816,7 +767,6 @@ export const SoloDominion: React.FC<any> = (props) => {
     setBossHp(newHp);
     if (isDefeated) {
       setBossDefeated(true);
-      playVoiceover("levelup");
       showToast("⚔️ PROCRASTINATION DEMON DEFEATED! +250 XP CLAIMED!");
       
       const xpGain = 250;
@@ -1002,7 +952,6 @@ export const SoloDominion: React.FC<any> = (props) => {
     }, { merge: true });
     if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
     attackBoss(100);
-    playVoiceover("complete");
     if ("vibrate" in navigator) navigator.vibrate([100, 50, 200]);
     showToast(`⚔️ ${state.count} ${state.type} verified! +${xpGain} XP!`);
   };
@@ -1029,9 +978,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     const isNowComplete = newVal >= target;
 
     if (isNowComplete) {
-      playVoiceover("complete");
-    } else {
-      playVoiceover("start");
+      // (voice removed)
     }
 
     const updated = missions.map(m => {
@@ -1072,8 +1019,6 @@ export const SoloDominion: React.FC<any> = (props) => {
     e.preventDefault();
     if (!newMissionTitle.trim() || !user) return;
 
-    // Play Mission Start / Power Surge Voiceover
-    playVoiceover("start");
     const newM: Mission = {
       id: `custom_${Date.now()}`,
       title: newMissionTitle,
@@ -1103,7 +1048,6 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   const advanceStreak = async (streakId: string, pctDelta: number = 10) => {
     if (!user || saving) return;
-    playVoiceover("streak");
     setSaving(true);
 
     const idx = streaks.findIndex(s => s.id === streakId);
@@ -1135,7 +1079,6 @@ export const SoloDominion: React.FC<any> = (props) => {
     e.preventDefault();
     if (!newStreakTitle.trim() || !user) return;
 
-    playVoiceover("start");
     const bgList = [
       "/assets/streak-dream-house.jpg",
       "/assets/streak-six-pack.jpg",
@@ -1172,7 +1115,6 @@ export const SoloDominion: React.FC<any> = (props) => {
   const handleSyncStreak = async () => {
     if (!user || isSyncing) return;
     setIsSyncing(true);
-    playVoiceover("start");
     showToast("🌀 Aligning quantum timelines... Seeding database streak...");
 
     try {
@@ -1240,8 +1182,7 @@ export const SoloDominion: React.FC<any> = (props) => {
       
       batchPromises.push(setDoc(userRef, updateData, { merge: true }));
       await Promise.all(batchPromises);
-      
-      playVoiceover("levelup");
+
       showToast(`✨ TIMELINE SECURED: ${targetStreakDays} DAYS OF UNWAVERING DISCIPLINE WRITTEN TO CLOUD REALM!`);
       setShowSyncModal(false);
     } catch (err: any) {
@@ -1254,7 +1195,6 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   const handleClaimDailyReward = async () => {
     if (!user || dailyClaimed) return;
-    playVoiceover("claim");
     setDailyClaimed(true);
 
     try {
@@ -1280,28 +1220,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   const visibleStreaks = streaks.slice(streakPageIndex * 6, (streakPageIndex + 1) * 6);
   const maxStreakPages = Math.ceil(streaks.length / 6);
 
-  // ===== Villain voice page entry (first time per session) =====
-  const greetedRef = useRef(false);
-  useEffect(() => {
-    if (greetedRef.current) return;
-    greetedRef.current = true;
-    // Init voice engine (preloads best voice)
-    initVillainVoice();
-    // Wait for user to interact with the page before speaking (browser
-    // autoplay policy — speech synthesis may be blocked until first
-    // user gesture). We try anyway, but most browsers will allow the
-    // first queued utterance.
-    setTimeout(() => {
-      // First time in this session → dramatic intro
-      const hasGreeted = (() => { try { return sessionStorage.getItem("sd_greeted") === "1"; } catch { return false; } })();
-      if (!hasGreeted) {
-        try { sessionStorage.setItem("sd_greeted", "1"); } catch {}
-        void speakFromCategory("intro");
-      } else {
-        void speakFromCategory("greeting");
-      }
-    }, 1000);
-  }, []);
+  // (Voice page entry useEffect removed)
 
   // ============================================================
   // QUEST SYSTEM DERIVATIONS — RPG layer
@@ -1616,29 +1535,7 @@ export const SoloDominion: React.FC<any> = (props) => {
             </div>
             <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2">
               <button
-                onClick={toggleVoiceMute}
-                title={voiceMuted ? "Unmute villain voice" : "Mute villain voice"}
-                className="p-2.5 rounded-xl border border-white/15 hover:border-amber-400/40 text-white/70 hover:text-amber-200 transition active:scale-95 backdrop-blur-md"
-                style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-                aria-label={voiceMuted ? "Unmute voice" : "Mute voice"}
-              >
-                {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              </button>
-              <button
-                onClick={toggleReverb}
-                title={reverbOn ? "Reverb ON (scary echo)" : "Reverb OFF (clean voice)"}
-                className={`p-2.5 rounded-xl border transition active:scale-95 backdrop-blur-md ${
-                  reverbOn
-                    ? "border-red-500/60 text-red-300"
-                    : "border-white/15 text-white/50 hover:border-white/30"
-                }`}
-                style={{ backgroundColor: reverbOn ? "rgba(127,29,29,0.4)" : "rgba(0,0,0,0.5)" }}
-                aria-label={reverbOn ? "Disable echo" : "Enable echo"}
-              >
-                {reverbOn ? <AudioWaveform size={14} /> : <AudioLines size={14} />}
-              </button>
-              <button
-                onClick={() => { playVoiceover("start"); setShowSyncModal(true); }}
+                onClick={() => setShowSyncModal(true)}
                 className="px-4 py-2.5 rounded-xl border border-amber-400/40 text-amber-100 hover:bg-amber-500/10 sd-mono-font text-[10px] font-bold tracking-[0.18em] uppercase flex items-center gap-2 transition active:scale-95 backdrop-blur-md"
                 style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
               >
