@@ -3,7 +3,7 @@ import {
   Target, Zap, BookOpen, Edit3, Flame, CheckCircle, ArrowRight,
   Plus, X, ChevronLeft, ChevronRight, Star,
   Trophy, Sparkles, Calendar, Edit2, Trash2, Award, Info, Gift, User, Check,
-  CreditCard, Crown
+  CreditCard, Crown, Shield
 } from "lucide-react";
 import { useAppLogic } from "../../hooks/useAppLogic";
 import { useRPG } from "../../hooks/useRPG";
@@ -20,6 +20,15 @@ import {
   getCurrentTier, getNextTier, xpForNextLevel,
   type QuestDef, type QuestRank, type QuestCategory, type QuestQuestType,
 } from "../../lib/questSystem";
+
+// iOS 17 + Solo Leveling ARISE design tokens (matches Landing page)
+const TEXT_PRIMARY = "#ffffff";
+const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const SURFACE = "#0a0a0a";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const ORANGE = "#ff9f0a";
+const ORANGE_DARK = "#ff7a00";
 
 // Helper: convert a set of DEFAULT_QUESTS to Mission[] with proper
 // sensor-tracker targets, deduplicated against an existing user list.
@@ -647,10 +656,6 @@ export const SoloDominion: React.FC<any> = (props) => {
       stage: "CIVILIAN TRAINEE",
       title: "Novice Seeker",
       badge: "🛡️ CIVILIAN STAGE",
-      auraColor: "from-zinc-500 to-slate-700",
-      textColor: "text-zinc-400",
-      borderColor: "border-zinc-500/30",
-      bgGlow: "bg-zinc-500/10",
       desc: "Awakening from normal life. Building foundational daily discipline.",
       avatarIcon: "👤",
       perks: ["Basic Daily Missions", "+0% XP Multiplier"]
@@ -659,10 +664,6 @@ export const SoloDominion: React.FC<any> = (props) => {
       stage: "IRON WARRIOR",
       title: "Iron Vanguard",
       badge: "⚔️ STAGE 2 • IRON WARRIOR",
-      auraColor: "from-amber-500 to-orange-600",
-      textColor: "text-amber-400",
-      borderColor: "border-amber-500/40",
-      bgGlow: "bg-amber-500/15",
       desc: "Forged in consistency. Physical and mental attributes rising steadily.",
       avatarIcon: "🛡️",
       perks: ["Custom Mission Creation", "+10% XP Multiplier", "Streak Freeze Shield"]
@@ -671,10 +672,6 @@ export const SoloDominion: React.FC<any> = (props) => {
       stage: "SHADOW COMMANDER",
       title: "Shadow Knight",
       badge: "⚡ STAGE 3 • SHADOW COMMANDER",
-      auraColor: "from-purple-600 to-indigo-600",
-      textColor: "text-purple-400",
-      borderColor: "border-purple-500/50",
-      bgGlow: "bg-purple-500/20",
       desc: "Master of focus. Unstoppable aura and deep mental clarity.",
       avatarIcon: "⚔️",
       perks: ["Daily Boss Dungeon Damage +25%", "+25% XP Multiplier", "Guild Vanguard Access"]
@@ -683,10 +680,6 @@ export const SoloDominion: React.FC<any> = (props) => {
       stage: "COSMIC LEGEND MONARCH",
       title: "Shadow Monarch",
       badge: "👑 STAGE 4 • LEGENDARY MONARCH",
-      auraColor: "from-emerald-400 via-teal-500 to-purple-600",
-      textColor: "text-emerald-300",
-      borderColor: "border-emerald-400/60",
-      bgGlow: "bg-emerald-500/25",
       desc: "Peak reality creation. Total mastery over physical and mental domain.",
       avatarIcon: "👑",
       perks: ["Supreme Monarch Title", "+50% XP Multiplier", "Instant Boss Obliteration"]
@@ -1379,105 +1372,37 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* GLOBAL FX — cinematic gradient + ambient particles          */}
       {/* ============================================================ */}
       <style>{`
-        @keyframes xpGlow {
-          0%, 100% { box-shadow: 0 0 14px rgba(168,85,247,0.45), inset 0 0 8px rgba(168,85,247,0.2); }
-          50%      { box-shadow: 0 0 28px rgba(168,85,247,0.85), inset 0 0 14px rgba(168,85,247,0.4); }
-        }
-        @keyframes bossPulse {
-          0%, 100% { box-shadow: 0 0 20px rgba(239,68,68,0.5), 0 0 40px rgba(239,68,68,0.25); }
-          50%      { box-shadow: 0 0 36px rgba(239,68,68,0.95), 0 0 70px rgba(239,68,68,0.45); }
-        }
-        @keyframes floatParticle {
-          0%   { transform: translateY(0) translateX(0); opacity: 0; }
-          10%  { opacity: 0.6; }
-          90%  { opacity: 0.6; }
-          100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
-        }
-        @keyframes rewardGlow {
-          0%, 100% { box-shadow: 0 0 30px var(--glow), inset 0 0 60px rgba(0,0,0,0.4); }
-          50%      { box-shadow: 0 0 60px var(--glow), inset 0 0 80px rgba(0,0,0,0.3); }
-        }
-        @keyframes levelUpBurst {
-          0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
-          40%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0); opacity: 1; }
-        }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes shimmerGold {
-          0%, 100% { background-position: 0% 50%; }
-          50%      { background-position: 100% 50%; }
-        }
-        @keyframes kenBurns {
-          0%   { transform: scale(1) translateX(0); }
-          50%  { transform: scale(1.06) translateX(-1%); }
-          100% { transform: scale(1) translateX(0); }
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(20px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes floatParticle {
+          0%   { transform: translateY(0) translateX(0); opacity: 0; }
+          10%  { opacity: 0.4; }
+          90%  { opacity: 0.4; }
+          100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
         }
         .sd-particle {
           position: absolute;
-          width: 2px;
-          height: 2px;
-          background: rgba(212,175,55,0.5);
+          width: 1.5px;
+          height: 1.5px;
+          background: rgba(255,255,255,0.3);
           border-radius: 50%;
           pointer-events: none;
           animation: floatParticle linear infinite;
-        }
-        .sd-rank-E { border-color: rgba(148,163,184,0.6) !important; }
-        .sd-rank-D { border-color: rgba(34,197,94,0.6) !important; }
-        .sd-rank-C { border-color: rgba(59,130,246,0.6) !important; }
-        .sd-rank-B { border-color: rgba(168,85,247,0.6) !important; }
-        .sd-rank-A { border-color: rgba(212,175,55,0.85) !important; }
-        .sd-royal-font { font-family: 'Cinzel', 'Cormorant Garamond', serif; letter-spacing: 0.04em; }
-        .sd-body-font { font-family: 'Inter', system-ui, sans-serif; }
-        .sd-mono-font { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-        .sd-shimmer-text {
-          background: linear-gradient(90deg, #b8941f 0%, #f5e7a3 25%, #d4af37 50%, #f5e7a3 75%, #b8941f 100%);
-          background-size: 200% 100%;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: shimmerGold 4s ease-in-out infinite;
-        }
-        .sd-anime-bg {
-          background-color: #000000;
-          background-image: none;
-        }
-        .sd-hero-banner {
-          background-color: #000000;
-          background-image: none;
-        }
-        .sd-hero-anime {
-          background-image:
-            linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.85) 100%),
-            url('/images/sd_jin_hero.jpg');
-          background-size: cover;
-          background-position: right center;
-          background-repeat: no-repeat;
         }
         .sd-card-border {
           border: 1px solid rgba(255,255,255,0.08);
           transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .sd-card-border:hover {
-          border-color: rgba(212,175,55,0.5);
-          transform: translateY(-2px);
+          border-color: rgba(255,255,255,0.18);
+          transform: translateY(-1px);
         }
         .sd-divider {
-          background: linear-gradient(to right, transparent, rgba(212,175,55,0.4), transparent);
+          background: linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent);
           height: 1px;
         }
-        .sd-rank-badge {
-          font-family: 'Cinzel', serif;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-        }
-        /* Modal scrollbar — clean dark, no bright colors */
         .sd-modal-scroll::-webkit-scrollbar { width: 6px; }
         .sd-modal-scroll::-webkit-scrollbar-track { background: transparent; }
         .sd-modal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
@@ -1487,9 +1412,6 @@ export const SoloDominion: React.FC<any> = (props) => {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .sd-modal-card { animation: sd-modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-        @media (max-width: 768px) {
-          /* no-op now that bg is solid black */
-        }
       `}</style>
 
       {/* Anime cinematic background (full page) — fixed, dark, no neon */}
@@ -1523,55 +1445,76 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* FLOATING TOAST                                              */}
       {/* ============================================================ */}
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-[400] bg-black/95 border border-amber-400/30 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-bounce">
-          <Sparkles size={18} className="text-yellow-400 animate-spin" />
-          <span className="text-xs font-bold tracking-wide">{toastMsg}</span>
+        <div
+          className="fixed top-20 right-6 z-[400] px-5 py-3 rounded-2xl flex items-center gap-3"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.95)",
+            border: `1px solid ${HAIRLINE}`,
+            color: TEXT_PRIMARY,
+            boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <Sparkles size={18} style={{ color: ORANGE }} />
+          <span className="text-xs font-semibold">{toastMsg}</span>
         </div>
       )}
 
       {/* ============================================================ */}
-      {/* PAGE HEADER — anime hero + royal serif title                */}
+      {/* PAGE HEADER — Solo Leveling ARISE style with subtle anime image */}
       {/* ============================================================ */}
       <div className="mb-6 relative z-10">
         <div
-          className="relative rounded-3xl overflow-hidden border border-amber-400/15"
-          style={{ minHeight: "320px" }}
+          className="relative rounded-3xl overflow-hidden"
+          style={{ minHeight: "320px", backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
         >
-          {/* Background anime image — Sung Jinwoo reference, right side */}
-          <div className="absolute inset-0 sd-hero-anime" />
-          {/* Bottom dark fade for legibility */}
+          {/* 🎨 ANIME IMAGE — subtle Jinwoo background right side */}
+          <img
+            src={resolveImageUrl("/images/sd_jin_hero.jpg")}
+            alt="Sung Jin-Woo"
+            onError={onImgError("/images/sd_jin_minimal.jpg")}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{ objectPosition: "right center", opacity: 0.3 }}
+          />
+          {/* Dark gradient overlay (left to right) for legibility */}
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.85) 100%)" }}
+            style={{ background: "linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.3) 100%)" }}
           />
-          {/* Content overlay */}
+          {/* Bottom dark fade */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 100%)" }}
+          />
+
           <div className="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col md:flex-row md:items-center gap-5 min-h-[320px]">
             <div className="flex-1 min-w-0 max-w-2xl">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="h-px w-8 bg-amber-400/60" />
-                <span className="sd-rank-badge text-[10px] text-amber-300 font-bold">
+                <div className="h-px w-8" style={{ backgroundColor: ORANGE }} />
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ORANGE }}>
                   Solo Dominion · Shadow Archive
                 </span>
               </div>
-              <h1 className="sd-royal-font text-[36px] sm:text-[48px] lg:text-[58px] font-bold leading-[0.95] mb-3 tracking-[0.02em]">
-                <span className="text-white">Continue Your</span>
-                <br />
-                <span className="sd-shimmer-text">Conquest</span>
-                <span className="text-amber-400/80">.</span>
+              <h1
+                className="font-bold leading-[1.05] mb-3"
+                style={{ color: TEXT_PRIMARY, fontSize: "clamp(2rem, 5vw, 3.25rem)", letterSpacing: "-0.02em" }}
+              >
+                Continue your<br />
+                <span style={{ color: ORANGE }}>conquest.</span>
               </h1>
-              <p className="sd-body-font text-[14px] sm:text-[15px] text-white/65 max-w-xl leading-relaxed font-light">
+              <p className="text-[14px] sm:text-[15px] max-w-xl leading-relaxed" style={{ color: TEXT_SECONDARY }}>
                 Your real life is the game. Your goals are quests.{" "}
-                <span className="text-amber-200/90 font-medium">Your discipline becomes XP.</span>
+                <span className="font-medium" style={{ color: TEXT_PRIMARY }}>Your discipline becomes XP.</span>
               </p>
             </div>
             <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 md:items-end">
               <button
                 onClick={() => setShowSyncModal(true)}
-                className="px-4 py-2.5 rounded-xl border border-amber-400/40 text-amber-100 hover:bg-amber-500/10 sd-mono-font text-[10px] font-bold tracking-[0.18em] uppercase flex items-center gap-2 transition active:scale-95 backdrop-blur-md"
-                style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 transition active:scale-95"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
               >
-                <Calendar size={12} className="text-amber-300" />
-                Sync
+                <Calendar size={12} />
+                Sync streak
               </button>
             </div>
           </div>
@@ -1581,12 +1524,12 @@ export const SoloDominion: React.FC<any> = (props) => {
       </div>
 
       {/* ============================================================ */}
-      {/* TODAY'S DOMINION — XP bar + Level + Rank (premium dark)    */}
+      {/* TODAY'S DOMINION — XP bar + Level + Rank (iOS 17 + orange) */}
       {/* ============================================================ */}
       <div className="mb-6 relative z-10">
         <div
-          className="rounded-3xl border border-white/10 bg-black/70 backdrop-blur-md p-5 sm:p-6 relative overflow-hidden"
-          style={{ animation: "fadeInUp 0.5s ease-out" }}
+          className="rounded-3xl p-5 sm:p-6 relative overflow-hidden"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, animation: "fadeInUp 0.5s ease-out" }}
         >
           {/* Top hairline accent */}
           <div className="absolute top-0 left-0 right-0 h-px sd-divider" />
@@ -1594,18 +1537,27 @@ export const SoloDominion: React.FC<any> = (props) => {
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-5">
             {/* Level + Rank block */}
             <div className="flex items-center gap-4 shrink-0">
-              <div className="relative w-[92px] h-[92px] rounded-full p-[2px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d4af37 0%, #8a6d2c 50%, #d4af37 100%)" }}>
-                <div className="w-full h-full rounded-full bg-black border border-amber-500/30 flex flex-col items-center justify-center text-center">
-                  <span className="sd-mono-font text-[9px] tracking-[0.18em] text-amber-300 uppercase font-bold">Level</span>
-                  <span className="sd-royal-font text-[32px] font-bold text-white leading-none tracking-tight tabular-nums mt-0.5">{level}</span>
+              <div
+                className="relative w-[92px] h-[92px] rounded-full p-[2px] flex items-center justify-center"
+                style={{ background: ORANGE }}
+              >
+                <div
+                  className="w-full h-full rounded-full flex flex-col items-center justify-center text-center"
+                  style={{ backgroundColor: "#000", border: `1px solid ${ORANGE}` }}
+                >
+                  <span className="text-[9px] tracking-widest uppercase font-bold" style={{ color: ORANGE }}>Level</span>
+                  <span className="text-[32px] font-bold text-white leading-none tracking-tight tabular-nums mt-0.5">{level}</span>
                 </div>
               </div>
               <div>
-                <div className="sd-rank-badge text-[9px] text-amber-300/90 mb-1">{currentTier.label}</div>
-                <div className="sd-royal-font text-[22px] sm:text-[26px] font-bold text-white tracking-[0.04em]">
+                <div className="text-[9px] uppercase tracking-widest font-semibold mb-1" style={{ color: TEXT_TERTIARY }}>{currentTier.label}</div>
+                <div
+                  className="text-[22px] sm:text-[26px] font-bold tracking-tight"
+                  style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
+                >
                   {currentTier.name}
                 </div>
-                <div className="sd-body-font text-[10.5px] text-white/55 mt-0.5 max-w-[230px] leading-snug font-light">
+                <div className="text-[10.5px] mt-0.5 max-w-[230px] leading-snug" style={{ color: TEXT_SECONDARY }}>
                   {currentTier.description}
                 </div>
               </div>
@@ -1615,32 +1567,43 @@ export const SoloDominion: React.FC<any> = (props) => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="sd-rank-badge text-[10px] text-white/55">XP Today</span>
-                  <span className="px-2.5 py-0.5 border border-amber-400/30 text-amber-200 sd-mono-font text-[10px] font-bold tabular-nums">
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: TEXT_SECONDARY }}>XP today</span>
+                  <span
+                    className="px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
+                    style={{
+                      backgroundColor: "rgba(255,159,10,0.15)",
+                      color: ORANGE,
+                      border: `1px solid ${ORANGE}`,
+                      borderRadius: 4,
+                    }}
+                  >
                     {dailyXpEarned} / {DAILY_XP_CAP}
                   </span>
                 </div>
                 {nextTier ? (
-                  <span className="sd-rank-badge text-[10px] text-amber-300/80">
+                  <span className="text-[10px]" style={{ color: TEXT_TERTIARY }}>
                     Next · {nextTier.name} @ Lv.{nextTier.level}
                   </span>
                 ) : (
-                  <span className="sd-rank-badge text-[10px] text-amber-300">★ Apex Reached</span>
+                  <span className="text-[10px]" style={{ color: ORANGE }}>★ Apex reached</span>
                 )}
               </div>
-              <div className="h-[6px] bg-white/[0.06] rounded-full overflow-hidden border border-white/[0.08] relative">
+              <div
+                className="h-[6px] rounded-full overflow-hidden relative"
+                style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+              >
                 <div
                   className="h-full transition-all duration-700"
                   style={{
                     width: `${Math.min(100, xpPercentage)}%`,
-                    background: "linear-gradient(to right, #d4af37 0%, #f5e7a3 50%, #d4af37 100%)",
+                    backgroundColor: ORANGE,
                   }}
                 />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-2.5 sd-mono-font text-[10px] text-white/45">
-                <span className="tabular-nums">{currentXP} / {xpNeeded} XP Total</span>
-                <span>Quests · <span className="text-emerald-300/90 font-bold tabular-nums">{todayCompletedCount}</span> / {quests.length}</span>
-                <span>Daily · <span className="text-amber-200/90 font-bold tabular-nums">{dailyXpEarned}</span> XP</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2.5 text-[10px]" style={{ color: TEXT_SECONDARY }}>
+                <span className="tabular-nums">{currentXP} / {xpNeeded} XP total</span>
+                <span>Quests · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{todayCompletedCount}</span> / {quests.length}</span>
+                <span>Daily · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{dailyXpEarned}</span> XP</span>
               </div>
             </div>
           </div>
@@ -1669,16 +1632,19 @@ export const SoloDominion: React.FC<any> = (props) => {
         <div className="flex items-center justify-between mb-3 px-1">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <Trophy size={15} className="text-amber-300" />
-              <span className="sd-rank-badge text-[10px] text-white/80">Global Leaderboard</span>
+              <Trophy size={15} style={{ color: TEXT_PRIMARY }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>Global Leaderboard</span>
             </div>
-            <p className="text-[11px] text-white/45 tracking-tight">
+            <p className="text-[11px] tracking-tight" style={{ color: TEXT_SECONDARY }}>
               Live rankings · {leaderboardPreview.length} hunters competing
             </p>
           </div>
           <button
             onClick={() => setShowFullLeaderboard(true)}
-            className="text-[11px] font-medium text-white/55 hover:text-white transition-colors flex items-center gap-1"
+            className="text-[11px] font-medium transition-colors flex items-center gap-1"
+            style={{ color: TEXT_SECONDARY }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_PRIMARY; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_SECONDARY; }}
           >
             See all
             <ChevronRight size={12} />
@@ -1759,33 +1725,40 @@ export const SoloDominion: React.FC<any> = (props) => {
       {showFullLeaderboard && (
         <div
           className="fixed inset-0 z-[400] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(20px)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
         >
           <div
             className="rounded-3xl w-full max-w-md shadow-2xl my-auto sd-modal-card flex flex-col"
-            style={{ backgroundColor: "rgba(10,11,16,0.95)", maxHeight: "min(720px, calc(100vh - 32px))" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(720px, calc(100vh - 32px))" }}
           >
-            <div className="sticky top-0 z-10 rounded-t-3xl px-4 sm:px-5 py-3 flex items-center gap-3 shrink-0 border-b border-white/[0.06]" style={{ backgroundColor: "rgba(10,11,16,0.95)" }}>
-              <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
-                <Trophy size={16} className="text-amber-300" />
+            <div className="sticky top-0 z-10 rounded-t-3xl px-4 sm:px-5 py-3 flex items-center gap-3 shrink-0 border-b" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              >
+                <Trophy size={16} style={{ color: TEXT_PRIMARY }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-[15px] font-bold text-white tracking-tight">Leaderboard</h3>
-                <p className="text-[10px] text-white/45 tracking-tight">
+                <h3 className="text-[15px] font-bold tracking-tight" style={{ color: TEXT_PRIMARY }}>Leaderboard</h3>
+                <p className="text-[10px] tracking-tight" style={{ color: TEXT_SECONDARY }}>
                   {leaderboardPreview.length} hunters · live updates
                 </p>
               </div>
               <button
                 onClick={() => setShowFullLeaderboard(false)}
-                className="p-1.5 text-white/55 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors"
+                className="p-1.5 rounded-full hover:bg-white/[0.06] transition-colors"
+                style={{ color: TEXT_SECONDARY }}
                 aria-label="Close"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="px-4 sm:px-5 pt-3 pb-2 sticky top-[64px] z-[5]" style={{ backgroundColor: "rgba(10,11,16,0.95)" }}>
-              <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04]">
+            <div className="px-4 sm:px-5 pt-3 pb-2 sticky top-[64px] z-[5]" style={{ backgroundColor: SURFACE }}>
+              <div
+                className="flex items-center gap-1 p-1 rounded-full"
+                style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+              >
                 {([
                   { id: "all", label: "All Time" },
                   { id: "weekly", label: "This Week" },
@@ -1794,11 +1767,11 @@ export const SoloDominion: React.FC<any> = (props) => {
                   <button
                     key={tab.id}
                     onClick={() => setLeaderboardFilter(tab.id)}
-                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-full transition-all ${
-                      leaderboardFilter === tab.id
-                        ? "bg-white text-black"
-                        : "text-white/60 hover:text-white"
-                    }`}
+                    className="flex-1 text-[11px] font-semibold py-1.5 rounded-full transition-colors"
+                    style={{
+                      backgroundColor: leaderboardFilter === tab.id ? TEXT_PRIMARY : "transparent",
+                      color: leaderboardFilter === tab.id ? "#000" : TEXT_SECONDARY,
+                    }}
                   >
                     {tab.label}
                   </button>
@@ -1808,11 +1781,14 @@ export const SoloDominion: React.FC<any> = (props) => {
 
             <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 pb-4">
               {filteredLeaderboard.length === 0 ? (
-                <div className="text-center py-12 text-white/40 text-[13px]">
+                <div className="text-center py-12 text-[13px]" style={{ color: TEXT_TERTIARY }}>
                   No hunters in this category yet
                 </div>
               ) : (
-                <div className="rounded-2xl overflow-hidden border border-white/[0.06]" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+                >
                   {filteredLeaderboard.map((entry, idx) => {
                     const isYou = entry.isYou;
                     const rankColor =
@@ -1823,33 +1799,37 @@ export const SoloDominion: React.FC<any> = (props) => {
                     return (
                       <div
                         key={`${entry.rank}-${idx}`}
-                        className={`flex items-center gap-3 px-3.5 py-3 ${idx !== 0 ? "border-t border-white/[0.04]" : ""} ${
-                          isYou ? "bg-amber-500/[0.06]" : ""
+                        className={`flex items-center gap-3 px-3.5 py-3 ${idx !== 0 ? "border-t" : ""} ${
+                          isYou ? "bg-white/[0.04]" : ""
                         }`}
+                        style={{ borderColor: HAIRLINE }}
                       >
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold tabular-nums shrink-0"
                           style={{
                             backgroundColor: entry.rank <= 3 ? `${rankColor}15` : "rgba(255,255,255,0.05)",
                             color: entry.rank <= 3 ? rankColor : "rgba(255,255,255,0.45)",
-                            border: entry.rank <= 3 ? `1px solid ${rankColor}40` : "1px solid rgba(255,255,255,0.08)",
+                            border: entry.rank <= 3 ? `1px solid ${rankColor}40` : `1px solid ${HAIRLINE}`,
                           }}
                         >
                           {entry.rank}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className={`text-[13px] font-semibold truncate ${isYou ? "text-amber-300" : "text-white"}`}>
+                          <div
+                            className="text-[13px] font-semibold truncate"
+                            style={{ color: isYou ? ORANGE : TEXT_PRIMARY }}
+                          >
                             {isYou ? "You" : entry.name}
                           </div>
-                          <div className="text-[10px] text-white/40 truncate mt-0.5">
+                          <div className="text-[10px] truncate mt-0.5" style={{ color: TEXT_TERTIARY }}>
                             {entry.level}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-[13px] font-bold tabular-nums text-white">
+                          <div className="text-[13px] font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>
                             {entry.xp >= 1000 ? `${(entry.xp / 1000).toFixed(1)}K` : entry.xp}
                           </div>
-                          <div className="text-[9px] text-white/40 uppercase tracking-tight">XP</div>
+                          <div className="text-[9px] uppercase tracking-tight" style={{ color: TEXT_TERTIARY }}>XP</div>
                         </div>
                       </div>
                     );
@@ -1861,20 +1841,32 @@ export const SoloDominion: React.FC<any> = (props) => {
                 const me = leaderboardPreview.find((l) => l.isYou);
                 if (!me) return null;
                 return (
-                  <div className="mt-4 p-3 rounded-2xl border border-white/[0.06]" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                  <div
+                    className="mt-4 p-3 rounded-2xl"
+                    style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+                  >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-[12px] font-bold tabular-nums shrink-0">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold tabular-nums shrink-0"
+                        style={{
+                          backgroundColor: "rgba(255,159,10,0.15)",
+                          color: ORANGE,
+                          border: `1px solid ${ORANGE}`,
+                        }}
+                      >
                         {me.rank}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[12px] font-semibold text-amber-300 truncate">Your rank</div>
-                        <div className="text-[10px] text-white/45 mt-0.5">
+                        <div className="text-[12px] font-semibold truncate" style={{ color: ORANGE }}>Your rank</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: TEXT_SECONDARY }}>
                           Top {Math.round((me.rank / leaderboardPreview.length) * 100)}% globally
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[14px] font-bold tabular-nums text-white">{me.xp >= 1000 ? `${(me.xp / 1000).toFixed(1)}K` : me.xp}</div>
-                        <div className="text-[9px] text-white/40 uppercase tracking-tight">XP</div>
+                        <div className="text-[14px] font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>
+                          {me.xp >= 1000 ? `${(me.xp / 1000).toFixed(1)}K` : me.xp}
+                        </div>
+                        <div className="text-[9px] uppercase tracking-tight" style={{ color: TEXT_TERTIARY }}>XP</div>
                       </div>
                     </div>
                   </div>
@@ -2308,31 +2300,42 @@ export const SoloDominion: React.FC<any> = (props) => {
       {/* LEGACY MODALS (Welcome, Streaks, etc.) — still functional  */}
       {/* ============================================================ */}
       {showMissionsModal && (
-        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card" style={{ maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+          <div
+            className="rounded-3xl w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}
+          >
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
               <div className="flex items-center gap-2">
-                <Target size={18} className="text-purple-400" />
-                <h3 className="text-lg font-bold text-white">Today's Quests</h3>
+                <Target size={18} style={{ color: TEXT_PRIMARY }} />
+                <h3 className="text-lg font-bold" style={{ color: TEXT_PRIMARY }}>Today's Quests</h3>
               </div>
-              <button onClick={() => setShowMissionsModal(false)} className="text-white/50 hover:text-white"><X size={18} /></button>
+              <button onClick={() => setShowMissionsModal(false)} className="hover:opacity-80" style={{ color: TEXT_SECONDARY }}><X size={18} /></button>
             </div>
             <div className="space-y-3">
               {quests.map((q) => (
-                <div key={q.id} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+                <div
+                  key={q.id}
+                  className="p-3.5 rounded-2xl flex items-center justify-between gap-3"
+                  style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+                >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{CATEGORY_ICON[q.category]}</span>
                     <div>
-                      <div className="text-sm font-bold text-white">{q.title}</div>
-                      <div className="text-xs text-white/50">{q.description}</div>
+                      <div className="text-sm font-bold" style={{ color: TEXT_PRIMARY }}>{q.title}</div>
+                      <div className="text-xs" style={{ color: TEXT_SECONDARY }}>{q.description}</div>
                     </div>
                   </div>
                   {!q.completed ? (
-                    <button onClick={() => openProofModal(q)} className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition">
+                    <button
+                      onClick={() => openProofModal(q)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
+                      style={{ backgroundColor: ORANGE, color: "#000" }}
+                    >
                       Complete (+{q.xp} XP)
                     </button>
                   ) : (
-                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="text-xs font-bold flex items-center gap-1" style={{ color: "#34c759" }}>
                       <CheckCircle size={14} /> Done
                     </span>
                   )}
@@ -2347,45 +2350,62 @@ export const SoloDominion: React.FC<any> = (props) => {
           (welcome card, sync, etc. — full logic lives below as standalone
           functions so the existing data flow keeps working). */}
       {showWelcomeCardModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-[#121124] border border-emerald-500/50 rounded-[28px] w-full max-w-lg shadow-2xl relative my-auto sd-modal-card flex flex-col" style={{ maxHeight: "min(640px, calc(100vh - 32px))" }}>
-            {/* STICKY HEADER */}
-            <div className="sticky top-0 z-10 bg-[#121124] rounded-t-[28px] border-b border-emerald-500/30 px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0">
+        <div
+          className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="rounded-3xl w-full max-w-lg shadow-2xl relative my-auto sd-modal-card flex flex-col"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
+          >
+            <div className="sticky top-0 z-10 rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
               <div className="flex-1 min-w-0">
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                  <Sparkles size={11} className="text-amber-300 animate-spin" /> WELCOME REWARD UNLOCKED
+                <span
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase inline-flex items-center gap-1.5"
+                  style={{ backgroundColor: "rgba(255,159,10,0.15)", color: ORANGE, border: `1px solid ${ORANGE}` }}
+                >
+                  <Sparkles size={11} /> Welcome reward unlocked
                 </span>
-                <h2 className="text-lg sm:text-xl font-black text-white uppercase font-serif tracking-wide leading-tight mt-1">SEEKER TRAINEE CARD</h2>
-                <p className="text-[10px] text-emerald-200/80 font-mono">Issued upon logging into Sigma Menifest OS • Level 1 Milestone</p>
+                <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wide leading-tight mt-1" style={{ color: TEXT_PRIMARY }}>Seeker Trainee Card</h2>
+                <p className="text-[10px] mt-0.5" style={{ color: TEXT_TERTIARY }}>Issued upon logging into Menifest OS • Level 1 milestone</p>
               </div>
               <button
                 onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); }}
-                className="p-1.5 text-zinc-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition shrink-0"
+                className="p-1.5 rounded-full transition shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.04)", color: TEXT_SECONDARY }}
                 aria-label="Close"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* SCROLLABLE CONTENT */}
             <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 py-4 space-y-3">
-              <div className="relative rounded-2xl border border-emerald-500/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-emerald-950 p-4 shadow-2xl text-left max-w-sm mx-auto overflow-hidden">
-                <img src={resolveImageUrl(CHARACTER_TIERS[0].image)} alt="Seeker" onError={onImgError()} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity pointer-events-none" />
+              <div
+                className="relative rounded-2xl p-4 shadow-2xl text-left max-w-sm mx-auto overflow-hidden"
+                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+              >
+                <img
+                  src={resolveImageUrl(CHARACTER_TIERS[0].image)}
+                  alt="Seeker"
+                  onError={onImgError()}
+                  className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
+                />
                 <div className="relative z-10 space-y-2">
-                  <div className="text-[9px] font-mono tracking-[2px] text-emerald-400 font-bold uppercase">SIGMA MENIFEST OS • TIER I</div>
-                  <div className="text-xs font-black text-white font-mono uppercase">SEEKER BLACK CARD</div>
-                  <div className="text-[10px] text-zinc-300 font-mono italic leading-snug">"{CHARACTER_TIERS[0].quote}"</div>
-                  <div className="pt-2 border-t border-white/10 text-[9px] font-mono text-zinc-400 flex justify-between">
-                    <span className="uppercase font-bold text-white">{profile?.name || "WARRIOR TRAINEE"}</span>
-                    <span className="text-emerald-400 font-bold">UNLOCKED</span>
+                  <div className="text-[9px] tracking-widest font-bold uppercase" style={{ color: ORANGE }}>Menifest OS • Tier I</div>
+                  <div className="text-xs font-bold uppercase" style={{ color: TEXT_PRIMARY }}>Seeker Black Card</div>
+                  <div className="text-[10px] italic leading-snug" style={{ color: TEXT_SECONDARY }}>"{CHARACTER_TIERS[0].quote}"</div>
+                  <div className="pt-2 text-[9px] flex justify-between" style={{ borderTop: `1px solid ${HAIRLINE}`, color: TEXT_TERTIARY }}>
+                    <span className="uppercase font-bold" style={{ color: TEXT_PRIMARY }}>{profile?.name || "Warrior Trainee"}</span>
+                    <span className="font-bold" style={{ color: "#34c759" }}>Unlocked</span>
                   </div>
                 </div>
               </div>
               <button
-                onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("🎉 WELCOME SEEKER CARD CLAIMED!"); }}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-black font-mono text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-950/80 hover:brightness-110 transition flex items-center justify-center gap-2"
+                onClick={() => { try { localStorage.setItem("welcome_card_claimed_v1", "true"); } catch (e) {} setShowWelcomeCardModal(false); playSFX("levelup"); showToast("Welcome seeker card claimed!"); }}
+                className="w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: ORANGE, color: "#000" }}
               >
-                <Award size={16} /> CLAIM WELCOME CARD & ENTER
+                <Award size={16} /> Claim welcome card & enter
               </button>
             </div>
           </div>
@@ -2393,76 +2413,130 @@ export const SoloDominion: React.FC<any> = (props) => {
       )}
 
       {showSyncModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-[#121124] border border-purple-500/50 rounded-[28px] w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col" style={{ maxHeight: "min(640px, calc(100vh - 32px))" }}>
-            {/* STICKY HEADER */}
-            <div className="sticky top-0 z-10 bg-[#121124] rounded-t-[28px] border-b border-purple-500/30 px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0">
+        <div
+          className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="rounded-3xl w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
+          >
+            <div className="sticky top-0 z-10 rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
               <div className="flex-1 min-w-0">
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-mono font-bold tracking-wider uppercase inline-flex items-center gap-1.5">
-                  <Calendar size={11} className="text-amber-400 animate-spin" /> QUANTUM TIMELINE SYNCHRONIZER
+                <span
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase inline-flex items-center gap-1.5"
+                  style={{ backgroundColor: "rgba(255,159,10,0.15)", color: ORANGE, border: `1px solid ${ORANGE}` }}
+                >
+                  <Calendar size={11} /> Streak synchronizer
                 </span>
-                <h3 className="text-base sm:text-lg font-black text-white font-serif uppercase tracking-wide leading-tight mt-1">Sync Commitment Streak</h3>
-                <p className="text-[10px] text-white/50 leading-relaxed mt-0.5">Manually align your real commitment history with the cloud database. The system seeds authentic historical daily events.</p>
+                <h3 className="text-base sm:text-lg font-bold uppercase tracking-wide leading-tight mt-1" style={{ color: TEXT_PRIMARY }}>Sync commitment streak</h3>
+                <p className="text-[10px] leading-relaxed mt-0.5" style={{ color: TEXT_SECONDARY }}>Manually align your real commitment history with the cloud database.</p>
               </div>
-              <button onClick={() => setShowSyncModal(false)} className="p-1.5 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition shrink-0" aria-label="Close">
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="p-1.5 rounded-full transition shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.04)", color: TEXT_SECONDARY }}
+                aria-label="Close"
+              >
                 <X size={16} />
               </button>
             </div>
 
-            {/* SCROLLABLE CONTENT */}
             <div className="flex-1 overflow-y-auto sd-modal-scroll px-4 sm:px-5 py-4 space-y-3">
-              <div className="bg-black/40 p-3.5 rounded-2xl border border-white/5 space-y-3">
+              <div className="p-3.5 rounded-2xl space-y-3" style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-mono font-bold text-zinc-400">TARGET STREAK DAYS</span>
-                  <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight tabular-nums">{targetStreakDays} Days</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Target streak days</span>
+                  <span className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: ORANGE }}>{targetStreakDays} days</span>
                 </div>
-                <input type="range" min="1" max="100" value={targetStreakDays} onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }} className="w-full h-1.5 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                <div className="flex justify-between text-[9px] font-mono text-zinc-500">
-                  <span>1 Day</span>
-                  <span>42 Days (Milestone)</span>
-                  <span>100 Days</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={targetStreakDays}
+                  onChange={(e) => { playSFX("click"); setTargetStreakDays(Number(e.target.value)); }}
+                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                  style={{ backgroundColor: "rgba(255,255,255,0.08)", accentColor: ORANGE }}
+                />
+                <div className="flex justify-between text-[9px] uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>
+                  <span>1 day</span>
+                  <span>42 days (milestone)</span>
+                  <span>100 days</span>
                 </div>
               </div>
-              <button onClick={handleSyncStreak} disabled={isSyncing} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-black uppercase tracking-wider shadow-lg shadow-purple-950/80 transition flex items-center justify-center gap-2 disabled:opacity-50">
-                {isSyncing ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />ALIGNING...</> : <><Calendar size={12} className="text-amber-400 animate-pulse" />WRITE TIMELINE TO DATABASE</>}
+              <button
+                onClick={handleSyncStreak}
+                disabled={isSyncing}
+                className="w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ backgroundColor: ORANGE, color: "#000" }}
+              >
+                {isSyncing ? <><span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />Aligning...</> : <><Calendar size={12} />Write timeline to database</>}
               </button>
-              <span className="text-[9px] font-mono text-zinc-500 block text-center">⚠️ Writes to the official cloud database node. Action is irreversible.</span>
+              <span className="text-[9px] uppercase tracking-wider block text-center" style={{ color: TEXT_TERTIARY }}>
+                ⚠ Writes to official cloud database. Action is irreversible.
+              </span>
             </div>
           </div>
         </div>
       )}
 
       {selectedStreak && (
-        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-          <div className="bg-[#121124] border border-white/15 rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card" style={{ maxHeight: "min(520px, calc(100vh - 32px))", overflowY: "auto" }}>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+          <div
+            className="rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(520px, calc(100vh - 32px))", overflowY: "auto" }}
+          >
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{selectedStreak.icon}</span>
                 <div>
-                  <h3 className="text-base font-bold text-white">{selectedStreak.title}</h3>
-                  <span className="text-[10px] font-mono text-purple-300">{selectedStreak.cat}</span>
+                  <h3 className="text-base font-bold" style={{ color: TEXT_PRIMARY }}>{selectedStreak.title}</h3>
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>{selectedStreak.cat}</span>
                 </div>
               </div>
-              <button onClick={() => setSelectedStreak(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+              <button onClick={() => setSelectedStreak(null)} className="hover:opacity-80" style={{ color: TEXT_SECONDARY }}><X size={18} /></button>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-white/60">Current Progress</span>
-                <span className="font-bold text-white">{selectedStreak.pct}%</span>
+                <span style={{ color: TEXT_SECONDARY }}>Current progress</span>
+                <span className="font-bold" style={{ color: TEXT_PRIMARY }}>{selectedStreak.pct}%</span>
               </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-purple-500 transition-all duration-500" style={{ width: `${selectedStreak.pct}%` }} />
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${selectedStreak.pct}%`, backgroundColor: ORANGE }} />
               </div>
             </div>
             <div className="space-y-2">
-              <span className="text-[11px] font-mono text-white/50 block">ADVANCE STREAK:</span>
+              <span className="text-[10px] uppercase tracking-wider block" style={{ color: TEXT_TERTIARY }}>Advance streak</span>
               <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => advanceStreak(selectedStreak.id, 5)} className="py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-xs font-bold text-white">+5% Boost</button>
-                <button onClick={() => advanceStreak(selectedStreak.id, 10)} className="py-2.5 bg-purple-600/80 hover:bg-purple-500 rounded-xl text-xs font-bold text-white">+10% Boost</button>
-                <button onClick={() => advanceStreak(selectedStreak.id, 25)} className="py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-bold">+25% Sprint</button>
+                <button
+                  onClick={() => advanceStreak(selectedStreak.id, 5)}
+                  className="py-2.5 rounded-xl text-xs font-bold transition-colors"
+                  style={{ backgroundColor: "rgba(255,255,255,0.04)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+                >
+                  +5% boost
+                </button>
+                <button
+                  onClick={() => advanceStreak(selectedStreak.id, 10)}
+                  className="py-2.5 rounded-xl text-xs font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
+                >
+                  +10% boost
+                </button>
+                <button
+                  onClick={() => advanceStreak(selectedStreak.id, 25)}
+                  className="py-2.5 rounded-xl text-xs font-bold transition-colors"
+                  style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+                >
+                  +25% sprint
+                </button>
               </div>
             </div>
-            <button onClick={() => setSelectedStreak(null)} className="w-full py-2.5 bg-white/10 text-white rounded-xl text-xs font-semibold">Done</button>
+            <button
+              onClick={() => setSelectedStreak(null)}
+              className="w-full py-2.5 rounded-xl text-xs font-semibold transition-colors"
+              style={{ backgroundColor: "rgba(255,255,255,0.04)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
@@ -2547,7 +2621,8 @@ const QuestBoard: React.FC<{
         key={q.id}
         onClick={() => !q.completed && onOpenQuest(q)}
         disabled={q.completed}
-        className={`sd-card-border group relative text-left w-full rounded-2xl overflow-hidden bg-black/65 backdrop-blur-sm ${q.completed ? "opacity-70" : ""}`}
+        className={`sd-card-border group relative text-left w-full rounded-2xl overflow-hidden ${q.completed ? "opacity-70" : ""}`}
+        style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
       >
         {/* Anime portrait strip on the left */}
         <div className="flex items-stretch">
@@ -2565,7 +2640,10 @@ const QuestBoard: React.FC<{
               style={{ background: "linear-gradient(to right, rgba(0,0,0,0.0) 60%, rgba(0,0,0,0.85) 100%), linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%)" }}
             />
             {/* Rank letter embossed */}
-            <div className="absolute bottom-1.5 left-1.5 sd-royal-font text-[20px] font-bold leading-none" style={{ color: rankColor[r], textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
+            <div
+              className="absolute bottom-1.5 left-1.5 text-[20px] font-bold leading-none"
+              style={{ color: rankColor[r], textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
+            >
               {r}
             </div>
           </div>
@@ -2576,33 +2654,48 @@ const QuestBoard: React.FC<{
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                   <span
-                    className="sd-rank-badge text-[9px] px-1.5 py-0.5"
-                    style={{ color: rankColor[r], border: `1px solid ${rankColor[r]}50`, backgroundColor: `${rankColor[r]}10` }}
+                    className="text-[9px] px-1.5 py-0.5 font-bold uppercase tracking-wider"
+                    style={{
+                      color: rankColor[r],
+                      border: `1px solid ${rankColor[r]}50`,
+                      backgroundColor: `${rankColor[r]}10`,
+                      borderRadius: 4,
+                    }}
                   >
                     {rankLabel[r]}
                   </span>
-                  <span className="sd-mono-font text-[9px] text-white/40 uppercase tracking-wider">{categoryLabel[q.category]}</span>
+                  <span className="text-[9px] uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>
+                    {categoryLabel[q.category]}
+                  </span>
                 </div>
-                <div className={`sd-royal-font text-[15px] sm:text-[16px] font-semibold leading-tight ${q.completed ? "text-emerald-300/80 line-through" : "text-white"}`}>
+                <div
+                  className="text-[15px] sm:text-[16px] font-semibold leading-tight"
+                  style={{
+                    color: q.completed ? "#34c759" : TEXT_PRIMARY,
+                    textDecoration: q.completed ? "line-through" : "none",
+                  }}
+                >
                   {q.title}
                 </div>
-                <p className="sd-body-font text-[11px] text-white/55 mt-1 leading-snug line-clamp-2 font-light">
+                <p className="text-[11px] mt-1 leading-snug line-clamp-2" style={{ color: TEXT_SECONDARY }}>
                   {q.description}
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <div className="sd-royal-font text-[18px] font-bold text-amber-300/90 tabular-nums leading-none">+{q.xp}</div>
-                <div className="sd-rank-badge text-[8.5px] text-white/40 mt-0.5">XP</div>
+                <div className="text-[18px] font-bold tabular-nums leading-none" style={{ color: ORANGE }}>
+                  +{q.xp}
+                </div>
+                <div className="text-[8.5px] mt-0.5 uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>XP</div>
               </div>
             </div>
             {q.completed ? (
-              <div className="mt-2.5 flex items-center gap-1.5 sd-mono-font text-[10px] font-bold text-emerald-300/80 uppercase tracking-wider">
-                <CheckCircle size={12} /> Quest Complete
+              <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: "#34c759" }}>
+                <CheckCircle size={12} /> Quest complete
               </div>
             ) : (
               <div className="mt-2.5 flex items-center justify-between">
-                <span className="sd-rank-badge text-[9.5px] text-amber-200/70">Submit proof to claim</span>
-                <span className="text-white/30 text-sm">→</span>
+                <span className="text-[9.5px]" style={{ color: TEXT_TERTIARY }}>Submit proof to claim</span>
+                <span className="text-sm" style={{ color: TEXT_TERTIARY }}>→</span>
               </div>
             )}
           </div>
@@ -2618,10 +2711,10 @@ const QuestBoard: React.FC<{
         {mainQuests.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <Flame size={14} className="text-amber-300" />
-              <span className="sd-rank-badge text-[10px] text-amber-200/90">Main Quests</span>
+              <Flame size={14} style={{ color: TEXT_PRIMARY }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>Main Quests</span>
               <div className="flex-1 h-px sd-divider" />
-              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{mainQuests.length}</span>
+              <span className="text-[10px] tabular-nums" style={{ color: TEXT_TERTIARY }}>{mainQuests.length}</span>
             </div>
             <div className="space-y-2.5">{mainQuests.map(renderQuest)}</div>
           </div>
@@ -2629,10 +2722,10 @@ const QuestBoard: React.FC<{
         {sideQuests.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <Target size={14} className="text-zinc-300" />
-              <span className="sd-rank-badge text-[10px] text-zinc-200/80">Side Quests</span>
+              <Target size={14} style={{ color: TEXT_PRIMARY }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>Side Quests</span>
               <div className="flex-1 h-px sd-divider" />
-              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{sideQuests.length}</span>
+              <span className="text-[10px] tabular-nums" style={{ color: TEXT_TERTIARY }}>{sideQuests.length}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">{sideQuests.map(renderQuest)}</div>
           </div>
@@ -2640,10 +2733,10 @@ const QuestBoard: React.FC<{
         {disciplineQuests.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <Zap size={14} className="text-amber-300" />
-              <span className="sd-rank-badge text-[10px] text-amber-200/90">Discipline Quests</span>
+              <Zap size={14} style={{ color: TEXT_PRIMARY }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>Discipline Quests</span>
               <div className="flex-1 h-px sd-divider" />
-              <span className="sd-mono-font text-[10px] text-white/40 tabular-nums">{disciplineQuests.length}</span>
+              <span className="text-[10px] tabular-nums" style={{ color: TEXT_TERTIARY }}>{disciplineQuests.length}</span>
             </div>
             <div className="space-y-2.5">{disciplineQuests.map(renderQuest)}</div>
           </div>
@@ -2653,30 +2746,43 @@ const QuestBoard: React.FC<{
       {/* Boss Battle panel */}
       <div className="lg:col-span-1">
         <div
-          className="rounded-2xl border border-red-900/40 p-4 sticky top-4 bg-black/70 backdrop-blur-md relative overflow-hidden"
+          className="rounded-2xl p-4 sticky top-4 relative overflow-hidden"
+          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
         >
-          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(239,68,68,0.5), transparent)" }} />
+          <div className="absolute top-0 left-0 right-0 h-px sd-divider" />
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg overflow-hidden border border-red-900/60 shrink-0">
+              <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0" style={{ border: `1px solid ${HAIRLINE}` }}>
                 <img src={resolveImageUrl("/images/sd_jin_shadow.jpg")} alt="Boss" onError={onImgError()} className="w-full h-full object-cover" />
               </div>
               <div>
-                <div className="sd-rank-badge text-[10px] text-red-200/80">Boss Battles</div>
-                <div className="sd-body-font text-[10px] text-white/40 mt-0.5">High-stakes challenges</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXT_PRIMARY }}>Boss Battles</div>
+                <div className="text-[10px] mt-0.5" style={{ color: TEXT_TERTIARY }}>High-stakes challenges</div>
               </div>
             </div>
-            <span className="px-2 py-0.5 border border-red-500/40 text-red-200/80 sd-mono-font text-[9px] font-bold uppercase tracking-wider">XP+</span>
+            <span
+              className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: "rgba(255,69,58,0.1)",
+                color: "#ff453a",
+                border: "1px solid rgba(255,69,58,0.3)",
+                borderRadius: 4,
+              }}
+            >
+              XP+
+            </span>
           </div>
-          <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
             {bossQuests.map((b) => (
               <button
                 key={b.id}
                 onClick={() => !b.completed && onOpenQuest(b)}
                 disabled={b.completed}
-                className={`sd-card-border w-full text-left rounded-xl overflow-hidden bg-black/50 group ${
-                  b.completed ? "border-emerald-700/40 opacity-70" : ""
-                }`}
+                className="sd-card-border w-full text-left rounded-xl overflow-hidden group"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.02)",
+                  opacity: b.completed ? 0.7 : 1,
+                }}
               >
                 <div className="flex items-stretch">
                   <div className="relative w-14 shrink-0 overflow-hidden">
@@ -2690,21 +2796,26 @@ const QuestBoard: React.FC<{
                     <div className="absolute inset-0" style={{ background: "linear-gradient(to right, transparent 50%, rgba(0,0,0,0.85) 100%)" }} />
                   </div>
                   <div className="flex-1 min-w-0 p-2.5">
-                    <div className="sd-royal-font text-[11.5px] font-semibold text-white leading-tight line-clamp-1">{b.title}</div>
-                    <p className="sd-body-font text-[9.5px] text-white/50 mt-0.5 leading-snug line-clamp-2 font-light">{b.description}</p>
+                    <div className="text-[11.5px] font-semibold leading-tight line-clamp-1" style={{ color: TEXT_PRIMARY }}>{b.title}</div>
+                    <p className="text-[9.5px] mt-0.5 leading-snug line-clamp-2" style={{ color: TEXT_SECONDARY }}>{b.description}</p>
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <span
-                        className="sd-rank-badge text-[8.5px] px-1.5 py-0.5"
-                        style={{ color: rankColor[b.rank || "B"], border: `1px solid ${rankColor[b.rank || "B"]}50`, backgroundColor: `${rankColor[b.rank || "B"]}10` }}
+                        className="text-[8.5px] px-1.5 py-0.5 font-bold uppercase tracking-wider"
+                        style={{
+                          color: rankColor[b.rank || "B"],
+                          border: `1px solid ${rankColor[b.rank || "B"]}50`,
+                          backgroundColor: `${rankColor[b.rank || "B"]}10`,
+                          borderRadius: 4,
+                        }}
                       >
                         {rankLabel[b.rank || "B"]}
                       </span>
-                      <span className="sd-royal-font text-[11px] text-amber-300/90 font-bold tabular-nums">+{b.xp} XP</span>
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: ORANGE }}>+{b.xp} XP</span>
                     </div>
                   </div>
                 </div>
                 {b.completed && (
-                  <div className="px-2.5 pb-2 flex items-center gap-1 sd-mono-font text-[9.5px] font-bold text-emerald-300/80 uppercase tracking-wider">
+                  <div className="px-2.5 pb-2 flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-wider" style={{ color: "#34c759" }}>
                     <CheckCircle size={11} /> Slain
                   </div>
                 )}
