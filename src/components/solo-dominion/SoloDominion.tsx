@@ -13,6 +13,8 @@ import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
+import { SoloDominionHub } from "./SoloDominionHub";
+import { DominionFeatureView } from "./DominionFeatureView";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
@@ -265,6 +267,21 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [streaks, setStreaks] = useState<StreakCard[]>([]);
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
+  type DominionView = "hub" | "main";
+  const [dominionView, setDominionView] = useState<DominionView>("hub");
+  const [playerName, setPlayerName] = useState<string>("Hunter");
+  useEffect(() => {
+    try {
+      const raw = (typeof window !== "undefined") ? window.localStorage.getItem("manifestUserName") : null;
+      if (raw && raw.trim().length > 0) setPlayerName(raw.split(" ")[0]);
+      const profileName = (props as any)?.profile?.name;
+      if (profileName && typeof profileName === "string" && profileName.trim().length > 0) {
+        setPlayerName(profileName.split(" ")[0]);
+      }
+    } catch {}
+  }, [(props as any)?.profile?.name]);
 
   // Sync Modal States
   const [showSyncModal, setShowSyncModal] = useState(false);
@@ -1361,6 +1378,18 @@ export const SoloDominion: React.FC<any> = (props) => {
     };
     openProofModal(synthetic);
   };
+
+  // ===================== HUB ROUTER GUARD =====================
+  // If we're on the hub view, render the simple home screen and skip the rest.
+  if (dominionView === "hub") {
+    return (
+      <SoloDominionHub
+        playerName={playerName}
+        onEnterFeature={() => setDominionView("main")}
+        onContinue={() => setDominionView("main")}
+      />
+    );
+  }
 
   return (
     <div
@@ -2585,6 +2614,22 @@ export const SoloDominion: React.FC<any> = (props) => {
           </div>
         </div>
       )}
+
+      {/* ===================== FLOATING BACK TO HUB ===================== */}
+      <button
+        onClick={() => setDominionView("hub")}
+        className="fixed top-5 left-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full transition-all active:scale-[0.97]"
+        style={{
+          backgroundColor: "#0a0a0a",
+          border: "1px solid rgba(255,255,255,0.18)",
+          color: "#ffffff",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+        }}
+      >
+        <span style={{ fontSize: 14 }}>←</span>
+        <span className="text-[12px] font-semibold">Back to Hub</span>
+      </button>
     </div>
   );
 };
