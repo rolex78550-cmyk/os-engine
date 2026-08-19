@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { audioEngine } from "./lib/audioEngine";
-import { AudioControl } from "./components/AudioControl";
 
 // Components
 import { MainLayout } from "./components/MainLayout";
@@ -44,29 +43,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [fbLoading]);
 
-  // ============== BACKGROUND MUSIC BY PAGE ==============
-  useEffect(() => {
-    if (!user) {
-      audioEngine.playMood("landing");
-      return;
-    }
-    // Map activeTab to audio mood
-    const mood =
-      activeTab === "streaks"
-        ? "dominion"
-        : activeTab === "goals"
-        ? "goals"
-        : activeTab === "journal"
-        ? "profile"
-        : activeTab === "profile"
-        ? "profile"
-        : activeTab === "vision"
-        ? "tasks"
-        : "dashboard";
-    audioEngine.playMood(mood as any);
-  }, [activeTab, user?.uid]);
-
-  // ============== GLOBAL SFX (event listeners) ==============
+  // ============== SOUND EFFECTS (SFX only, no background music) ==============
   useEffect(() => {
     // Click sound on any button/clickable element
     const onClick = (e: MouseEvent) => {
@@ -209,9 +186,6 @@ export default function App() {
           </AnimatePresence>
         </Suspense>
       </MainLayout>
-
-      {/* ============== AUDIO CONTROL (floating, all pages) ============== */}
-      <AudioControl />
 
       <AnimatePresence>
         {logic.showCinematicIntro && (
