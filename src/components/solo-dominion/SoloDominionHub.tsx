@@ -9,107 +9,13 @@ const HAIRLINE = "rgba(255,255,255,0.08)";
 const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
 const ORANGE = "#ff9f0a";
 const ORANGE_DARK = "#ff7a00";
+const IOS_GREEN = "#34c759";
 
-export type DominionFeature =
-  | "battles"
-  | "quests"
-  | "rituals"
-  | "shadows"
-  | "inventory"
-  | "stats"
-  | "achievements"
-  | "leaderboard";
-
-export interface FeatureCard {
-  id: DominionFeature;
-  title: string;
-  subtitle: string;
-  icon: string;
-  jpLabel: string;
-  badge?: string;
-  glowColor: string;
-  level?: number;
-}
-
-export const FEATURE_CARDS: FeatureCard[] = [
-  {
-    id: "battles",
-    title: "Boss Battles",
-    subtitle: "Face the demons within",
-    icon: "⚔️",
-    jpLabel: "ボス戦",
-    badge: "3 Active",
-    glowColor: "#ff9f0a",
-  },
-  {
-    id: "quests",
-    title: "Daily Quests",
-    subtitle: "Forge your legend",
-    icon: "📜",
-    jpLabel: "クエスト",
-    badge: "12 Pending",
-    glowColor: "#34c759",
-  },
-  {
-    id: "rituals",
-    title: "Rituals",
-    subtitle: "Daily shadow work",
-    icon: "🕯️",
-    jpLabel: "儀式",
-    badge: "Streak 7d",
-    glowColor: "#ff9f0a",
-  },
-  {
-    id: "shadows",
-    title: "Shadow Army",
-    subtitle: "Extract your soldiers",
-    icon: "👤",
-    jpLabel: "影の軍隊",
-    badge: "14 Soldiers",
-    glowColor: "#5e5ce6",
-  },
-  {
-    id: "inventory",
-    title: "Inventory",
-    subtitle: "Artifacts & titles",
-    icon: "💎",
-    jpLabel: "インベントリ",
-    badge: "28 Items",
-    glowColor: "#ff9f0a",
-  },
-  {
-    id: "stats",
-    title: "Character Stats",
-    subtitle: "Strength, wisdom, focus",
-    icon: "📊",
-    jpLabel: "ステータス",
-    badge: "Level 42",
-    glowColor: "#34c759",
-  },
-  {
-    id: "achievements",
-    title: "Achievements",
-    subtitle: "Titles & milestones",
-    icon: "🏆",
-    jpLabel: "実績",
-    badge: "23/100",
-    glowColor: "#ff9f0a",
-  },
-  {
-    id: "leaderboard",
-    title: "Leaderboard",
-    subtitle: "Top hunters worldwide",
-    icon: "👑",
-    jpLabel: "ランキング",
-    badge: "Rank #142",
-    glowColor: "#ff453a",
-  },
-];
+export type DominionFeature = "tasks" | "leaderboard";
 
 export interface PlayerStats {
   level: number;
   rank: string;
-  rankColor: string;
   totalXP: number;
   currentLevelXP: number;
   nextLevelXP: number;
@@ -123,40 +29,38 @@ export interface PlayerStats {
 }
 
 const DEFAULT_STATS: PlayerStats = {
-  level: 42,
-  rank: "Gold IV",
-  rankColor: "#ff9f0a",
-  totalXP: 12480,
-  currentLevelXP: 480,
-  nextLevelXP: 1000,
-  streak: 7,
-  totalQuests: 247,
-  wisdom: 78,
-  confidence: 64,
-  strength: 52,
-  discipline: 71,
-  focus: 58,
+  level: 1,
+  rank: "Seeker",
+  totalXP: 242,
+  currentLevelXP: 0,
+  nextLevelXP: 800,
+  streak: 0,
+  totalQuests: 0,
+  wisdom: 0,
+  confidence: 0,
+  strength: 0,
+  discipline: 0,
+  focus: 0,
 };
 
 interface HubProps {
   stats?: PlayerStats;
   playerName?: string;
-  onEnterFeature: (feature: DominionFeature) => void;
-  onContinue: () => void;
-  onOpenQuests?: () => void;
+  onOpenTasks: () => void;
+  onOpenLeaderboard: () => void;
 }
 
 export const SoloDominionHub: React.FC<HubProps> = ({
   stats = DEFAULT_STATS,
   playerName = "Hunter",
-  onEnterFeature,
-  onContinue,
-  onOpenQuests,
+  onOpenTasks,
+  onOpenLeaderboard,
 }) => {
   const [hovered, setHovered] = useState<DominionFeature | null>(null);
 
-  const xpPct = Math.round(
-    (stats.currentLevelXP / stats.nextLevelXP) * 100
+  const xpPct = Math.max(
+    0,
+    Math.min(100, (stats.currentLevelXP / stats.nextLevelXP) * 100)
   );
 
   return (
@@ -165,7 +69,10 @@ export const SoloDominionHub: React.FC<HubProps> = ({
       style={{ backgroundColor: "#000", minHeight: "100vh" }}
     >
       {/* ===================== HERO SECTION ===================== */}
-      <section className="relative w-full" style={{ minHeight: "min(640px, 78vh)" }}>
+      <section
+        className="relative w-full"
+        style={{ minHeight: "min(560px, 65vh)" }}
+      >
         {/* Jinwoo background image */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -177,27 +84,29 @@ export const SoloDominionHub: React.FC<HubProps> = ({
             opacity: 0.3,
           }}
         />
-        {/* Dark gradient overlay (95% top → 30% bottom) */}
+        {/* Dark gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.92) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.95) 100%)",
           }}
         />
 
         {/* Top status bar */}
-        <div className="relative z-10 flex items-center justify-between px-5 pt-6 text-[11px] font-semibold tracking-wider"
-          style={{ color: TEXT_TERTIARY }}>
+        <div
+          className="relative z-10 flex items-center justify-between px-5 pt-6 text-[11px] font-semibold tracking-wider"
+          style={{ color: TEXT_TERTIARY }}
+        >
           <span>HUNTER · ONLINE</span>
           <span style={{ color: ORANGE }}>● LV {stats.level}</span>
         </div>
 
         {/* Center content */}
-        <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-12 pb-10">
+        <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-10 pb-8">
           {/* Shield icon */}
           <div
-            className="mb-6 flex items-center justify-center"
+            className="mb-5 flex items-center justify-center"
             style={{
               width: 52,
               height: 52,
@@ -227,7 +136,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
             className="font-extrabold leading-[1.05] tracking-tight"
             style={{
               color: TEXT_PRIMARY,
-              fontSize: "clamp(2rem, 5.5vw, 3.25rem)",
+              fontSize: "clamp(1.75rem, 5vw, 2.75rem)",
               letterSpacing: "-0.02em",
               maxWidth: "640px",
             }}
@@ -238,248 +147,235 @@ export const SoloDominionHub: React.FC<HubProps> = ({
 
           {/* Subtitle */}
           <p
-            className="mt-5 text-[15px] leading-relaxed"
-            style={{ color: TEXT_SECONDARY, maxWidth: "420px" }}
+            className="mt-4 text-[14px] leading-relaxed"
+            style={{ color: TEXT_SECONDARY, maxWidth: "400px" }}
           >
-            Your <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>shadow army awaits</span>. Complete daily rituals, defeat boss battles, and climb from{" "}
-            <span style={{ color: ORANGE, fontWeight: 600 }}>Bronze V</span> to{" "}
-            <span style={{ color: ORANGE, fontWeight: 600 }}>Legend I</span>.
+            Step into the <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>dominion</span>.
+            Complete tasks, climb the ranks, conquer yourself.
           </p>
 
-          {/* Rank & level card */}
+          {/* Compact rating row */}
           <div
-            className="mt-8 w-full max-w-[360px] rounded-2xl p-4"
+            className="mt-6 flex items-center gap-5 px-5 py-2.5 rounded-full"
             style={{
               backgroundColor: SURFACE,
               border: `1px solid ${HAIRLINE}`,
-              backdropFilter: "blur(20px)",
             }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex items-center justify-center font-extrabold text-sm"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: ORANGE,
-                    color: "#000",
-                  }}
-                >
-                  {stats.level}
-                </div>
-                <div className="text-left">
-                  <div
-                    className="text-[11px] uppercase tracking-wider"
-                    style={{ color: TEXT_TERTIARY }}
-                  >
-                    Current Rating
-                  </div>
-                  <div
-                    className="text-[15px] font-bold"
-                    style={{ color: TEXT_PRIMARY }}
-                  >
-                    {stats.rank}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div
-                  className="text-[11px] uppercase tracking-wider"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Streak
-                </div>
-                <div
-                  className="text-[15px] font-bold"
-                  style={{ color: "#ff9f0a" }}
-                >
-                  {stats.streak} days
-                </div>
-              </div>
-            </div>
-
-            {/* XP bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] font-semibold"
-                style={{ color: TEXT_TERTIARY }}>
-                <span>EXPERIENCE</span>
-                <span style={{ color: TEXT_SECONDARY }}>
-                  {stats.currentLevelXP} / {stats.nextLevelXP} XP
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
               <div
-                className="relative h-1.5 overflow-hidden rounded-full"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                className="flex items-center justify-center font-extrabold text-[11px]"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  backgroundColor: ORANGE,
+                  color: "#000",
+                }}
               >
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full"
-                  style={{
-                    width: `${xpPct}%`,
-                    background: `linear-gradient(90deg, ${ORANGE_DARK}, ${ORANGE})`,
-                  }}
-                />
+                {stats.level}
               </div>
+              <span
+                className="text-[12px] font-bold"
+                style={{ color: TEXT_PRIMARY }}
+              >
+                {stats.rank}
+              </span>
+            </div>
+            <div
+              className="w-px h-4"
+              style={{ backgroundColor: HAIRLINE }}
+            />
+            <div className="flex items-center gap-1.5">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                XP
+              </span>
+              <span
+                className="text-[12px] font-bold tabular-nums"
+                style={{ color: ORANGE }}
+              >
+                {stats.currentLevelXP}/{stats.nextLevelXP}
+              </span>
+            </div>
+            <div
+              className="w-px h-4"
+              style={{ backgroundColor: HAIRLINE }}
+            />
+            <div className="flex items-center gap-1.5">
+              <span style={{ color: IOS_GREEN, fontSize: 12 }}>🔥</span>
+              <span
+                className="text-[12px] font-bold tabular-nums"
+                style={{ color: TEXT_PRIMARY }}
+              >
+                {stats.streak}d
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===================== STATS STRIP ===================== */}
-      <section className="px-5 pt-2 pb-6">
-        <div
-          className="grid grid-cols-5 gap-px overflow-hidden rounded-2xl"
-          style={{ backgroundColor: HAIRLINE, border: `1px solid ${HAIRLINE}` }}
-        >
-          {[
-            { label: "Wisdom", val: stats.wisdom, icon: "◆" },
-            { label: "Confidence", val: stats.confidence, icon: "▲" },
-            { label: "Strength", val: stats.strength, icon: "▰" },
-            { label: "Discipline", val: stats.discipline, icon: "●" },
-            { label: "Focus", val: stats.focus, icon: "◇" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="flex flex-col items-center py-3.5"
-              style={{ backgroundColor: "#000" }}
-            >
-              <div className="flex items-center gap-1">
-                <span style={{ color: "#34c759", fontSize: 9 }}>{s.icon}</span>
-                <span
-                  className="text-[17px] font-extrabold"
-                  style={{ color: TEXT_PRIMARY }}
-                >
-                  {s.val}
-                </span>
-              </div>
-              <span
-                className="text-[9px] uppercase tracking-wider mt-0.5"
-                style={{ color: TEXT_TERTIARY }}
-              >
-                {s.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ===================== FEATURE GRID ===================== */}
-      <section className="px-5 pt-2 pb-32">
+      {/* ===================== TWO MAIN OPTIONS ===================== */}
+      <section className="px-5 pt-4 pb-20">
         <div className="flex items-end justify-between mb-4">
           <h2
-            className="text-[22px] font-extrabold tracking-tight"
+            className="text-[20px] font-extrabold tracking-tight"
             style={{ color: TEXT_PRIMARY, letterSpacing: "-0.01em" }}
           >
-            Your Dominion
+            Your Path
           </h2>
           <span
             className="text-[11px] uppercase tracking-wider"
             style={{ color: TEXT_TERTIARY }}
           >
-            Tap to enter →
+            Choose your action →
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {FEATURE_CARDS.map((card) => {
-            const isHovered = hovered === card.id;
-            return (
-              <button
-                key={card.id}
-                onClick={() => {
-                  if (card.id === "quests" && onOpenQuests) {
-                    onOpenQuests();
-                  } else {
-                    onEnterFeature(card.id);
-                  }
-                }}
-                onMouseEnter={() => setHovered(card.id)}
-                onMouseLeave={() => setHovered(null)}
-                className="relative text-left rounded-2xl p-4 transition-all duration-200 active:scale-[0.98]"
+        <div className="flex flex-col gap-3">
+          {/* TASKS BUTTON */}
+          <button
+            onClick={onOpenTasks}
+            onMouseEnter={() => setHovered("tasks")}
+            onMouseLeave={() => setHovered(null)}
+            className="relative rounded-2xl p-5 text-left transition-all active:scale-[0.99]"
+            style={{
+              backgroundColor: SURFACE,
+              border: `1px solid ${
+                hovered === "tasks" ? HAIRLINE_STRONG : HAIRLINE
+              }`,
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className="flex items-center justify-center text-2xl shrink-0"
                 style={{
-                  backgroundColor: SURFACE,
-                  border: `1px solid ${isHovered ? HAIRLINE_STRONG : HAIRLINE}`,
-                  minHeight: 132,
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  backgroundColor: "rgba(255,159,10,0.1)",
+                  border: `1px solid ${HAIRLINE_STRONG}`,
                 }}
               >
-                {/* JP label */}
+                ⚔️
+              </div>
+              <div className="flex-1 min-w-0">
                 <div
-                  className="text-[9px] font-semibold tracking-widest mb-2 uppercase"
+                  className="text-[9px] font-semibold tracking-widest mb-1 uppercase"
                   style={{ color: TEXT_TERTIARY }}
                 >
-                  {card.jpLabel}
+                  タスク
                 </div>
-
-                {/* Icon + title */}
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span style={{ fontSize: 20 }}>{card.icon}</span>
-                  <h3
-                    className="text-[15px] font-bold leading-tight"
-                    style={{ color: TEXT_PRIMARY }}
-                  >
-                    {card.title}
-                  </h3>
-                </div>
-
-                {/* Subtitle */}
+                <h3
+                  className="text-[18px] font-extrabold tracking-tight"
+                  style={{
+                    color: TEXT_PRIMARY,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Tasks
+                </h3>
                 <p
-                  className="text-[12px] leading-relaxed mb-2"
+                  className="text-[12px] mt-0.5 leading-snug"
                   style={{ color: TEXT_SECONDARY }}
                 >
-                  {card.subtitle}
+                  Push-ups, planks, water — earn XP
                 </p>
-
-                {/* Badge */}
-                {card.badge && (
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: card.glowColor }}
-                    />
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-wider"
-                      style={{ color: TEXT_SECONDARY }}
-                    >
-                      {card.badge}
-                    </span>
-                  </div>
-                )}
-
-                {/* Arrow */}
-                <div
-                  className="absolute top-4 right-4 text-[14px]"
+              </div>
+              <div className="flex flex-col items-end shrink-0">
+                <span
+                  className="px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                  style={{
+                    backgroundColor: "rgba(255,159,10,0.15)",
+                    color: ORANGE,
+                    border: `1px solid rgba(255,159,10,0.3)`,
+                  }}
+                >
+                  6
+                </span>
+                <span
+                  className="text-[20px] mt-2"
                   style={{ color: TEXT_TERTIARY }}
                 >
                   →
+                </span>
+              </div>
+            </div>
+          </button>
+
+          {/* LEADERBOARD BUTTON */}
+          <button
+            onClick={onOpenLeaderboard}
+            onMouseEnter={() => setHovered("leaderboard")}
+            onMouseLeave={() => setHovered(null)}
+            className="relative rounded-2xl p-5 text-left transition-all active:scale-[0.99]"
+            style={{
+              backgroundColor: SURFACE,
+              border: `1px solid ${
+                hovered === "leaderboard" ? HAIRLINE_STRONG : HAIRLINE
+              }`,
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className="flex items-center justify-center text-2xl shrink-0"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  backgroundColor: "rgba(52,199,89,0.1)",
+                  border: `1px solid ${HAIRLINE_STRONG}`,
+                }}
+              >
+                👑
+              </div>
+              <div className="flex-1 min-w-0">
+                <div
+                  className="text-[9px] font-semibold tracking-widest mb-1 uppercase"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  ランキング
                 </div>
-              </button>
-            );
-          })}
+                <h3
+                  className="text-[18px] font-extrabold tracking-tight"
+                  style={{
+                    color: TEXT_PRIMARY,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Leaderboard
+                </h3>
+                <p
+                  className="text-[12px] mt-0.5 leading-snug"
+                  style={{ color: TEXT_SECONDARY }}
+                >
+                  See where you stand globally
+                </p>
+              </div>
+              <div className="flex flex-col items-end shrink-0">
+                <span
+                  className="px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                  style={{
+                    backgroundColor: "rgba(52,199,89,0.15)",
+                    color: IOS_GREEN,
+                    border: `1px solid rgba(52,199,89,0.3)`,
+                  }}
+                >
+                  #142
+                </span>
+                <span
+                  className="text-[20px] mt-2"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  →
+                </span>
+              </div>
+            </div>
+          </button>
         </div>
       </section>
-
-      {/* ===================== STICKY CONTINUE BUTTON ===================== */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 px-5 pb-6 pt-4 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,1) 100%)",
-        }}
-      >
-        <button
-          onClick={onContinue}
-          className="pointer-events-auto w-full max-w-[420px] mx-auto flex items-center justify-center gap-2 font-bold text-[15px] py-3.5 rounded-2xl transition-transform active:scale-[0.98]"
-          style={{
-            backgroundColor: ORANGE,
-            color: "#000",
-            boxShadow: "0 8px 24px rgba(255,159,10,0.25)",
-          }}
-        >
-          <span>Continue Your Journey</span>
-          <span style={{ fontSize: 18 }}>→</span>
-        </button>
-      </div>
     </div>
   );
 };

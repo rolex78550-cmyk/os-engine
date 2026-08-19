@@ -20,5 +20,10 @@ export default defineConfig({
   base: '/',
   server: {
     hmr: process.env.DISABLE_HMR === 'true' ? false : true,
+    host: '0.0.0.0',
+    port: 3000,
+    strictPort: true,
+    allowedHosts: true,
+    cors: true,
   },
 });
