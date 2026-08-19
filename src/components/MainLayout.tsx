@@ -435,12 +435,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         </div>
       </div>
 
-      {/* MOBILE NAV */}
-      <nav className="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-[94%] max-w-[410px] bg-[#0c0d12]/90 backdrop-blur-3xl border border-white/[0.08] rounded-[24px] z-[120] flex items-center justify-around py-1.5 px-2 shadow-2xl shadow-black/80">
+      {/* MOBILE NAV — premium white bar (iOS-style) */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[120] flex items-center justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        style={{
+          backgroundColor: "#ffffff",
+          borderTop: "1px solid rgba(0,0,0,0.08)",
+          boxShadow:
+            "0 -8px 24px rgba(0,0,0,0.06), 0 -1px 0 rgba(0,0,0,0.04)",
+        }}
+      >
         {[
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "goals", label: "Goals", icon: Target },
-          { id: "streaks", label: "Solo Dominion", icon: Flame },
+          { id: "streaks", label: "Solo", icon: Flame },
           { id: "journal", label: "Journal", icon: BookOpen },
           { id: "profile", label: "Profile", icon: User },
         ].map((item) => {
@@ -452,28 +460,39 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 setActiveTab(item.id);
                 logPageVisit(item.id);
               }}
-              className="relative flex flex-col items-center justify-center py-2 px-3.5 rounded-2xl transition-all cursor-pointer select-none active:scale-95 duration-200"
+              className="relative flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all cursor-pointer select-none active:scale-95 duration-200 min-w-[58px]"
               style={{ WebkitTapHighlightColor: "transparent" }}
             >
-              {/* Animated active sliding background pill */}
+              {/* Animated active sliding background pill (soft orange) */}
               {isActive && (
                 <motion.div
                   layoutId="mobileActiveTab"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  className="absolute inset-0 bg-amber-400/[0.12] border border-amber-400/20 rounded-[18px] z-0"
+                  className="absolute inset-0 rounded-2xl z-0"
+                  style={{
+                    backgroundColor: "rgba(255,159,10,0.12)",
+                  }}
                 />
               )}
-              
-              <div className="relative z-10 flex flex-col items-center gap-1">
-                <item.icon 
-                  size={19} 
-                  className={`transition-transform duration-300 ${
-                    isActive ? "text-amber-400 scale-110" : "text-white/40"
-                  }`} 
+
+              <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <item.icon
+                  size={22}
+                  strokeWidth={isActive ? 2.4 : 1.8}
+                  className="transition-all duration-300"
+                  style={{
+                    color: isActive ? "#ff9f0a" : "#0a0a0a",
+                    transform: isActive ? "scale(1.06)" : "scale(1)",
+                  }}
                 />
-                <span className={`text-[9px] font-mono tracking-tighter leading-none transition-colors duration-300 ${
-                  isActive ? "text-amber-200 font-bold" : "text-white/30"
-                }`}>
+                <span
+                  className="text-[10px] leading-none transition-colors duration-300 tracking-tight"
+                  style={{
+                    color: isActive ? "#ff9f0a" : "rgba(10,10,10,0.55)",
+                    fontWeight: isActive ? 700 : 500,
+                    letterSpacing: "-0.005em",
+                  }}
+                >
                   {item.id === "streaks" ? "Solo" : item.label}
                 </span>
               </div>
