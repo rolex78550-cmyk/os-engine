@@ -15,6 +15,7 @@ import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { SoloDominionHub } from "./SoloDominionHub";
 import { DominionFeatureView } from "./DominionFeatureView";
+import { QuestListView, DEMO_MAIN_QUESTS, DEMO_SIDE_QUESTS } from "./QuestListView";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
@@ -269,7 +270,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
-  type DominionView = "hub" | "main";
+  type DominionView = "hub" | "main" | "quests";
   const [dominionView, setDominionView] = useState<DominionView>("hub");
   const [playerName, setPlayerName] = useState<string>("Hunter");
   useEffect(() => {
@@ -1387,6 +1388,51 @@ export const SoloDominion: React.FC<any> = (props) => {
         playerName={playerName}
         onEnterFeature={() => setDominionView("main")}
         onContinue={() => setDominionView("main")}
+        onOpenQuests={() => setDominionView("quests")}
+      />
+    );
+  }
+
+  // ===================== QUESTS ROUTE =====================
+  if (dominionView === "quests") {
+    return (
+      <QuestListView
+        playerName={playerName}
+        level={(() => {
+          try {
+            const p = (props as any)?.profile;
+            if (p?.level) return p.level;
+            return 1;
+          } catch { return 1; }
+        })()}
+        rankTitle="SEEKER"
+        rankSubtitle="The first step. You have entered the dominion of your own life."
+        xpToday={0}
+        xpTodayMax={800}
+        nextRankLabel="DEMON SLAYER @ Lv.5"
+        xpTotal={242}
+        xpTotalMax={500}
+        questsCompleted={0}
+        questsTotal={14}
+        dailyXP={0}
+        sections={[
+          {
+            id: "main",
+            title: "Main Quests",
+            jpLabel: "メイン",
+            count: DEMO_MAIN_QUESTS.length,
+            quests: DEMO_MAIN_QUESTS,
+          },
+          {
+            id: "side",
+            title: "Side Quests",
+            jpLabel: "サイド",
+            count: DEMO_SIDE_QUESTS.length,
+            quests: DEMO_SIDE_QUESTS,
+          },
+        ]}
+        onBack={() => setDominionView("hub")}
+        onQuestClick={() => setDominionView("main")}
       />
     );
   }

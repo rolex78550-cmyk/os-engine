@@ -143,6 +143,7 @@ interface HubProps {
   playerName?: string;
   onEnterFeature: (feature: DominionFeature) => void;
   onContinue: () => void;
+  onOpenQuests?: () => void;
 }
 
 export const SoloDominionHub: React.FC<HubProps> = ({
@@ -150,6 +151,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
   playerName = "Hunter",
   onEnterFeature,
   onContinue,
+  onOpenQuests,
 }) => {
   const [hovered, setHovered] = useState<DominionFeature | null>(null);
 
@@ -385,7 +387,13 @@ export const SoloDominionHub: React.FC<HubProps> = ({
             return (
               <button
                 key={card.id}
-                onClick={() => onEnterFeature(card.id)}
+                onClick={() => {
+                  if (card.id === "quests" && onOpenQuests) {
+                    onOpenQuests();
+                  } else {
+                    onEnterFeature(card.id);
+                  }
+                }}
                 onMouseEnter={() => setHovered(card.id)}
                 onMouseLeave={() => setHovered(null)}
                 className="relative text-left rounded-2xl p-4 transition-all duration-200 active:scale-[0.98]"
