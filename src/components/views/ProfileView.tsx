@@ -324,9 +324,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
-          backgroundImage: "url(/images/sd_jin_hero.jpg)",
+          backgroundImage: "url(/images/sd_jin_shadow_army.jpg)",
           backgroundSize: "cover",
-          backgroundPosition: "right center",
+          backgroundPosition: "center 20%",
           backgroundRepeat: "no-repeat",
           opacity: 0.18,
         }}
@@ -335,14 +335,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           background:
-            "linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.35) 100%)",
+            "linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 30%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.25) 100%)",
         }}
       />
       <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.95) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.92) 100%)",
         }}
       />
 
