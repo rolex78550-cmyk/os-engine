@@ -13,6 +13,7 @@ import { ManifestOnboarding } from "./components/ManifestOnboarding";
 import { DashboardView } from "./components/views/DashboardView";
 import { CleanDashboard } from "./components/views/CleanDashboard";
 import { GoalsView } from "./components/views/GoalsView";
+import { GoalsHub } from "./components/views/GoalsHub";
 import { JournalView } from "./components/views/JournalView";
 import { ProfileView } from "./components/views/ProfileView";
 
@@ -103,7 +104,7 @@ export default function App() {
             )}
             {activeTab === "goals" && (
               <motion.div key="goals" {...pageTransition} className="will-change-transform">
-                <GoalsView {...logic} handleDeleteGoal={logic.handleDeleteGoal} isCreatingGoal={logic.isCreatingGoal} />
+                <GoalsHub {...logic} />
               </motion.div>
             )}
             {activeTab === "journal" && (
