@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { onImgError } from '../lib/imageHelper';
-import { 
-  ArrowRight, ArrowLeft, Sparkles, Target, Flame, Brain, 
-  Trophy, Shield, Zap, CheckCircle2, Lock, Search, Globe, 
-  Dumbbell, Briefcase, DollarSign, Heart, Smile, TrendingUp, 
-  Clock, Compass, User, AlertCircle, Check, Star, RefreshCw, LogOut
+import {
+  ArrowRight, ArrowLeft, Sparkles, Brain, Search, Check, CheckCircle2,
+  Lock, LogOut, Shield, ChevronRight
 } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
 
@@ -141,8 +139,18 @@ const ANALYSIS_MESSAGES = [
   "Generating RPG Progression...",
   "Calculating Success Probability...",
   "Preparing your AI Coach...",
-  "Finalizing your personalized system..."
+  "Finalizing your personalized system...",
 ];
+
+// ── DESIGN TOKENS (Solo Leveling ARISE style — matches Landing page) ──
+const TEXT_PRIMARY = "#ffffff";
+const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const SURFACE = "#0a0a0a";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
+const ORANGE = "#ff9f0a";
+const ORANGE_DARK = "#ff7a00";
 
 export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
   const { signOut } = useFirebase();
@@ -156,7 +164,7 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
   const [gender, setGender] = useState("Prefer not to say");
   const [selectedLifeAreas, setSelectedLifeAreas] = useState<string[]>(["fitness", "career", "money"]);
   const [primaryPriority, setPrimaryPriority] = useState("Earn ₹1L+ / month");
-  
+
   // Situation fields
   const [currentWeight, setCurrentWeight] = useState("72 kg");
   const [targetWeight, setTargetWeight] = useState("65 kg");
@@ -218,20 +226,20 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
   };
 
   const toggleLifeArea = (id: string) => {
-    setSelectedLifeAreas(prev => 
+    setSelectedLifeAreas(prev =>
       prev.includes(id) ? (prev.length > 1 ? prev.filter(a => a !== id) : prev) : [...prev, id]
     );
   };
 
   const toggleBlocker = (blocker: string) => {
-    setSelectedBlockers(prev => 
+    setSelectedBlockers(prev =>
       prev.includes(blocker) ? prev.filter(b => b !== blocker) : [...prev, blocker]
     );
   };
 
   // Calculate life score & generated blueprint metrics
   const calculatedLifeScore = Math.min(
-    95, 
+    95,
     Math.max(25, (lifeSatisfaction * 6) + (confidenceWithoutGuidance * 3) + (10 - selectedBlockers.length * 2))
   );
 
@@ -282,49 +290,77 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
     });
   };
 
-  const filteredCountries = COUNTRIES.filter(c => 
+  const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
   return (
-    <div className="fixed inset-0 z-[500] bg-black text-white flex flex-col justify-between overflow-hidden font-sans select-none">
-      
-      {/* Anime Visual Background Backdrop */}
+    <div
+      className="fixed inset-0 z-[500] text-white flex flex-col justify-between overflow-hidden select-none"
+      style={{ backgroundColor: "#000", fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
+    >
+
+      {/* ═══════════ ANIME BACKGROUND BACKDROP — subtle Jinwoo on welcome + final steps ═══════════ */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <img
-          src="/images/anime_onboarding_bg_1785264614926.jpg"
-          alt="Anime Visual Backdrop"
-          onError={onImgError("/images/onboarding-hero.jpg")}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center opacity-35 scale-105 filter blur-[1px] transition-all duration-1000"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px]" />
+        {(step === 1 || step === 19 || step === 20) && (
+          <>
+            <img
+              src={step === 19 || step === 20
+                ? "/images/sd_jin_redeye.jpg"
+                : "/images/sd_jin_hero.jpg"}
+              alt=""
+              onError={onImgError("/images/sd_jin_minimal.jpg")}
+              className="w-full h-full object-cover"
+              style={{
+                objectPosition: step === 19 || step === 20 ? "center 35%" : "center 30%",
+                opacity: step === 19 || step === 20 ? 0.25 : 0.15,
+              }}
+            />
+            {/* Top + bottom dark gradient for text legibility */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.7) 100%)",
+              }}
+            />
+            {/* Center vignette */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.7) 100%)",
+              }}
+            />
+          </>
+        )}
       </div>
 
-      {/* TOP HEADER & PROGRESS BAR (Only if step < 19) */}
+      {/* ═══════════ TOP HEADER & PROGRESS BAR ═══════════ */}
       {step < 19 && (
-        <div className="relative z-20 w-full max-w-xl mx-auto pt-4 px-4 sm:px-6 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs font-mono tracking-wider text-emerald-400">
-            <button 
-              onClick={goBack} 
+        <div className="relative z-20 w-full max-w-xl mx-auto pt-4 px-4 sm:px-6 flex flex-col gap-3">
+          <div className="flex items-center justify-between text-xs font-semibold" style={{ color: TEXT_SECONDARY }}>
+            <button
+              onClick={goBack}
               disabled={step === 1}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition ${step === 1 ? 'opacity-30 cursor-not-allowed cursor-default' : 'opacity-100 cursor-pointer'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${step === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/[0.06]'}`}
+              style={{ border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
             >
-              <ArrowLeft size={14} /> Back
+              <ArrowLeft size={13} /> Back
             </button>
-            <div className="flex items-center gap-1.5 font-bold">
-              <Sparkles size={13} className="text-amber-400 animate-pulse" />
-              <span>STEP {step} OF {TOTAL_STEPS}</span>
+            <div className="flex items-center gap-1.5" style={{ color: ORANGE }}>
+              <Sparkles size={12} />
+              <span className="font-bold tracking-wider">STEP {step} OF {TOTAL_STEPS}</span>
             </div>
-            <div className="text-zinc-400 font-bold">{progressPercentage}%</div>
+            <div className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{progressPercentage}%</div>
           </div>
 
-          {/* Progress Bar Line */}
-          <div className="w-full h-1.5 bg-zinc-900 border border-white/10 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-400 rounded-full"
+          {/* Progress Bar — iOS segmented style, orange fill */}
+          <div
+            className="w-full h-1.5 rounded-full overflow-hidden"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: ORANGE }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 0.3 }}
@@ -333,8 +369,8 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
         </div>
       )}
 
-      {/* MAIN CONTENT AREA */}
-      <div className="relative z-10 flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 py-4 flex flex-col justify-center overflow-y-auto custom-scrollbar">
+      {/* ═══════════ MAIN CONTENT AREA ═══════════ */}
+      <div className="relative z-10 flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 py-4 flex flex-col justify-center overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -345,41 +381,54 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
             className="w-full my-auto"
           >
 
-            {/* STEP 1: WELCOME */}
+            {/* ═══════ STEP 1: WELCOME ═══════ */}
             {step === 1 && (
               <div className="text-center space-y-6">
-                <div className="relative mx-auto w-24 h-24 rounded-3xl bg-emerald-950/50 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.3)]">
-                  <Sparkles size={48} className="text-emerald-400 animate-pulse" />
+                {/* Top icon — white square (matches Landing page) */}
+                <div className="flex justify-center">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}` }}
+                  >
+                    <Shield size={32} style={{ color: TEXT_PRIMARY }} />
+                  </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono tracking-widest uppercase">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+                  >
                     AI Life Operating System
-                  </div>
-                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                    Welcome to Your<br />
-                    <span className="bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-300 bg-clip-text text-transparent">
-                      New Life.
-                    </span>
+                  </span>
+                  <h1
+                    className="font-bold tracking-tight leading-[1.05]"
+                    style={{ color: TEXT_PRIMARY, fontSize: "clamp(2rem, 5.5vw, 2.75rem)", letterSpacing: "-0.03em" }}
+                  >
+                    Welcome to your<br />
+                    <span style={{ color: ORANGE }}>new life.</span>
                   </h1>
-                  <p className="text-zinc-400 text-sm sm:text-base max-w-sm mx-auto">
+                  <p className="text-sm sm:text-base max-w-sm mx-auto" style={{ color: TEXT_SECONDARY }}>
                     In just 2 minutes, we'll build your personalized AI Life System.
                   </p>
                 </div>
                 <button
                   onClick={goNext}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-400 text-black font-extrabold text-base tracking-wide shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
-                  Start Assessment <ArrowRight size={20} />
+                  Start assessment <ArrowRight size={18} style={{ color: "#000" }} />
                 </button>
               </div>
             )}
 
-            {/* STEP 2: NAME */}
+            {/* ═══════ STEP 2: NAME ═══════ */}
             {step === 2 && (
               <div className="space-y-6">
                 <div className="space-y-2 text-center sm:text-left">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Identify Yourself</div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white">What should we call you?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Identify yourself</div>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What should we call you?
+                  </h2>
                 </div>
                 <div className="space-y-4">
                   <input
@@ -388,140 +437,170 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your first name"
                     autoFocus
-                    className="w-full bg-zinc-900/90 border border-emerald-500/40 focus:border-emerald-400 rounded-2xl px-5 py-4 text-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition shadow-inner"
+                    className="w-full rounded-2xl px-5 py-4 text-xl focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${HAIRLINE}`,
+                      color: TEXT_PRIMARY,
+                    }}
                     onKeyDown={(e) => e.key === 'Enter' && name.trim() && goNext()}
                   />
                   <button
                     onClick={goNext}
                     disabled={!name.trim()}
-                    className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black font-bold text-base transition flex items-center justify-center gap-2 shadow-lg"
+                    className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors disabled:opacity-30"
+                    style={{ backgroundColor: ORANGE, color: "#000" }}
                   >
-                    Continue <ArrowRight size={18} />
+                    Continue <ArrowRight size={18} style={{ color: "#000" }} />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 3: COUNTRY */}
+            {/* ═══════ STEP 3: COUNTRY ═══════ */}
             {step === 3 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Origin</div>
-                  <h2 className="text-2xl font-bold text-white">Select your country</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Origin</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Select your country
+                  </h2>
                 </div>
-                
-                {/* Search Bar */}
+
                 <div className="relative">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: TEXT_TERTIARY }} />
                   <input
                     type="text"
                     value={countrySearch}
                     onChange={(e) => setCountrySearch(e.target.value)}
                     placeholder="Search country..."
-                    className="w-full bg-zinc-900/80 border border-white/10 focus:border-emerald-500 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none"
+                    className="w-full rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${HAIRLINE}`,
+                      color: TEXT_PRIMARY,
+                    }}
                   />
                 </div>
 
-                {/* Country List */}
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                  {filteredCountries.map(c => (
-                    <button
-                      key={c.code}
-                      onClick={() => { setCountry(c.name); goNext(); }}
-                      className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${
-                        country === c.name 
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 font-bold' 
-                          : 'border-white/10 hover:border-white/20 bg-zinc-900/50 text-zinc-300'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className="text-2xl">{c.flag}</span>
-                        <span className="text-sm">{c.name}</span>
-                      </span>
-                      {country === c.name && <Check size={16} className="text-emerald-400" />}
-                    </button>
-                  ))}
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1" style={{ scrollbarWidth: "thin" }}>
+                  {filteredCountries.map(c => {
+                    const isSelected = country === c.name;
+                    return (
+                      <button
+                        key={c.code}
+                        onClick={() => { setCountry(c.name); goNext(); }}
+                        className="w-full p-3 rounded-xl flex items-center justify-between transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? HAIRLINE_STRONG : HAIRLINE}`,
+                          color: isSelected ? TEXT_PRIMARY : TEXT_SECONDARY,
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="text-2xl">{c.flag}</span>
+                          <span className="text-sm">{c.name}</span>
+                        </span>
+                        {isSelected && <Check size={16} style={{ color: TEXT_PRIMARY }} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 4: AGE */}
+            {/* ═══════ STEP 4: AGE ═══════ */}
             {step === 4 && (
               <div className="space-y-6">
                 <div className="space-y-1 text-center">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Age Group</div>
-                  <h2 className="text-2xl font-bold text-white">How old are you?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Age group</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    How old are you?
+                  </h2>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  {["13–17", "18–24", "25–34", "35–44", "45+"].map(age => (
-                    <button
-                      key={age}
-                      onClick={() => { setAgeGroup(age); goNext(); }}
-                      className={`p-4 rounded-2xl border text-center text-lg font-bold transition-all ${
-                        ageGroup === age 
-                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]' 
-                          : 'border-white/10 hover:border-white/20 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      {age}
-                    </button>
-                  ))}
+                  {["13–17", "18–24", "25–34", "35–44", "45+"].map(age => {
+                    const isSelected = ageGroup === age;
+                    return (
+                      <button
+                        key={age}
+                        onClick={() => { setAgeGroup(age); goNext(); }}
+                        className="p-4 rounded-2xl text-center text-lg font-semibold transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                        }}
+                      >
+                        {age}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 5: GENDER */}
+            {/* ═══════ STEP 5: GENDER ═══════ */}
             {step === 5 && (
               <div className="space-y-6">
                 <div className="space-y-1 text-center">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Gender (Optional)</div>
-                  <h2 className="text-2xl font-bold text-white">Select your gender</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Gender (optional)</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Select your gender
+                  </h2>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  {["Male", "Female", "Prefer not to say"].map(g => (
-                    <button
-                      key={g}
-                      onClick={() => { setGender(g); goNext(); }}
-                      className={`p-4 rounded-2xl border text-center text-lg font-bold transition-all ${
-                        gender === g 
-                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' 
-                          : 'border-white/10 hover:border-white/20 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  ))}
+                  {["Male", "Female", "Prefer not to say"].map(g => {
+                    const isSelected = gender === g;
+                    return (
+                      <button
+                        key={g}
+                        onClick={() => { setGender(g); goNext(); }}
+                        className="p-4 rounded-2xl text-center text-lg font-semibold transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                        }}
+                      >
+                        {g}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 6: LIFE AREAS (MULTI SELECT) */}
+            {/* ═══════ STEP 6: LIFE AREAS (MULTI SELECT) ═══════ */}
             {step === 6 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Multi-Select</div>
-                  <h2 className="text-2xl font-bold text-white">Which areas do you want to improve?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Multi-select</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Which areas do you want to improve?
+                  </h2>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
                   {LIFE_AREAS.map(area => {
                     const isSelected = selectedLifeAreas.includes(area.id);
                     return (
                       <button
                         key={area.id}
                         onClick={() => toggleLifeArea(area.id)}
-                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                          isSelected 
-                            ? 'border-emerald-500 bg-emerald-500/15 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
-                            : 'border-white/10 hover:border-white/20 bg-zinc-900/50 text-zinc-400'
-                        }`}
+                        className="p-3 rounded-2xl text-left transition-colors flex flex-col justify-between"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                        }}
                       >
                         <div className="flex items-center justify-between w-full mb-1">
                           <span className="text-2xl">{area.icon}</span>
-                          {isSelected && <CheckCircle2 size={16} className="text-emerald-400" />}
+                          {isSelected && <CheckCircle2 size={16} style={{ color: ORANGE }} />}
                         </div>
                         <div>
-                          <div className="font-bold text-sm text-white">{area.label}</div>
-                          <div className="text-[10px] text-zinc-400">{area.desc}</div>
+                          <div className="font-semibold text-sm" style={{ color: TEXT_PRIMARY }}>{area.label}</div>
+                          <div className="text-[10px]" style={{ color: TEXT_TERTIARY }}>{area.desc}</div>
                         </div>
                       </button>
                     );
@@ -529,98 +608,113 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                 </div>
                 <button
                   onClick={goNext}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-3.5 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
-                  Next Step ({selectedLifeAreas.length} Selected)
+                  Next step ({selectedLifeAreas.length} selected)
                 </button>
               </div>
             )}
 
-            {/* STEP 7: #1 PRIORITY */}
+            {/* ═══════ STEP 7: #1 PRIORITY ═══════ */}
             {step === 7 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Core Focus</div>
-                  <h2 className="text-2xl font-bold text-white">What's your #1 Priority?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Core focus</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What's your #1 priority?
+                  </h2>
                 </div>
-                <div className="grid grid-cols-1 gap-2.5 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
-                  {ALL_PRIORITIES.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setPrimaryPriority(p.label); goNext(); }}
-                      className={`p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
-                        primaryPriority === p.label 
-                          ? 'border-amber-400 bg-amber-400/15 text-amber-200 font-bold' 
-                          : 'border-white/10 hover:border-white/20 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      <span className="text-base">{p.label}</span>
-                      {primaryPriority === p.label && <Sparkles size={18} className="text-amber-400" />}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2.5 max-h-[320px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
+                  {ALL_PRIORITIES.map(p => {
+                    const isSelected = primaryPriority === p.label;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => { setPrimaryPriority(p.label); goNext(); }}
+                        className="p-4 rounded-2xl text-left flex items-center justify-between transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
+                        <span className="text-base">{p.label}</span>
+                        {isSelected && <Sparkles size={18} style={{ color: ORANGE }} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 8: CURRENT SITUATION DYNAMIC FIELDS */}
+            {/* ═══════ STEP 8: CURRENT SITUATION ═══════ */}
             {step === 8 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Reality Check</div>
-                  <h2 className="text-2xl font-bold text-white">Tell us about your current situation</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Reality check</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Tell us about your current situation
+                  </h2>
                 </div>
-                
-                <div className="space-y-4 bg-zinc-900/80 border border-white/10 p-5 rounded-3xl">
+
+                <div className="space-y-4 p-5 rounded-3xl" style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}>
                   {selectedLifeAreas.includes("fitness") && (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] font-mono text-zinc-400 uppercase">Current Weight</label>
-                        <input 
-                          type="text" 
-                          value={currentWeight} 
+                        <label className="text-[10px] uppercase font-semibold block mb-1" style={{ color: TEXT_TERTIARY }}>Current weight</label>
+                        <input
+                          type="text"
+                          value={currentWeight}
                           onChange={(e) => setCurrentWeight(e.target.value)}
-                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" 
+                          className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors"
+                          style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-mono text-zinc-400 uppercase">Target Weight</label>
-                        <input 
-                          type="text" 
-                          value={targetWeight} 
+                        <label className="text-[10px] uppercase font-semibold block mb-1" style={{ color: TEXT_TERTIARY }}>Target weight</label>
+                        <input
+                          type="text"
+                          value={targetWeight}
                           onChange={(e) => setTargetWeight(e.target.value)}
-                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" 
+                          className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors"
+                          style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
                         />
                       </div>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-400 uppercase">Current Role / Occupation</label>
-                    <input 
-                      type="text" 
-                      value={currentRole} 
+                    <label className="text-[10px] uppercase font-semibold block mb-1" style={{ color: TEXT_TERTIARY }}>Current role / occupation</label>
+                    <input
+                      type="text"
+                      value={currentRole}
                       onChange={(e) => setCurrentRole(e.target.value)}
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" 
+                      className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors"
+                      style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-mono text-zinc-400 uppercase">Monthly Income</label>
-                      <input 
-                        type="text" 
-                        value={monthlyIncome} 
+                      <label className="text-[10px] uppercase font-semibold block mb-1" style={{ color: TEXT_TERTIARY }}>Monthly income</label>
+                      <input
+                        type="text"
+                        value={monthlyIncome}
                         onChange={(e) => setMonthlyIncome(e.target.value)}
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" 
+                        className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors"
+                        style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono text-zinc-400 uppercase">Focused Hours / Day</label>
-                      <input 
-                        type="text" 
-                        value={focusedWorkHours} 
+                      <label className="text-[10px] uppercase font-semibold block mb-1" style={{ color: TEXT_TERTIARY }}>Focused hours / day</label>
+                      <input
+                        type="text"
+                        value={focusedWorkHours}
                         onChange={(e) => setFocusedWorkHours(e.target.value)}
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" 
+                        className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors"
+                        style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
                       />
                     </div>
                   </div>
@@ -628,72 +722,83 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
                 <button
                   onClick={goNext}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-3.5 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
                   Continue
                 </button>
               </div>
             )}
 
-            {/* STEP 9: LIFE SATISFACTION SLIDER */}
+            {/* ═══════ STEP 9: LIFE SATISFACTION SLIDER ═══════ */}
             {step === 9 && (
               <div className="space-y-6 text-center">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Self Assessment</div>
-                  <h2 className="text-2xl font-bold text-white">How satisfied are you with your current life?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Self assessment</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    How satisfied are you with your current life?
+                  </h2>
                 </div>
 
                 <div className="py-8 space-y-6">
-                  <div className="text-5xl font-extrabold text-emerald-400 font-mono">
-                    {lifeSatisfaction} <span className="text-2xl text-zinc-500">/ 10</span>
+                  <div className="text-5xl font-bold tabular-nums" style={{ color: ORANGE }}>
+                    {lifeSatisfaction} <span className="text-2xl" style={{ color: TEXT_TERTIARY }}>/ 10</span>
                   </div>
-                  
+
                   <input
                     type="range"
                     min="1"
                     max="10"
                     value={lifeSatisfaction}
                     onChange={(e) => setLifeSatisfaction(Number(e.target.value))}
-                    className="w-full h-3 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    className="w-full h-3 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                      accentColor: ORANGE,
+                    }}
                   />
 
-                  <div className="text-sm font-semibold text-amber-300">
-                    {lifeSatisfaction <= 3 && "Struggling & Overwhelmed 🌧️"}
-                    {lifeSatisfaction >= 4 && lifeSatisfaction <= 6 && "Surviving / Average 🌤️"}
-                    {lifeSatisfaction >= 7 && lifeSatisfaction <= 8 && "Growing & Steady 📈"}
-                    {lifeSatisfaction >= 9 && "Thriving & Unstoppable 🔥"}
+                  <div className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>
+                    {lifeSatisfaction <= 3 && "Struggling & overwhelmed"}
+                    {lifeSatisfaction >= 4 && lifeSatisfaction <= 6 && "Surviving / average"}
+                    {lifeSatisfaction >= 7 && lifeSatisfaction <= 8 && "Growing & steady"}
+                    {lifeSatisfaction >= 9 && "Thriving & unstoppable"}
                   </div>
                 </div>
 
                 <button
                   onClick={goNext}
-                  className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-4 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
                   Next
                 </button>
               </div>
             )}
 
-            {/* STEP 10: BLOCKERS (MULTI SELECT) */}
+            {/* ═══════ STEP 10: BLOCKERS (MULTI SELECT) ═══════ */}
             {step === 10 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Friction Factors</div>
-                  <h2 className="text-2xl font-bold text-white">What's stopping you?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Friction factors</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What's stopping you?
+                  </h2>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
                   {BLOCKER_OPTIONS.map(b => {
                     const isSelected = selectedBlockers.includes(b);
                     return (
                       <button
                         key={b}
                         onClick={() => toggleBlocker(b)}
-                        className={`p-3 rounded-xl border text-xs font-semibold text-left transition-all ${
-                          isSelected 
-                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200' 
-                            : 'border-white/10 bg-zinc-900/50 text-zinc-400'
-                        }`}
+                        className="p-3 rounded-xl text-xs font-semibold text-left transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_SECONDARY,
+                        }}
                       >
                         {b}
                       </button>
@@ -703,125 +808,153 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
                 <button
                   onClick={goNext}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-3.5 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
                   Next
                 </button>
               </div>
             )}
 
-            {/* STEP 11: BIGGEST FEAR */}
+            {/* ═══════ STEP 11: BIGGEST FEAR ═══════ */}
             {step === 11 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Psychology</div>
-                  <h2 className="text-2xl font-bold text-white">What's your biggest fear?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Psychology</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What's your biggest fear?
+                  </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                  {FEAR_OPTIONS.map(fear => (
-                    <button
-                      key={fear}
-                      onClick={() => { setBiggestFear(fear); goNext(); }}
-                      className={`p-3.5 rounded-2xl border text-left text-sm font-semibold transition-all ${
-                        biggestFear === fear 
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200' 
-                          : 'border-white/10 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      {fear}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
+                  {FEAR_OPTIONS.map(fear => {
+                    const isSelected = biggestFear === fear;
+                    return (
+                      <button
+                        key={fear}
+                        onClick={() => { setBiggestFear(fear); goNext(); }}
+                        className="p-3.5 rounded-2xl text-left text-sm font-semibold transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                        }}
+                      >
+                        {fear}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 12: MOTIVATIONS */}
+            {/* ═══════ STEP 12: MOTIVATIONS ═══════ */}
             {step === 12 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Internal Fuel</div>
-                  <h2 className="text-2xl font-bold text-white">What motivates you the most?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Internal fuel</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What motivates you the most?
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  {MOTIVATIONS.map(m => (
-                    <button
-                      key={m}
-                      onClick={() => { setPrimaryMotivation(m); goNext(); }}
-                      className={`p-3.5 rounded-2xl border text-sm font-bold text-center transition-all ${
-                        primaryMotivation === m 
-                          ? 'border-amber-400 bg-amber-400/20 text-amber-200' 
-                          : 'border-white/10 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
+                  {MOTIVATIONS.map(m => {
+                    const isSelected = primaryMotivation === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => { setPrimaryMotivation(m); goNext(); }}
+                        className="p-3.5 rounded-2xl text-sm font-bold text-center transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                        }}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 13: 90 DAYS TARGET */}
+            {/* ═══════ STEP 13: 90 DAYS TARGET ═══════ */}
             {step === 13 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">90-Day Horizon</div>
-                  <h2 className="text-2xl font-bold text-white">What do you want to achieve in 90 days?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>90-day horizon</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What do you want to achieve in 90 days?
+                  </h2>
                 </div>
 
                 <textarea
                   rows={3}
                   value={target90Days}
                   onChange={(e) => setTarget90Days(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-emerald-500/40 rounded-2xl p-4 text-white placeholder-zinc-500 focus:outline-none"
+                  className="w-full rounded-2xl p-4 focus:outline-none transition-colors"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                  }}
                 />
 
                 <button
                   onClick={goNext}
-                  className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-4 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
                   Continue
                 </button>
               </div>
             )}
 
-            {/* STEP 14: DREAM LIFE 5 YEARS (LARGE CARDS) */}
+            {/* ═══════ STEP 14: DREAM LIFE 5 YEARS ═══════ */}
             {step === 14 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">5-Year Vision</div>
-                  <h2 className="text-2xl font-bold text-white">What does your dream life look like?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>5-year vision</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    What does your dream life look like?
+                  </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                  {DREAM_LIFE_CARDS.map(card => (
-                    <button
-                      key={card.id}
-                      onClick={() => { setDreamLifeCard(card.id); goNext(); }}
-                      className={`p-4 rounded-2xl border text-left flex items-center gap-4 transition-all ${
-                        dreamLifeCard === card.id 
-                          ? 'border-amber-400 bg-amber-400/15 text-white shadow-lg' 
-                          : 'border-white/10 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      <span className="text-3xl">{card.icon}</span>
-                      <div>
-                        <div className="font-bold text-base text-white">{card.label}</div>
-                        <div className="text-xs text-zinc-400">{card.desc}</div>
-                      </div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
+                  {DREAM_LIFE_CARDS.map(card => {
+                    const isSelected = dreamLifeCard === card.id;
+                    return (
+                      <button
+                        key={card.id}
+                        onClick={() => { setDreamLifeCard(card.id); goNext(); }}
+                        className="p-4 rounded-2xl text-left flex items-center gap-4 transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                        }}
+                      >
+                        <span className="text-3xl">{card.icon}</span>
+                        <div>
+                          <div className="font-bold text-base" style={{ color: isSelected ? ORANGE : TEXT_PRIMARY }}>{card.label}</div>
+                          <div className="text-xs" style={{ color: TEXT_SECONDARY }}>{card.desc}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 15: WHY IMPORTANT */}
+            {/* ═══════ STEP 15: WHY IMPORTANT ═══════ */}
             {step === 15 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Emotional Anchor</div>
-                  <h2 className="text-2xl font-bold text-white">Why is this goal important to you?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Emotional anchor</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Why is this goal important to you?
+                  </h2>
                 </div>
 
                 <div className="relative">
@@ -831,86 +964,105 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                     value={whyImportant}
                     onChange={(e) => setWhyImportant(e.target.value)}
                     placeholder="If you achieve this goal, how will your life change?"
-                    className="w-full bg-zinc-900/90 border border-emerald-500/40 rounded-2xl p-4 text-white placeholder-zinc-500 focus:outline-none"
+                    className="w-full rounded-2xl p-4 focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${HAIRLINE}`,
+                      color: TEXT_PRIMARY,
+                    }}
                   />
-                  <div className="absolute right-3 bottom-3 text-xs font-mono text-zinc-500">
+                  <div className="absolute right-3 bottom-3 text-xs" style={{ color: TEXT_TERTIARY }}>
                     {whyImportant.length} / 150
                   </div>
                 </div>
 
                 <button
                   onClick={goNext}
-                  className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-4 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
                   Continue
                 </button>
               </div>
             )}
 
-            {/* STEP 16: DAILY TIME COMMITMENT */}
+            {/* ═══════ STEP 16: DAILY TIME COMMITMENT ═══════ */}
             {step === 16 && (
               <div className="space-y-5">
                 <div className="space-y-1 text-center">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Daily Investment</div>
-                  <h2 className="text-2xl font-bold text-white">How much time can you invest daily?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Daily investment</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    How much time can you invest daily?
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5">
-                  {["10 Minutes", "20 Minutes", "30 Minutes", "45 Minutes", "60+ Minutes"].map(time => (
-                    <button
-                      key={time}
-                      onClick={() => { setDailyTimeCommitment(time); goNext(); }}
-                      className={`p-4 rounded-2xl border text-center font-bold text-lg transition-all ${
-                        dailyTimeCommitment === time 
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200' 
-                          : 'border-white/10 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                  {["10 Minutes", "20 Minutes", "30 Minutes", "45 Minutes", "60+ Minutes"].map(time => {
+                    const isSelected = dailyTimeCommitment === time;
+                    return (
+                      <button
+                        key={time}
+                        onClick={() => { setDailyTimeCommitment(time); goNext(); }}
+                        className="p-4 rounded-2xl text-center font-bold text-lg transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                          color: isSelected ? ORANGE : TEXT_PRIMARY,
+                        }}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 17: AI COACHING STYLE */}
+            {/* ═══════ STEP 17: AI COACHING STYLE ═══════ */}
             {step === 17 && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">AI Persona</div>
-                  <h2 className="text-2xl font-bold text-white">How should your AI Coach guide you?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>AI persona</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    How should your AI Coach guide you?
+                  </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                  {COACH_STYLES.map(coach => (
-                    <button
-                      key={coach.id}
-                      onClick={() => { setCoachingStyle(coach.id); goNext(); }}
-                      className={`p-3.5 rounded-2xl border text-left transition-all ${
-                        coachingStyle === coach.id 
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200' 
-                          : 'border-white/10 bg-zinc-900/60 text-zinc-300'
-                      }`}
-                    >
-                      <div className="font-bold text-base text-white">{coach.title}</div>
-                      <div className="text-xs text-zinc-400">{coach.desc}</div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
+                  {COACH_STYLES.map(coach => {
+                    const isSelected = coachingStyle === coach.id;
+                    return (
+                      <button
+                        key={coach.id}
+                        onClick={() => { setCoachingStyle(coach.id); goNext(); }}
+                        className="p-3.5 rounded-2xl text-left transition-colors"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255,159,10,0.15)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? ORANGE : HAIRLINE}`,
+                        }}
+                      >
+                        <div className="font-bold text-base" style={{ color: isSelected ? ORANGE : TEXT_PRIMARY }}>{coach.title}</div>
+                        <div className="text-xs" style={{ color: TEXT_SECONDARY }}>{coach.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* STEP 18: CONFIDENCE WITHOUT GUIDANCE */}
+            {/* ═══════ STEP 18: CONFIDENCE WITHOUT GUIDANCE ═══════ */}
             {step === 18 && (
               <div className="space-y-6 text-center">
                 <div className="space-y-1">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">Reality Check</div>
-                  <h2 className="text-2xl font-bold text-white">Confidence without guidance?</h2>
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Reality check</div>
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    Confidence without guidance?
+                  </h2>
                 </div>
 
                 <div className="py-6 space-y-6">
-                  <div className="text-5xl font-extrabold text-amber-400 font-mono">
-                    {confidenceWithoutGuidance} <span className="text-2xl text-zinc-500">/ 10</span>
+                  <div className="text-5xl font-bold tabular-nums" style={{ color: ORANGE }}>
+                    {confidenceWithoutGuidance} <span className="text-2xl" style={{ color: TEXT_TERTIARY }}>/ 10</span>
                   </div>
 
                   <input
@@ -919,10 +1071,14 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                     max="10"
                     value={confidenceWithoutGuidance}
                     onChange={(e) => setConfidenceWithoutGuidance(Number(e.target.value))}
-                    className="w-full h-3 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                    className="w-full h-3 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                      accentColor: ORANGE,
+                    }}
                   />
 
-                  <div className="text-sm font-semibold text-zinc-400">
+                  <div className="text-sm font-semibold" style={{ color: TEXT_SECONDARY }}>
                     {confidenceWithoutGuidance <= 4 && "Requires structured AI accountability system"}
                     {confidenceWithoutGuidance >= 5 && confidenceWithoutGuidance <= 7 && "Moderate confidence with potential bottlenecks"}
                     {confidenceWithoutGuidance >= 8 && "High drive needing precision tactical roadmap"}
@@ -931,81 +1087,120 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
                 <button
                   onClick={goNext}
-                  className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-bold transition"
+                  className="w-full py-4 rounded-2xl font-bold transition-colors"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
-                  Generate AI Analysis
+                  Generate AI analysis
                 </button>
               </div>
             )}
 
-            {/* STEP 19: FULL SCREEN AI ANALYSIS LOADING */}
+            {/* ═══════ STEP 19: FULL SCREEN AI ANALYSIS LOADING — Jinwoo redeye background ═══════ */}
             {step === 19 && (
               <div className="text-center space-y-8 py-10">
                 <div className="relative mx-auto w-32 h-32 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin" />
-                  <div className="absolute inset-2 rounded-full border-4 border-amber-400/20 border-b-amber-400 animate-spin-slow" />
-                  <Brain size={48} className="text-emerald-400 animate-pulse" />
+                  {/* Outer ring (orange) */}
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      border: "4px solid rgba(255,159,10,0.2)",
+                      borderTopColor: ORANGE,
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                  {/* Inner ring (white) */}
+                  <div
+                    className="absolute inset-2 rounded-full"
+                    style={{
+                      border: "4px solid rgba(255,255,255,0.1)",
+                      borderBottomColor: TEXT_PRIMARY,
+                      animation: "spin 1.4s linear infinite reverse",
+                    }}
+                  />
+                  <Brain size={48} style={{ color: ORANGE }} />
                 </div>
 
                 <div className="space-y-3">
-                  <div className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
-                    SYNTHESIZING SYSTEM ({analysisIndex + 1}/10)
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: ORANGE }}>
+                    Synthesizing system ({analysisIndex + 1}/10)
                   </div>
-                  <h2 className="text-2xl font-extrabold text-white min-h-[36px] transition-all">
+                  <h2 className="text-2xl font-bold min-h-[36px] transition-all" style={{ color: TEXT_PRIMARY }}>
                     {ANALYSIS_MESSAGES[analysisIndex]}
                   </h2>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs" style={{ color: TEXT_SECONDARY }}>
                     Constructing your custom Life Blueprint &amp; RPG Engine...
                   </p>
                 </div>
+
+                <style>{`
+                  @keyframes spin { to { transform: rotate(360deg); } }
+                `}</style>
               </div>
             )}
 
-            {/* STEP 20: PERSONALIZED PREVIEW BEFORE PAYMENT */}
+            {/* ═══════ STEP 20: PERSONALIZED PREVIEW + UNLOCK CTA — Jinwoo redeye background ═══════ */}
             {step === 20 && (
               <div className="space-y-5 my-auto py-2">
-                
-                {/* Header */}
-                <div className="text-center space-y-1">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
-                    <CheckCircle2 size={13} /> YOUR PERSONALIZED LIFE SYSTEM IS READY
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-                    System Diagnostic complete.
+
+                <div className="text-center space-y-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+                    style={{
+                      backgroundColor: "rgba(255,159,10,0.15)",
+                      color: ORANGE,
+                      border: `1px solid ${ORANGE}`,
+                    }}
+                  >
+                    <CheckCircle2 size={13} /> Your personalized life system is ready
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+                    System diagnostic complete.
                   </h2>
                 </div>
 
                 {/* Unlocked Highlights */}
-                <div className="bg-zinc-900/90 border border-emerald-500/40 p-4 rounded-3xl space-y-3 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                    <span className="text-xs text-zinc-400 uppercase font-mono">Primary Mission</span>
-                    <span className="text-xs font-bold text-emerald-400">ACTIVATED</span>
+                <div
+                  className="p-4 rounded-3xl space-y-3"
+                  style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${HAIRLINE}` }}
+                >
+                  <div className="flex items-center justify-between" style={{ borderBottom: `1px solid ${HAIRLINE}`, paddingBottom: 8 }}>
+                    <span className="text-xs uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>Primary mission</span>
+                    <span className="text-xs font-bold" style={{ color: ORANGE }}>Activated</span>
                   </div>
-                  <p className="font-bold text-sm text-white">
-                    {primaryPriority} — Master in 90 Days
+                  <p className="font-bold text-sm" style={{ color: TEXT_PRIMARY }}>
+                    {primaryPriority} — master in 90 days
                   </p>
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                      <div className="text-[10px] text-zinc-500 uppercase font-mono">Life Score</div>
-                      <div className="text-xl font-black text-amber-400 font-mono">{calculatedLifeScore} / 100</div>
+                    <div
+                      className="p-2.5 rounded-xl"
+                      style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}` }}
+                    >
+                      <div className="text-[10px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>Life score</div>
+                      <div className="text-xl font-bold tabular-nums" style={{ color: ORANGE }}>{calculatedLifeScore} / 100</div>
                     </div>
-                    <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                      <div className="text-[10px] text-zinc-500 uppercase font-mono">Biggest Strength</div>
-                      <div className="text-xs font-bold text-emerald-300">High Ambition</div>
+                    <div
+                      className="p-2.5 rounded-xl"
+                      style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}` }}
+                    >
+                      <div className="text-[10px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>Biggest strength</div>
+                      <div className="text-xs font-semibold" style={{ color: TEXT_PRIMARY }}>High ambition</div>
                     </div>
                   </div>
 
-                  <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <div className="text-[10px] text-zinc-500 uppercase font-mono">First Daily Mission</div>
-                    <div className="text-xs font-bold text-white">10-Min Morning Focus Ritual + Priorities Task</div>
+                  <div
+                    className="p-2.5 rounded-xl"
+                    style={{ backgroundColor: "rgba(0,0,0,0.4)", border: `1px solid ${HAIRLINE}` }}
+                  >
+                    <div className="text-[10px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>First daily mission</div>
+                    <div className="text-xs font-bold" style={{ color: TEXT_PRIMARY }}>10-min morning focus ritual + priorities task</div>
                   </div>
                 </div>
 
-                {/* Locked System Insights (Blurred Grid) */}
+                {/* Locked System Insights */}
                 <div className="space-y-1.5">
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center">
-                    LOCKED SYSTEM INSIGHTS
+                  <div className="text-[10px] uppercase font-semibold tracking-wider text-center" style={{ color: TEXT_TERTIARY }}>
+                    Locked system insights
                   </div>
                   <div className="grid grid-cols-2 gap-2 relative">
                     {[
@@ -1013,31 +1208,43 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                       "RPG XP System", "Achievement System", "Habit Tracker",
                       "Manifestation Dashboard", "Analytics"
                     ].map((item, i) => (
-                      <div 
-                        key={i} 
-                        className="bg-zinc-950/80 border border-amber-500/30 p-2.5 rounded-2xl flex items-center justify-between backdrop-blur-md"
+                      <div
+                        key={i}
+                        className="p-2.5 rounded-2xl flex items-center justify-between"
+                        style={{
+                          backgroundColor: "rgba(255,255,255,0.02)",
+                          border: `1px solid ${HAIRLINE}`,
+                        }}
                       >
-                        <span className="text-xs font-semibold text-zinc-400 blur-[2px]">{item}</span>
-                        <Lock size={12} className="text-amber-400" />
+                        <span className="text-xs font-semibold" style={{ color: TEXT_TERTIARY, filter: "blur(2px)" }}>{item}</span>
+                        <Lock size={12} style={{ color: ORANGE }} />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Unlock CTA Button */}
+                {/* 🟠 Unlock CTA — big orange */}
                 <button
                   onClick={handleUnlockFullSystem}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-400 text-black font-extrabold text-base tracking-wide shadow-[0_0_35px_rgba(16,185,129,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                  style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
-                  <Sparkles size={18} /> Unlock Your Complete AI Life System
+                  <Sparkles size={18} style={{ color: "#000" }} />
+                  Unlock your complete AI life system
                 </button>
 
-                {/* Back to Landing Page Button */}
                 <button
                   onClick={signOut}
-                  className="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white text-xs font-mono transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 rounded-2xl text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_SECONDARY,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_PRIMARY; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = TEXT_SECONDARY; }}
                 >
-                  <LogOut size={14} /> Back to Landing Page (Sign Out)
+                  <LogOut size={14} /> Back to landing page (sign out)
                 </button>
 
               </div>
