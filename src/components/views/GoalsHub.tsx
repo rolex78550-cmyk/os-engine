@@ -4,6 +4,7 @@ import {
   Plus, Target, Trophy, Flame, X, Check, Sparkles, Edit3, Trash2
 } from "lucide-react";
 import { CreateGoalPage, type GoalFormData } from "./CreateGoalPage";
+import { GoalDetailPage } from "./GoalDetailPage";
 
 // Design tokens (matches Solo Dominion style)
 const TEXT_PRIMARY = "#ffffff";
@@ -174,8 +175,9 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     return FALLBACK_GOALS;
   });
   const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
-  // Router state: "hub" = main page, "create" = create full page, "edit" = edit full page
-  const [currentView, setCurrentView] = useState<"hub" | "create" | "edit">("hub");
+  // Router state: "hub" = main page, "create" = create full page, "edit" = edit full page, "detail" = goal detail
+  const [currentView, setCurrentView] = useState<"hub" | "create" | "edit" | "detail">("hub");
+  const [detailGoal, setDetailGoal] = useState<GoalItem | null>(null);
   const [editingExisting, setEditingExisting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -309,7 +311,8 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
   };
 
   const handleGoalCardClick = (goal: GoalItem) => {
-    setSelectedGoal(goal);
+    setDetailGoal(goal);
+    setCurrentView("detail");
     if (onGoalClick) onGoalClick(goal);
   };
 
@@ -324,6 +327,29 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     : 0;
 
   // ===================== ROUTER: Full page views =====================
+  if (currentView === "detail" && detailGoal) {
+    return (
+      <GoalDetailPage
+        goal={detailGoal}
+        onBack={() => {
+          setCurrentView("hub");
+          setDetailGoal(null);
+        }}
+        onProgress={(delta) => {
+          if (Math.abs(delta) > 0.5) {
+            setLocalGoals((prev) =>
+              prev.map((g) =>
+                g.id === detailGoal.id
+                  ? { ...g, progress: Math.max(0, Math.min(100, (g.progress || 0) + delta)) }
+                  : g
+              )
+            );
+          }
+        }}
+      />
+    );
+  }
+
   if (currentView === "create") {
     return (
       <CreateGoalPage
