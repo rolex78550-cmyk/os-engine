@@ -1,5 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { audioEngine } from "./lib/audioEngine";
+import { AudioControl } from "./components/AudioControl";
 
 // Components
 import { MainLayout } from "./components/MainLayout";
@@ -41,6 +43,64 @@ export default function App() {
     }, 6000);
     return () => clearTimeout(timer);
   }, [fbLoading]);
+
+  // ============== BACKGROUND MUSIC BY PAGE ==============
+  useEffect(() => {
+    if (!user) {
+      audioEngine.playMood("landing");
+      return;
+    }
+    // Map activeTab to audio mood
+    const mood =
+      activeTab === "streaks"
+        ? "dominion"
+        : activeTab === "goals"
+        ? "goals"
+        : activeTab === "journal"
+        ? "profile"
+        : activeTab === "profile"
+        ? "profile"
+        : activeTab === "vision"
+        ? "tasks"
+        : "dashboard";
+    audioEngine.playMood(mood as any);
+  }, [activeTab, user?.uid]);
+
+  // ============== GLOBAL SFX (event listeners) ==============
+  useEffect(() => {
+    // Click sound on any button/clickable element
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("button, a, [role='button']")) {
+        audioEngine.sfxClick();
+      }
+    };
+    // Listen for success/error/level-up custom events
+    const onSuccess = () => audioEngine.sfxSuccess();
+    const onError = () => audioEngine.sfxError();
+    const onXP = () => audioEngine.sfxXP();
+    const onLevelUp = () => audioEngine.sfxLevelUp();
+    const onNotify = () => audioEngine.sfxNotify();
+    const onWhoosh = () => audioEngine.sfxWhoosh();
+
+    window.addEventListener("click", onClick, { passive: true });
+    window.addEventListener("manifest_sfx_success", onSuccess);
+    window.addEventListener("manifest_sfx_error", onError);
+    window.addEventListener("manifest_sfx_xp", onXP);
+    window.addEventListener("manifest_sfx_levelup", onLevelUp);
+    window.addEventListener("manifest_sfx_notify", onNotify);
+    window.addEventListener("manifest_sfx_whoosh", onWhoosh);
+
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("manifest_sfx_success", onSuccess);
+      window.removeEventListener("manifest_sfx_error", onError);
+      window.removeEventListener("manifest_sfx_xp", onXP);
+      window.removeEventListener("manifest_sfx_levelup", onLevelUp);
+      window.removeEventListener("manifest_sfx_notify", onNotify);
+      window.removeEventListener("manifest_sfx_whoosh", onWhoosh);
+    };
+  }, []);
 
   if (fbLoading && !forceRender) {
     return <TabLoader />;
@@ -149,6 +209,9 @@ export default function App() {
           </AnimatePresence>
         </Suspense>
       </MainLayout>
+
+      {/* ============== AUDIO CONTROL (floating, all pages) ============== */}
+      <AudioControl />
 
       <AnimatePresence>
         {logic.showCinematicIntro && (

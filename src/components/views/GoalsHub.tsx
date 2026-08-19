@@ -217,8 +217,14 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     }
   }, [toast]);
 
-  const showToast = (msg: string, type: "ok" | "err" = "ok") =>
+  const showToast = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
+    try {
+      window.dispatchEvent(
+        new CustomEvent(type === "ok" ? "manifest_sfx_success" : "manifest_sfx_error")
+      );
+    } catch {}
+  };
 
   const openCreateModal = () => {
     setEditingExisting(false);

@@ -160,7 +160,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   }, [logPageVisit]);
 
   // ============== HANDLERS ==============
-  const showToast = (msg: string, type: "ok" | "err" = "ok") => setToast({ msg, type });
+  const showToast = (msg: string, type: "ok" | "err" = "ok") => {
+    setToast({ msg, type });
+    // Trigger SFX via custom event
+    try {
+      window.dispatchEvent(
+        new CustomEvent(type === "ok" ? "manifest_sfx_success" : "manifest_sfx_error")
+      );
+    } catch {}
+  };
 
   const saveBio = async () => {
     if (!bioDraft.trim()) {
