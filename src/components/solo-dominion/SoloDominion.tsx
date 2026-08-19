@@ -1387,9 +1387,32 @@ export const SoloDominion: React.FC<any> = (props) => {
   // ===================== HUB ROUTER GUARD =====================
   // If we're on the hub view, render the simple home screen and skip the rest.
   if (dominionView === "hub") {
+    // ============== REAL STATS FROM PROFILE ==============
+    const totalXp = Number(profile.totalXp) || Number(profile.xp) || 0;
+    const level = Number(profile.level) || 1;
+    const xpPerLevel = 1000;
+    const currentLevelXP = totalXp % xpPerLevel;
+    const streak = Number(profile.streak) || 0;
+    const statBlock = (profile as any)?.stats || {};
+
     return (
       <SoloDominionHub
         playerName={playerName}
+        currentUserId={user?.uid}
+        stats={{
+          level,
+          rank: (RANK_LABEL as any)?.[Math.min(level, 4)] || "Seeker",
+          totalXP: totalXp,
+          currentLevelXP,
+          nextLevelXP: xpPerLevel,
+          streak,
+          totalQuests: 0,
+          wisdom: Number(statBlock.wisdom) || 0,
+          confidence: Number(statBlock.confidence) || 0,
+          strength: Number(statBlock.strength) || 0,
+          discipline: Number(statBlock.discipline) || 0,
+          focus: Number(statBlock.focus) || 0,
+        }}
         onOpenTasks={() => setDominionView("tasks")}
         onOpenLeaderboard={() => setDominionView("leaderboard")}
       />
@@ -1411,9 +1434,18 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // ===================== LEADERBOARD ROUTE =====================
   if (dominionView === "leaderboard") {
+    const totalXp = Number(profile.totalXp) || Number(profile.xp) || 0;
+    const level = Number(profile.level) || 1;
     return (
       <LeaderboardView
         onBack={() => setDominionView("hub")}
+        currentUserStats={{
+          uid: user?.uid || "",
+          name: playerName,
+          level,
+          xp: totalXp,
+          rankTitle: (RANK_LABEL as any)?.[Math.min(level, 4)] || "Seeker",
+        }}
       />
     );
   }

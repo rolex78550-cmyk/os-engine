@@ -46,21 +46,29 @@ const DEFAULT_STATS: PlayerStats = {
 interface HubProps {
   stats?: PlayerStats;
   playerName?: string;
+  /** Current authenticated user uid (used to mark 'YOU' in leaderboard) */
+  currentUserId?: string;
   onOpenTasks: () => void;
   onOpenLeaderboard: () => void;
 }
 
 export const SoloDominionHub: React.FC<HubProps> = ({
-  stats = DEFAULT_STATS,
+  stats,
   playerName = "Hunter",
+  currentUserId,
   onOpenTasks,
   onOpenLeaderboard,
 }) => {
   const [hovered, setHovered] = useState<DominionFeature | null>(null);
 
+  // ============== DERIVE LIVE STATS FROM REAL DATA ==============
+  // If stats not provided, compute sane defaults from 0
+  const safeStats: PlayerStats = stats || DEFAULT_STATS;
+
+  // XP bar uses the live levelXP / nextLevelXP from real data
   const xpPct = Math.max(
     0,
-    Math.min(100, (stats.currentLevelXP / stats.nextLevelXP) * 100)
+    Math.min(100, (safeStats.currentLevelXP / Math.max(1, safeStats.nextLevelXP)) * 100)
   );
 
   return (
@@ -99,7 +107,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
           style={{ color: TEXT_TERTIARY }}
         >
           <span>HUNTER · ONLINE</span>
-          <span style={{ color: ORANGE }}>● LV {stats.level}</span>
+          <span style={{ color: ORANGE }}>● LV {safeStats.level}</span>
         </div>
 
         {/* Center content */}
@@ -173,13 +181,13 @@ export const SoloDominionHub: React.FC<HubProps> = ({
                   color: "#000",
                 }}
               >
-                {stats.level}
+                {safeStats.level}
               </div>
               <span
                 className="text-[12px] font-bold"
                 style={{ color: TEXT_PRIMARY }}
               >
-                {stats.rank}
+                {safeStats.rank}
               </span>
             </div>
             <div
@@ -197,7 +205,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
                 className="text-[12px] font-bold tabular-nums"
                 style={{ color: ORANGE }}
               >
-                {stats.currentLevelXP}/{stats.nextLevelXP}
+                {safeStats.currentLevelXP}/{safeStats.nextLevelXP}
               </span>
             </div>
             <div
@@ -210,7 +218,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
                 className="text-[12px] font-bold tabular-nums"
                 style={{ color: TEXT_PRIMARY }}
               >
-                {stats.streak}d
+                {safeStats.streak}d
               </span>
             </div>
           </div>
