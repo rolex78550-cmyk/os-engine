@@ -73,23 +73,23 @@ export const SoloDominionHub: React.FC<HubProps> = ({
         className="relative w-full"
         style={{ minHeight: "min(560px, 65vh)" }}
       >
-        {/* Jinwoo background image */}
+        {/* Jinwoo background image — gold shadow monarch pose */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: "url(/images/sd_jin_hero.jpg)",
             backgroundSize: "cover",
-            backgroundPosition: "center top",
+            backgroundPosition: "center 30%",
             backgroundRepeat: "no-repeat",
-            opacity: 0.3,
+            opacity: 0.55,
           }}
         />
-        {/* Dark gradient overlay */}
+        {/* Dark gradient overlay (heavier on edges, lighter in center for visibility) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.95) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.95) 100%)",
           }}
         />
 
