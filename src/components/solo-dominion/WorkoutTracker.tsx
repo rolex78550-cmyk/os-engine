@@ -176,6 +176,25 @@ export const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({
     }
   };
 
+  // ===== Manual rep — fallback for when sensor misses =====
+  // Calls the detector's manualRep() which validates timing and counts.
+  const handleManualRep = () => {
+    if (phase !== "running") return;
+    const det = detectorRef.current;
+    if (!det) return;
+    // Only pushup / squat detectors have manualRep — time-based don't
+    if (typeof det.manualRep !== "function") return;
+
+    const onRep = (s: RepState) => {
+      setCount(s.count);
+      setPaceMs(s.paceMs);
+      setLastEventMs(s.lastRepMs);
+      lastSnapshotRef.current = s;
+    };
+    const ok = det.manualRep(onRep);
+    if (ok && "vibrate" in navigator) navigator.vibrate(40);
+  };
+
   const handlePause = () => {
     stopTracking();
     setPhase("paused");
@@ -298,6 +317,7 @@ export const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({
               onPause={handlePause}
               onResume={handleResume}
               onStop={handleStopAndSave}
+              onManualRep={handleManualRep}
             />
           )}
         </div>
@@ -450,10 +470,11 @@ const TRACKING_STATE: React.FC<{
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
+  onManualRep: () => void;
 }> = ({
   config, isTimeBased, phase, count, targetValue, progressPct, xpEarned,
   elapsedMs, paceMs, paceOk, lastEventMs, rejected, isComplete,
-  onPause, onResume, onStop,
+  onPause, onResume, onStop, onManualRep,
 }) => {
   const elapsedSec = Math.floor(elapsedMs / 1000);
   const targetSec = isTimeBased ? targetValue : 0;
@@ -592,6 +613,29 @@ const TRACKING_STATE: React.FC<{
           <CheckCircle size={14} className="text-zinc-400 shrink-0 mt-0.5" />
           <p className="text-[12px] text-zinc-400 leading-relaxed">
             <strong className="text-zinc-200">Form verified.</strong> Real movement and consistent pace detected.
+          </p>
+        </div>
+      )}
+
+      {/* Manual tap-to-count button (rep-based workouts only) */}
+      {!isTimeBased && (
+        <div className="mb-4">
+          <button
+            onClick={onManualRep}
+            disabled={phase !== "running"}
+            className="w-full py-5 rounded-2xl text-base font-extrabold text-black transition active:scale-[0.97] disabled:opacity-30"
+            style={{
+              backgroundColor: "#ffffff",
+              boxShadow: "0 8px 24px rgba(255,255,255,0.15)",
+            }}
+          >
+            +1 REP
+          </button>
+          <p
+            className="text-[10.5px] text-center mt-2 leading-relaxed"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            Sensor auto-counts. Tap button if it misses a rep.
           </p>
         </div>
       )}

@@ -71,8 +71,9 @@ export class SensorManager {
 
 // =============================================================
 // PUSH-UP DETECTOR
-//   - Phone chest pocket
+//   - Phone chest pocket OR phone on back (during push-ups)
 //   - Z-axis gravity flips (face-up → face-down per rep)
+//   - v2: loosened thresholds + 2-axis detection for reliability
 // =============================================================
 export class PushupDetector {
   private state: "ready" | "descending" | "bottom" | "ascending" = "ready";
@@ -85,64 +86,98 @@ export class PushupDetector {
   private recentPaces: number[] = [];
   private recentPace = 0;
   private lastRepMs: number | null = null;
+  private baselineZ: number | null = null;
+  private calibrated = false;
 
-  private readonly THRESHOLD_DOWN = 7.5;
-  private readonly THRESHOLD_UP = 9.2;
-  private readonly THRESHOLD_BOTTOM = 5.5;
-  private readonly THRESHOLD_TOP = 9.5;
-  private readonly MIN_REP_MS = 800;
-  private readonly MAX_REP_MS = 8000;
-  private readonly MIN_VARIANCE = 0.5;
+  // LOOSENED v2 thresholds — pocket-friendly, accept smaller movements
+  private readonly THRESHOLD_DOWN = 8.5;    // was 7.5 (harder to reach)
+  private readonly THRESHOLD_UP = 9.0;      // was 9.2 (slightly more forgiving)
+  private readonly THRESHOLD_BOTTOM = 7.0;  // was 5.5 (much easier to reach)
+  private readonly THRESHOLD_TOP = 9.4;     // was 9.5
+  private readonly MIN_REP_MS = 600;        // was 800 (faster reps allowed)
+  private readonly MAX_REP_MS = 10000;      // was 8000
+  private readonly MIN_VARIANCE = 0.2;      // was 0.5 (smaller delta counts)
+  private readonly COOLDOWN_MS = 300;       // was 400 (debounce per rep)
 
   process(e: DeviceMotionEvent, onRep?: (s: RepState) => void): void {
     const accel = e.accelerationIncludingGravity;
-    if (!accel || accel.x === null) return;
+    if (!accel || accel.z === null) return;
 
-    const mag = Math.sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
     const z = Math.abs(accel.z);
+    const mag = Math.sqrt(
+      (accel.x || 0) ** 2 + (accel.y || 0) ** 2 + (accel.z || 0) ** 2
+    );
     const variance = Math.abs(mag - this.lastMag);
     this.lastMag = mag;
     const now = Date.now();
 
+    // Calibrate baseline on first reading
+    if (!this.calibrated) {
+      this.baselineZ = z;
+      this.calibrated = true;
+      this.state = "ready";
+      return;
+    }
+
+    // Use relative delta from baseline so any phone position works
+    const dz = this.baselineZ !== null ? z - this.baselineZ : 0;
+    const goingDown = dz < -0.8; // z drops by 0.8+ m/s² from baseline
+    const goingUp = dz > 0.5;    // z rises by 0.5+ m/s² from baseline
+
     switch (this.state) {
       case "ready":
-        if (z < this.THRESHOLD_DOWN && variance > this.MIN_VARIANCE) {
+        // Trigger when z drops OR variance spikes
+        if ((z < this.THRESHOLD_DOWN || goingDown) &&
+            (variance > this.MIN_VARIANCE || z < this.THRESHOLD_DOWN)) {
           this.repStart = now;
           this.phaseStart = now;
           this.state = "descending";
         }
         break;
+
       case "descending":
-        if (z < this.THRESHOLD_BOTTOM) {
+        // Hit the bottom of the rep
+        if (z < this.THRESHOLD_BOTTOM || (dz < -1.5)) {
           this.phaseStart = now;
           this.state = "bottom";
-        } else if (z > this.THRESHOLD_UP) {
-          this.repStart = now;
+        } else if (z > this.THRESHOLD_UP && goingUp) {
+          // Bounced back up too fast — abort rep
           this.state = "ready";
+          this.repStart = now;
         }
         break;
+
       case "bottom":
-        if (z > this.THRESHOLD_UP && variance > this.MIN_VARIANCE) {
+        // Push back up
+        if ((z > this.THRESHOLD_UP || goingUp) && variance > this.MIN_VARIANCE * 0.5) {
           this.phaseStart = now;
           this.state = "ascending";
         } else if (now - this.phaseStart > this.MAX_REP_MS) {
-          this.repStart = now;
+          // Held at bottom too long — abort
           this.state = "ready";
+          this.repStart = now;
         }
         break;
+
       case "ascending":
-        if (z > this.THRESHOLD_TOP) {
+        // Top of the rep reached
+        if (z > this.THRESHOLD_TOP || (goingUp && z > 9.0)) {
           const repDuration = now - this.repStart;
           const timeSinceLast = this.lastRepTs ? now - this.lastRepTs : Infinity;
 
-          if (repDuration >= this.MIN_REP_MS && timeSinceLast >= 400) {
+          if (
+            repDuration >= this.MIN_REP_MS &&
+            timeSinceLast >= this.COOLDOWN_MS
+          ) {
             this.count++;
             this.lastRepMs = repDuration;
             this.lastRepTs = now;
             this.recentPaces.push(repDuration);
             if (this.recentPaces.length > 5) this.recentPaces.shift();
-            this.recentPace = this.recentPaces.reduce((a, b) => a + b, 0) / this.recentPaces.length;
-            if ("vibrate" in navigator) navigator.vibrate(50);
+            this.recentPace =
+              this.recentPaces.reduce((a, b) => a + b, 0) /
+              this.recentPaces.length;
+            if ("vibrate" in navigator) navigator.vibrate(40);
             onRep?.(this.snapshot());
           } else {
             this.rejected++;
@@ -151,6 +186,27 @@ export class PushupDetector {
         }
         break;
     }
+  }
+
+  /**
+   * Manual rep — fallback for when sensor misses. Tap to count.
+   * Validates timing so user can't spam-tap.
+   */
+  manualRep(onRep?: (s: RepState) => void): boolean {
+    const now = Date.now();
+    const timeSinceLast = this.lastRepTs ? now - this.lastRepTs : Infinity;
+    if (timeSinceLast < this.COOLDOWN_MS) return false;
+
+    this.count++;
+    this.lastRepMs = timeSinceLast === Infinity ? 1000 : timeSinceLast;
+    this.lastRepTs = now;
+    this.recentPaces.push(this.lastRepMs);
+    if (this.recentPaces.length > 5) this.recentPaces.shift();
+    this.recentPace =
+      this.recentPaces.reduce((a, b) => a + b, 0) / this.recentPaces.length;
+    if ("vibrate" in navigator) navigator.vibrate(40);
+    onRep?.(this.snapshot());
+    return true;
   }
 
   snapshot(): RepState {
@@ -162,7 +218,7 @@ export class PushupDetector {
       paceMs: this.recentPace || null,
       lastRepMs: this.lastRepMs,
       rejected: this.rejected,
-      metadata: {},
+      metadata: { calibrated: this.calibrated, baselineZ: this.baselineZ },
     };
   }
 
@@ -171,6 +227,13 @@ export class PushupDetector {
     this.count = 0;
     this.rejected = 0;
     this.recentPaces = [];
+    this.calibrated = false;
+    this.baselineZ = null;
+  }
+
+  recalibrate(z: number) {
+    this.baselineZ = z;
+    this.calibrated = true;
   }
 }
 
@@ -277,6 +340,26 @@ export class SquatDetector {
       rejected: this.rejected,
       metadata: {},
     };
+  }
+
+  /**
+   * Manual rep — fallback for when sensor misses. Tap to count.
+   */
+  manualRep(onRep?: (s: RepState) => void): boolean {
+    const now = Date.now();
+    const timeSinceLast = this.lastRepMs ? now - this.lastRepMs : Infinity;
+    // Squats need at least 1500ms between reps (they're slower than pushups)
+    if (timeSinceLast < 1500) return false;
+
+    this.count++;
+    this.lastRepMs = timeSinceLast === Infinity ? 2000 : timeSinceLast;
+    this.recentPaces.push(this.lastRepMs);
+    if (this.recentPaces.length > 5) this.recentPaces.shift();
+    this.recentPace =
+      this.recentPaces.reduce((a, b) => a + b, 0) / this.recentPaces.length;
+    if ("vibrate" in navigator) navigator.vibrate(40);
+    onRep?.(this.snapshot());
+    return true;
   }
 
   reset() {
