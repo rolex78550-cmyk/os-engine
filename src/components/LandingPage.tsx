@@ -473,7 +473,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
           <div className="relative max-w-md mx-auto mb-10">
             <div className="relative aspect-[3/4] max-h-[460px]">
               <img
-                src={resolveImageUrl("/images/sd_jin_hero.jpg")}
+                src={resolveImageUrl("/images/sd_jin_warrior_sunset.jpg")}
                 alt="Sung Jin-Woo — Shadow Monarch"
                 onError={onImgError("/images/sd_jin_minimal.jpg")}
                 className="absolute inset-0 w-full h-full object-cover"
@@ -547,7 +547,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         {/* Subtle anime character image on right side */}
         <div className="absolute top-0 right-0 bottom-0 w-1/2 pointer-events-none hidden md:block">
           <img
-            src={resolveImageUrl("/images/sd_jin_hero.jpg")}
+            src={resolveImageUrl("/images/sd_jin_warrior_sunset.jpg")}
             alt=""
             onError={onImgError("/images/sd_jin_minimal.jpg")}
             className="absolute inset-0 w-full h-full object-cover opacity-25"
