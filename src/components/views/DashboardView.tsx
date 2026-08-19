@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import {
   Flame, Trophy, CheckCircle, Check, ArrowUpRight, Plus,
   TrendingUp, Dumbbell, BookOpen, Target, DollarSign,
   Briefcase, GraduationCap, User, Wrench, Sparkles, X, Sun, Moon,
-  Shield, Image as ImageIcon, Users, Award, ChevronRight, Zap, Play, Heart
+  Shield, Image as ImageIcon, Users, Award, ChevronRight, Zap, Play, Heart,
+  Settings2, RotateCcw, Eye, EyeOff
 } from "lucide-react";
 
 // iOS 17 design tokens (no neon, no glow, no gradient text).
@@ -42,6 +43,44 @@ export const DashboardView: React.FC<any> = (props) => {
 
   // Quick Goal Add Modal State
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
+
+  // ============== DASHBOARD CUSTOMIZATION (state only — sections not wired yet) ==============
+  const HIDDEN_SECTIONS_KEY = "manifest_dashboard_hidden_v1";
+  const [hiddenSections, setHiddenSections] = useState<string[]>(() => {
+    try {
+      const raw =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(HIDDEN_SECTIONS_KEY)
+          : null;
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showCustomizePanel, setShowCustomizePanel] = useState(false);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        HIDDEN_SECTIONS_KEY,
+        JSON.stringify(hiddenSections)
+      );
+    } catch {}
+  }, [hiddenSections]);
+
+  const TOGGLEABLE_SECTIONS: { id: string; label: string }[] = [
+    { id: "hero", label: "Header hero (rank + tagline)" },
+    { id: "stats-row", label: "Stats row (streak, rank, level)" },
+    { id: "consistency", label: "Consistency overview + weekly metrics" },
+    { id: "bottom-row", label: "Vision + goals + journal previews" },
+  ];
+  const isHidden = (id: string) => hiddenSections.includes(id);
+  const toggleSection = (id: string) => {
+    setHiddenSections((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+  const restoreAll = () => setHiddenSections([]);
 
   const getTodayStr = () => new Date().toISOString().slice(0, 10);
   const today = getTodayStr();
@@ -1140,6 +1179,144 @@ export const DashboardView: React.FC<any> = (props) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== CUSTOMIZE FLOATING BUTTON ===================== */}
+      <button
+        onClick={() => setShowCustomizePanel(true)}
+        className="fixed bottom-24 right-4 z-40 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full active:scale-95 transition shadow-2xl"
+        style={{
+          backgroundColor: "rgba(10,10,10,0.95)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          color: "#ffffff",
+        }}
+        aria-label="Customize dashboard"
+      >
+        <Settings2 size={14} />
+        <span className="text-[11px] font-bold">Customize</span>
+        {hiddenSections.length > 0 && (
+          <span
+            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: "#0a84ff", color: "#fff" }}
+          >
+            {hiddenSections.length}
+          </span>
+        )}
+      </button>
+
+      {/* ===================== CUSTOMIZE PANEL MODAL ===================== */}
+      {showCustomizePanel && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
+          onClick={() => setShowCustomizePanel(false)}
+        >
+          <div
+            className="w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[80vh] overflow-y-auto"
+            style={{
+              backgroundColor: "#0a0a0a",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div
+                className="text-[10px] font-bold tracking-widest uppercase"
+                style={{ color: "rgba(235,235,245,0.32)" }}
+              >
+                Customize Dashboard
+              </div>
+              <button
+                onClick={() => setShowCustomizePanel(false)}
+                className="p-1 rounded-lg active:scale-90"
+                style={{ color: "rgba(235,235,245,0.32)" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p
+              className="text-[12px] mb-4"
+              style={{ color: "rgba(235,235,245,0.62)" }}
+            >
+              Hide sections you don't need. Tap the eye icon to toggle.
+            </p>
+
+            <div className="space-y-2 mb-4">
+              {TOGGLEABLE_SECTIONS.map((s) => {
+                const hidden = isHidden(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => toggleSection(s.id)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left active:scale-[0.99] transition"
+                    style={{
+                      backgroundColor: hidden
+                        ? "rgba(255,255,255,0.02)"
+                        : "rgba(10,132,255,0.06)",
+                      border: `1px solid ${
+                        hidden
+                          ? "rgba(255,255,255,0.06)"
+                          : "rgba(10,132,255,0.18)"
+                      }`,
+                    }}
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: hidden
+                          ? "rgba(255,255,255,0.04)"
+                          : "rgba(10,132,255,0.15)",
+                        color: hidden
+                          ? "rgba(235,235,245,0.32)"
+                          : "#0a84ff",
+                      }}
+                    >
+                      {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </div>
+                    <span
+                      className="flex-1 text-[12.5px] font-semibold"
+                      style={{
+                        color: hidden
+                          ? "rgba(235,235,245,0.45)"
+                          : "#ffffff",
+                        textDecoration: hidden ? "line-through" : "none",
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: hidden
+                          ? "rgba(255,255,255,0.05)"
+                          : "rgba(52,199,89,0.15)",
+                        color: hidden
+                          ? "rgba(235,235,245,0.32)"
+                          : "#34c759",
+                      }}
+                    >
+                      {hidden ? "Hidden" : "Visible"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {hiddenSections.length > 0 && (
+              <button
+                onClick={restoreAll}
+                className="w-full py-3 rounded-xl text-[12px] font-extrabold flex items-center justify-center gap-2 active:scale-95"
+                style={{
+                  backgroundColor: "#0a84ff",
+                  color: "#fff",
+                }}
+              >
+                <RotateCcw size={13} /> Restore all sections ({hiddenSections.length} hidden)
+              </button>
+            )}
           </div>
         </div>
       )}
