@@ -254,7 +254,27 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
   };
 
   return (
-    <div className="text-white space-y-4 sm:space-y-5">
+    <div className="text-white space-y-4 sm:space-y-5 relative min-h-screen">
+      {/* ===================== ANIME BACKGROUND ===================== */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: "url(/images/sd_jin_blue_eyes.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center 25%",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.18,
+        }}
+      />
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.25) 30%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.92) 100%)",
+        }}
+      />
+
+      <div className="relative z-10 space-y-4 sm:space-y-5">
 
       {/* HEADER BAR */}
       <div
@@ -1167,6 +1187,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

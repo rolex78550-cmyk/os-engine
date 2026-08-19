@@ -11,6 +11,7 @@ import { ManifestOnboarding } from "./components/ManifestOnboarding";
 
 // Views
 import { DashboardView } from "./components/views/DashboardView";
+import { CleanDashboard } from "./components/views/CleanDashboard";
 import { GoalsView } from "./components/views/GoalsView";
 import { JournalView } from "./components/views/JournalView";
 import { ProfileView } from "./components/views/ProfileView";
@@ -97,7 +98,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             {activeTab === "dashboard" && (
               <motion.div key="dashboard" {...pageTransition} className="will-change-transform">
-                <DashboardView {...logic} />
+                <CleanDashboard {...logic} />
               </motion.div>
             )}
             {activeTab === "goals" && (
