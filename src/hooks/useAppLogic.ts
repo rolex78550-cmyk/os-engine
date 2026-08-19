@@ -867,6 +867,10 @@ export function useAppLogic() {
         belief: 70,
         emotion: 65,
         action: 60,
+        // Persist onboarding goals so GoalsHub can show them
+        onboardingGoals: Array.isArray(data.onboardingGoals)
+          ? data.onboardingGoals
+          : [],
       };
 
       // Save to Firestore (onboarded: true)

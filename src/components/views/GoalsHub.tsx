@@ -165,9 +165,13 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
   setNewGoalIcon,
 }) => {
   // Local state for in-component CRUD
-  const [localGoals, setLocalGoals] = useState<GoalItem[]>(
-    externalGoals || FALLBACK_GOALS
-  );
+  const [localGoals, setLocalGoals] = useState<GoalItem[]>(() => {
+    // Priority: onboardingGoals first, then any provided external goals, then fallback
+    const onboarding = (externalGoals as any)?.onboardingGoals as GoalItem[] | undefined;
+    if (Array.isArray(onboarding) && onboarding.length > 0) return onboarding;
+    if (Array.isArray(externalGoals) && externalGoals.length > 0) return externalGoals;
+    return FALLBACK_GOALS;
+  });
   const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingExisting, setEditingExisting] = useState(false);

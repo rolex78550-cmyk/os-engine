@@ -12,6 +12,22 @@ interface ManifestOnboardingProps {
     profile: any;
     aiGeneratedSystem?: any;
     triggerPricing?: boolean;
+    onboardingGoals?: Array<{
+      id: string;
+      title: string;
+      description: string;
+      rank: "E" | "D" | "C" | "B" | "A";
+      xp: number;
+      progress: number;
+      image: string;
+      jpLabel: string;
+      icon: string;
+      category: string;
+      deadline?: string;
+      totalMilestones?: number;
+      completedMilestones?: number;
+      source?: "onboarding" | "manual";
+    }>;
   }) => void;
 }
 
@@ -184,6 +200,80 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
   const [coachingStyle, setCoachingStyle] = useState("balanced");
   const [confidenceWithoutGuidance, setConfidenceWithoutGuidance] = useState(4);
 
+  // ============== CATEGORY GOAL ANSWERS (used to seed Goals page) ==============
+  const [lifestyleGoal, setLifestyleGoal] = useState("");
+  const [healthGoal, setHealthGoal] = useState("");
+  const [careerGoal, setCareerGoal] = useState("");
+  const [wealthGoal, setWealthGoal] = useState("");
+  const [knowledgeGoal, setKnowledgeGoal] = useState("");
+  const [relationshipsGoal, setRelationshipsGoal] = useState("");
+
+  // Build GoalItem array from onboarding answers
+  const CATEGORY_GOAL_DEFS: Array<{
+    key: string;
+    category: string;
+    jpLabel: string;
+    icon: string;
+    rank: "E" | "D" | "C" | "B" | "A";
+    xp: number;
+    description: string;
+  }> = [
+    {
+      key: "lifestyle",
+      category: "Lifestyle",
+      jpLabel: "ライフスタイル",
+      icon: "🏠",
+      rank: "B",
+      xp: 300,
+      description: "Build the daily life you've always envisioned.",
+    },
+    {
+      key: "health",
+      category: "Health",
+      jpLabel: "健康",
+      icon: "💪",
+      rank: "C",
+      xp: 250,
+      description: "Forge a body and mind that serve your goals.",
+    },
+    {
+      key: "career",
+      category: "Career",
+      jpLabel: "キャリア",
+      icon: "🚀",
+      rank: "A",
+      xp: 500,
+      description: "Build the professional life you deserve.",
+    },
+    {
+      key: "wealth",
+      category: "Wealth",
+      jpLabel: "富",
+      icon: "💰",
+      rank: "A",
+      xp: 450,
+      description: "Achieve financial freedom and security.",
+    },
+    {
+      key: "knowledge",
+      category: "Knowledge",
+      jpLabel: "知識",
+      icon: "📚",
+      rank: "C",
+      xp: 200,
+      description: "Master skills and ideas that compound over time.",
+    },
+    {
+      key: "relationships",
+      category: "Relationships",
+      jpLabel: "関係",
+      icon: "🤝",
+      rank: "B",
+      xp: 280,
+      description: "Cultivate deep, meaningful connections.",
+    },
+  ];
+
   // Analysis Loading step state
   const [analysisIndex, setAnalysisIndex] = useState(0);
 
@@ -283,10 +373,61 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
   const handleUnlockFullSystem = () => {
     const data = generateAIProfileData();
+
+    // Build onboarding goals array from category answers
+    const answerMap: Record<string, string> = {
+      lifestyle: lifestyleGoal,
+      health: healthGoal,
+      career: careerGoal,
+      wealth: wealthGoal,
+      knowledge: knowledgeGoal,
+      relationships: relationshipsGoal,
+    };
+
+    const onboardingGoals = CATEGORY_GOAL_DEFS
+      .map((def) => {
+        const userAnswer = (answerMap[def.key] || "").trim();
+        const goalTitle = userAnswer || getDefaultGoalTitle(def.key, primaryPriority);
+        return {
+          id: `onb_${def.key}_${Date.now()}`,
+          title: goalTitle,
+          description: def.description,
+          rank: def.rank,
+          xp: def.xp,
+          progress: 0,
+          image: getDefaultGoalImage(def.key),
+          jpLabel: def.jpLabel,
+          icon: def.icon,
+          category: def.category,
+          deadline: deriveDeadline(def.key),
+          totalMilestones: 10,
+          completedMilestones: 0,
+          source: "onboarding" as const,
+        };
+      })
+      // Only include if the user gave a meaningful answer OR this category is in selected life areas
+      .filter((g) => {
+        const answer = (answerMap[
+          g.category.toLowerCase()
+        ] || "").trim();
+        const catKey = g.category.toLowerCase();
+        const lifeAreaMap: Record<string, string> = {
+          lifestyle: "lifestyle",
+          health: "fitness",
+          career: "career",
+          wealth: "money",
+          knowledge: "knowledge",
+          relationships: "relationships",
+        };
+        const lifeArea = lifeAreaMap[catKey];
+        return answer.length > 0 || (lifeArea && selectedLifeAreas.includes(lifeArea));
+      });
+
     onComplete({
       profile: data.profile,
       aiGeneratedSystem: data.aiGeneratedSystem,
       triggerPricing: true,
+      onboardingGoals,
     });
   };
 
@@ -1052,37 +1193,24 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
             {/* ═══════ STEP 18: CONFIDENCE WITHOUT GUIDANCE ═══════ */}
             {step === 18 && (
-              <div className="space-y-6 text-center">
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Reality check</div>
+              <div className="space-y-5 text-left">
+                <div className="space-y-1 text-center">
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEXT_TERTIARY }}>Define your goals</div>
                   <h2 className="text-2xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
-                    Confidence without guidance?
+                    What do you want to achieve?
                   </h2>
+                  <p className="text-xs" style={{ color: TEXT_SECONDARY }}>
+                    Describe one goal in each life area. These will appear in your Goals page.
+                  </p>
                 </div>
 
-                <div className="py-6 space-y-6">
-                  <div className="text-5xl font-bold tabular-nums" style={{ color: ORANGE }}>
-                    {confidenceWithoutGuidance} <span className="text-2xl" style={{ color: TEXT_TERTIARY }}>/ 10</span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={confidenceWithoutGuidance}
-                    onChange={(e) => setConfidenceWithoutGuidance(Number(e.target.value))}
-                    className="w-full h-3 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.08)",
-                      accentColor: ORANGE,
-                    }}
-                  />
-
-                  <div className="text-sm font-semibold" style={{ color: TEXT_SECONDARY }}>
-                    {confidenceWithoutGuidance <= 4 && "Requires structured AI accountability system"}
-                    {confidenceWithoutGuidance >= 5 && confidenceWithoutGuidance <= 7 && "Moderate confidence with potential bottlenecks"}
-                    {confidenceWithoutGuidance >= 8 && "High drive needing precision tactical roadmap"}
-                  </div>
+                <div className="space-y-3 max-h-[44vh] overflow-y-auto pr-1">
+                  <GoalInput label="🏠 Lifestyle" value={lifestyleGoal} onChange={setLifestyleGoal} placeholder="e.g., Move to my dream apartment" />
+                  <GoalInput label="💪 Health" value={healthGoal} onChange={setHealthGoal} placeholder="e.g., Run a half marathon" />
+                  <GoalInput label="🚀 Career" value={careerGoal} onChange={setCareerGoal} placeholder="e.g., Get promoted to senior role" />
+                  <GoalInput label="💰 Wealth" value={wealthGoal} onChange={setWealthGoal} placeholder="e.g., Save ₹10L for house down payment" />
+                  <GoalInput label="📚 Knowledge" value={knowledgeGoal} onChange={setKnowledgeGoal} placeholder="e.g., Master React & build 3 apps" />
+                  <GoalInput label="🤝 Relationships" value={relationshipsGoal} onChange={setRelationshipsGoal} placeholder="e.g., Reconnect with 5 old friends" />
                 </div>
 
                 <button
@@ -1090,7 +1218,7 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                   className="w-full py-4 rounded-2xl font-bold transition-colors"
                   style={{ backgroundColor: ORANGE, color: "#000" }}
                 >
-                  Generate AI analysis
+                  Generate AI analysis →
                 </button>
               </div>
             )}
@@ -1257,3 +1385,110 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
     </div>
   );
 }
+
+// ============== HELPER FUNCTIONS FOR ONBOARDING GOALS ==============
+function getDefaultGoalTitle(category: string, primaryPriority: string): string {
+  const map: Record<string, string> = {
+    lifestyle: "Build Your Ideal Lifestyle",
+    health: "Achieve Peak Health & Fitness",
+    career: "Advance Your Career Path",
+    wealth: "Build Long-Term Wealth",
+    knowledge: "Master a New Skill",
+    relationships: "Deepen Key Relationships",
+  };
+  // If the user's primaryPriority is in this category, use it
+  const priority = (primaryPriority || "").toLowerCase();
+  if (
+    category === "wealth" &&
+    (priority.includes("earn") ||
+      priority.includes("₹") ||
+      priority.includes("$") ||
+      priority.includes("income") ||
+      priority.includes("money"))
+  ) {
+    return primaryPriority;
+  }
+  if (
+    category === "career" &&
+    (priority.includes("job") ||
+      priority.includes("promotion") ||
+      priority.includes("startup") ||
+      priority.includes("brand") ||
+      priority.includes("business") ||
+      priority.includes("career"))
+  ) {
+    return primaryPriority;
+  }
+  if (
+    category === "health" &&
+    (priority.includes("fat") ||
+      priority.includes("muscle") ||
+      priority.includes("six pack") ||
+      priority.includes("fitness") ||
+      priority.includes("weight"))
+  ) {
+    return primaryPriority;
+  }
+  return map[category] || `Achieve your ${category} goal`;
+}
+
+function getDefaultGoalImage(category: string): string {
+  const map: Record<string, string> = {
+    lifestyle: "/images/goal_house.jpg",
+    health: "/images/goal_jinwoo.jpg",
+    career: "/images/goal_jinwoo.jpg",
+    wealth: "/images/goal_house.jpg",
+    knowledge: "/images/goal_jinwoo.jpg",
+    relationships: "/images/goal_house.jpg",
+  };
+  return map[category] || "/images/goal_jinwoo.jpg";
+}
+
+function deriveDeadline(category: string): string {
+  // 90 days from now for most, 365 for wealth/career
+  const now = new Date();
+  const days = category === "wealth" || category === "career" ? 365 : 90;
+  now.setDate(now.getDate() + days);
+  return now.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ============== GOAL INPUT (reusable for category goal entry) ==============
+const GoalInput: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}> = ({ label, value, onChange, placeholder }) => (
+  <div
+    className="rounded-xl p-3"
+    style={{
+      backgroundColor: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}
+  >
+    <label
+      className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+      style={{ color: "rgba(235,235,245,0.62)" }}
+    >
+      {label}
+    </label>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      maxLength={80}
+      className="w-full px-2.5 py-2 rounded-lg text-[13px] outline-none"
+      style={{
+        backgroundColor: "#000",
+        border: "1px solid rgba(255,255,255,0.08)",
+        color: "#ffffff",
+        fontFamily: "inherit",
+      }}
+      placeholder={placeholder}
+    />
+  </div>
+);
