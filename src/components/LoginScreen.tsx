@@ -1,51 +1,114 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, LogIn } from 'lucide-react';
+import { LogIn, Shield, ArrowRight } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
+import { resolveImageUrl, onImgError } from '../lib/imageHelper';
+
+// iOS 17 + Solo Leveling ARISE design tokens (matches Landing page)
+const TEXT_PRIMARY = "#ffffff";
+const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const SURFACE = "#0a0a0a";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const ORANGE = "#ff9f0a";
 
 export default function LoginScreen() {
   const { signIn } = useFirebase();
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-6">
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5  rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5  rounded-full" />
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: "#000" }}
+    >
+      {/* 🎨 ANIME IMAGE — dark moody Jinwoo redeye as full background, low opacity */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src={resolveImageUrl("/images/sd_jin_redeye.jpg")}
+          alt="Shadow Monarch"
+          onError={onImgError("/images/sd_jin_hero.jpg")}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "center 35%", opacity: 0.35 }}
+        />
+        {/* Dark gradient overlays for text legibility — top, bottom, sides */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.6) 100%)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.85) 100%)",
+          }}
+        />
       </div>
 
-      <motion.div 
+      {/* Centered content card */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-md text-center space-y-12"
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-md px-6 text-center space-y-10"
       >
-        <div className="space-y-6">
-          <div className="inline-flex p-4 rounded-[28px] bg-white/5 border border-white/10 shadow-2xl">
-            <Sparkles size={32} className="text-emerald-400" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-display font-bold text-white tracking-tight uppercase tracking-[0.2em]">Manifestation OS</h1>
-            <p className="text-text-secondary font-mono text-[10px] uppercase tracking-[0.4em]">Quantum Alignment Engine</p>
+        {/* Top icon — minimal white square (matches Landing page logo) */}
+        <div className="flex justify-center">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.06)",
+              border: `1px solid ${HAIRLINE}`,
+            }}
+          >
+            <Shield size={26} style={{ color: TEXT_PRIMARY }} />
           </div>
         </div>
 
-        <div className="space-y-8">
-          <p className="text-text-muted text-sm leading-relaxed max-w-[280px] mx-auto italic font-display">
-            "Your external reality is a direct reflection of your internal frequency."
+        {/* Title block — matches Landing page hero style */}
+        <div className="space-y-3">
+          <h1
+            className="font-bold tracking-tight leading-[1.05]"
+            style={{
+              color: TEXT_PRIMARY,
+              fontSize: "clamp(2rem, 5.5vw, 2.75rem)",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Welcome back,<br />
+            <span style={{ color: ORANGE }}>Hunter.</span>
+          </h1>
+          <p className="text-sm sm:text-base max-w-sm mx-auto" style={{ color: TEXT_SECONDARY }}>
+            Sign in to continue your ascension. Your streak, XP, and quests are waiting.
           </p>
-          
+        </div>
+
+        {/* 🟠 PRIMARY CTA — Big orange, matches Landing page "Continue" */}
+        <div className="space-y-3">
           <button
             onClick={signIn}
-            className="w-full flex items-center justify-center gap-4 bg-white text-black py-5 rounded-[24px] font-bold text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-white/10"
+            className="w-full py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+            style={{ backgroundColor: ORANGE, color: "#000" }}
           >
-            <LogIn size={20} />
-            Begin Transmutation
+            <span>Continue with Google</span>
+            <ArrowRight size={18} style={{ color: "#000" }} />
           </button>
+
+          <p className="text-[10px] tracking-[0.2em] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>
+            Secure sign-in · No password needed
+          </p>
         </div>
 
-        <div className="pt-12 border-t border-white/5">
-          <p className="text-[9px] font-mono text-text-muted uppercase tracking-widest leading-relaxed">
-            By entering, you agree to align your coherence<br />with the laws of the universe.
+        {/* Trust line — iOS Settings modal style */}
+        <div
+          className="pt-6 space-y-2"
+          style={{ borderTop: `1px solid ${HAIRLINE}` }}
+        >
+          <div className="flex items-center justify-center gap-1.5 text-[11px]" style={{ color: TEXT_SECONDARY }}>
+            <Shield size={11} />
+            <span>Your data is encrypted end-to-end</span>
+          </div>
+          <p className="text-[10px] leading-relaxed" style={{ color: TEXT_TERTIARY }}>
+            By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
       </motion.div>
