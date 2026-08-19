@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   ArrowRight, X, Loader2, Star, AlertTriangle, Shield, UserCheck, Copy, Check,
   BookOpen, Swords, Brain, LineChart, Users, Target, FileText, TrendingUp, Crown,
-  ChevronLeft, ChevronRight, Zap, Sparkles, Lock, Play, HelpCircle, Mail, Send, CheckCircle2, Clock, Flame, Menu
+  ChevronRight, Zap, Sparkles, Play, Mail, CheckCircle2, Clock, Flame, Menu,
+  Lock, Brain as BrainIcon, Heart, Target as TargetIcon
 } from 'lucide-react';
-
-import shadowMonarchImg from '../assets/images/anime_shadow_monarch_1785176449409.jpg';
-import shadowKnightImg from '../assets/images/anime_shadow_knight_1785176768012.jpg';
-import redWarriorImg from '../assets/images/anime_red_warrior_1785177142520.jpg';
-import traineeWarriorImg from '../assets/images/anime_trainee_warrior_1785176432904.jpg';
-import heroArtworkImg from '../assets/images/anime_hero_artwork_1785263718355.jpg';
-import shadowMonarchCrowsImg from '../assets/images/shadow_monarch_crows_1785330753705.jpg';
+import { resolveImageUrl, onImgError } from '../lib/imageHelper';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -19,12 +14,24 @@ interface LandingPageProps {
   clearAuthError?: () => void;
 }
 
+// ── DESIGN TOKENS (Solo Leveling ARISE inspired) ─────────────────────
+const TEXT_PRIMARY = "#ffffff";
+const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const SURFACE = "#0a0a0a";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
+
+// iOS orange (#ff9f0a family) — single accent, no glow
+const ORANGE = "#ff9f0a";
+const ORANGE_DARK = "#ff7a00";
+
 const RANKS = [
-  { name: "SEEKER", level: "01", power: "1×", desc: "Your first desire takes form", badge: "✦", image: traineeWarriorImg },
-  { name: "AWAKENED", level: "10", power: "5×", desc: "Manifestation accelerates", badge: "✧", image: redWarriorImg },
-  { name: "ELITE", level: "25", power: "15×", desc: "Reality begins to bend", badge: "❖", image: shadowKnightImg },
-  { name: "MONARCH", level: "40", power: "35×", desc: "You command probability", badge: "🔱", image: shadowMonarchImg },
-  { name: "SOVEREIGN", level: "50", power: "100×", desc: "You become the system", badge: "👑", image: "/images/intro-ascend.jpg" },
+  { name: "SEEKER", level: "01", power: "1×", desc: "Your first desire takes form", badge: "✦" },
+  { name: "AWAKENED", level: "10", power: "5×", desc: "Manifestation accelerates", badge: "✧" },
+  { name: "ELITE", level: "25", power: "15×", desc: "Reality begins to bend", badge: "❖" },
+  { name: "MONARCH", level: "40", power: "35×", desc: "You command probability", badge: "🔱" },
+  { name: "SOVEREIGN", level: "50", power: "100×", desc: "You become the system", badge: "👑" },
 ];
 
 const TESTIMONIALS = [
@@ -74,6 +81,15 @@ const FAQS = [
   }
 ];
 
+// Player stats for the "Your Current Rating" section
+const PLAYER_STATS = [
+  { label: "Wisdom", value: 45, icon: BrainIcon, color: "#a855f7" },
+  { label: "Confidence", value: 54, icon: Star, color: "#22c55e" },
+  { label: "Strength", value: 52, icon: Swords, color: "#ef4444" },
+  { label: "Discipline", value: 48, icon: Lock, color: "#3b82f6" },
+  { label: "Focus", value: 42, icon: TargetIcon, color: "#06b6d4" },
+];
+
 export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAuthError }: LandingPageProps) {
   const [showAuth, setShowAuth] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -105,9 +121,9 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
     setIsAuthenticating(true);
     setLocalAuthError(null);
     clearAuthError?.();
-    try { 
-      await onSignIn(); 
-    } catch (e: any) { 
+    try {
+      await onSignIn();
+    } catch (e: any) {
       console.warn('[LandingPage] Google Sign In note:', e?.code || e?.message);
       if (e?.message?.includes('unauthorized-domain') || e?.code === 'auth/unauthorized-domain') {
         const domain = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -118,52 +134,80 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
       } else {
         setLocalAuthError(e?.message || 'Google authentication failed');
       }
-    } finally { 
-      setIsAuthenticating(false); 
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans overflow-x-hidden antialiased selection:bg-amber-500 selection:text-black">
-      
-      {/* AUTH MODAL */}
+    <div
+      className="min-h-screen text-white overflow-x-hidden antialiased"
+      style={{ backgroundColor: "#000", fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
+    >
+
+      {/* ═══════════ AUTH MODAL ═══════════ */}
       {showAuth && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-fade-in">
-          <div className="relative w-full max-w-md bg-[#0a0a0d] border border-amber-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_60px_rgba(234,179,8,0.25)]">
-            <button 
-              onClick={() => {
-                setShowAuth(false);
-                setLocalAuthError(null);
-                clearAuthError?.();
-              }} 
-              className="absolute top-6 right-6 text-white/40 hover:text-white transition"
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}
+        >
+          <div
+            className="relative w-full max-w-md rounded-3xl p-8 sm:p-10"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+          >
+            <button
+              onClick={() => { setShowAuth(false); setLocalAuthError(null); clearAuthError?.(); }}
+              className="absolute top-6 right-6 transition-colors"
+              style={{ color: TEXT_SECONDARY }}
             >
               <X size={20} />
             </button>
             <div className="text-center">
-              <div className="mx-auto w-14 h-14 mb-5 rounded-2xl bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 border border-amber-400/50 flex items-center justify-center shadow-[0_0_25px_rgba(234,179,8,0.4)]">
-                <span className="text-xl font-bold tracking-[-1px] font-luxury-title text-black">MO</span>
+              {/* Simple square logo, no gradient */}
+              <div
+                className="mx-auto w-14 h-14 mb-5 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${HAIRLINE}` }}
+              >
+                <span className="text-xl font-bold" style={{ color: TEXT_PRIMARY }}>M</span>
               </div>
-              <h2 className="text-3xl font-luxury-title font-bold tracking-tight mb-2 text-gradient-gold">
+              <h2 className="text-3xl font-bold tracking-tight mb-2" style={{ color: TEXT_PRIMARY }}>
                 Enter Menifest OS
               </h2>
-              <p className="text-amber-100/70 text-sm mb-6">Level up your reality. Align your true power.</p>
+              <p className="text-sm mb-6" style={{ color: TEXT_SECONDARY }}>
+                Level up your reality. Align your true power.
+              </p>
 
               {activeError && (
-                <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs text-left leading-relaxed space-y-3">
-                  <div className="font-semibold text-amber-400 flex items-center gap-2">
+                <div
+                  className="mb-6 p-4 rounded-xl text-xs text-left leading-relaxed space-y-3"
+                  style={{
+                    backgroundColor: "rgba(255,159,10,0.08)",
+                    border: "1px solid rgba(255,159,10,0.2)",
+                    color: "#ffb84a",
+                  }}
+                >
+                  <div className="font-semibold flex items-center gap-2" style={{ color: ORANGE }}>
                     <AlertTriangle size={16} className="shrink-0" /> Firebase Authorized Domain Notice
                   </div>
                   <p>{activeError}</p>
-                  <p className="text-white/70">
+                  <p style={{ color: TEXT_SECONDARY }}>
                     To enable live Google login, add this domain under <strong>Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains</strong>:
                   </p>
-                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/70 border border-amber-500/30">
-                    <code className="text-amber-300 font-mono text-[11px] truncate select-all">{currentHostname}</code>
+                  <div
+                    className="flex items-center justify-between gap-2 p-2 rounded-lg"
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)", border: `1px solid ${HAIRLINE}` }}
+                  >
+                    <code className="font-mono text-[11px] truncate select-all" style={{ color: "#ffb84a" }}>
+                      {currentHostname}
+                    </code>
                     <button
                       type="button"
                       onClick={handleCopyDomain}
-                      className="shrink-0 px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center gap-1 transition"
+                      className="shrink-0 px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                      style={{
+                        backgroundColor: "rgba(255,159,10,0.15)",
+                        color: ORANGE,
+                      }}
                     >
                       {copiedDomain ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy Domain</>}
                     </button>
@@ -171,11 +215,9 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   <div className="pt-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        onDemoSignIn?.(false);
-                        setShowAuth(false);
-                      }}
-                      className="w-full py-2.5 rounded-lg bg-amber-500 text-black font-semibold text-xs flex items-center justify-center gap-2 hover:bg-amber-400 transition"
+                      onClick={() => { onDemoSignIn?.(false); setShowAuth(false); }}
+                      className="w-full py-2.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
+                      style={{ backgroundColor: ORANGE, color: "#000" }}
                     >
                       <UserCheck size={14} /> Continue with Demo Account
                     </button>
@@ -183,151 +225,171 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                 </div>
               )}
 
-              <button 
-                onClick={handleGoogleSignIn} 
+              <button
+                onClick={handleGoogleSignIn}
                 disabled={isAuthenticating}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(234,179,8,0.4)] active:scale-[0.985] transition-all"
+                className="w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-colors active:scale-[0.985]"
+                style={{ backgroundColor: TEXT_PRIMARY, color: "#000" }}
               >
-                {isAuthenticating ? <Loader2 className="animate-spin" size={18} /> : <>Continue with Google <ArrowRight size={17} /></>}
+                {isAuthenticating
+                  ? <Loader2 className="animate-spin" size={18} />
+                  : <>Continue with Google <ArrowRight size={17} /></>}
               </button>
 
               {onDemoSignIn && !activeError && (
-                <div className="mt-4 pt-4 border-t border-amber-500/15">
+                <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
                   <button
                     type="button"
-                    onClick={() => {
-                      onDemoSignIn(false);
-                      setShowAuth(false);
-                    }}
-                    className="w-full text-xs text-amber-300/80 hover:text-white transition py-1 flex items-center justify-center gap-1.5"
+                    onClick={() => { onDemoSignIn(false); setShowAuth(false); }}
+                    className="w-full text-xs transition-colors py-1 flex items-center justify-center gap-1.5"
+                    style={{ color: TEXT_SECONDARY }}
                   >
                     <UserCheck size={13} /> Demo Sign In (Instant Access)
                   </button>
                 </div>
               )}
 
-              <p className="mt-4 text-[10px] tracking-[2px] text-amber-300/40 uppercase font-mono">NO FREE TRIAL • STARTS AT ₹99/MONTH</p>
+              <p className="mt-4 text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>
+                NO FREE TRIAL · STARTS AT ₹99/MONTH
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* PRIVACY POLICY MODAL */}
+      {/* ═══════════ PRIVACY POLICY MODAL ═══════════ */}
       {showPrivacy && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
-          <div className="bg-[#0a0a0d] border border-amber-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-auto p-8 text-left">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}>
+          <div className="rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-auto p-8 text-left" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-luxury-title font-bold text-white">Privacy Policy</h3>
-              <button onClick={() => setShowPrivacy(false)}><X size={22} className="text-white/60 hover:text-white" /></button>
+              <h3 className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>Privacy Policy</h3>
+              <button onClick={() => setShowPrivacy(false)} style={{ color: TEXT_SECONDARY }}><X size={22} /></button>
             </div>
-            <div className="space-y-4 text-sm text-amber-100/80 leading-relaxed">
+            <div className="space-y-4 text-sm leading-relaxed" style={{ color: TEXT_SECONDARY }}>
               <p>Menifest OS ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.</p>
-              
-              <p><strong>Information We Collect:</strong><br />
+              <p><strong style={{ color: TEXT_PRIMARY }}>Information We Collect:</strong><br />
               • Personal information (name, email, profile details) when you sign up.<br />
               • Payment information processed securely through Stripe.<br />
               • Quest proof (photos, text) that you upload for AI verification.<br />
               • Usage data to improve the platform experience.</p>
-              
-              <p><strong>How We Use Your Information:</strong><br />
+              <p><strong style={{ color: TEXT_PRIMARY }}>How We Use Your Information:</strong><br />
               We use your data to provide the service, verify your actions using Gemini AI, process payments, send important updates, and improve the platform experience.</p>
-              
-              <p><strong>Data Sharing:</strong><br />
+              <p><strong style={{ color: TEXT_PRIMARY }}>Data Sharing:</strong><br />
               We do not sell your personal data. We share limited information with trusted third parties (Stripe for payments, Google Gemini for verification).</p>
-              
-              <p><strong>Your Rights:</strong><br />
+              <p><strong style={{ color: TEXT_PRIMARY }}>Your Rights:</strong><br />
               You can request access, correction, or deletion of your data at any time by emailing asarist20@gmail.com.</p>
             </div>
-            <button onClick={() => setShowPrivacy(false)} className="mt-6 w-full py-3 border border-amber-500/30 rounded-xl text-amber-200 hover:bg-amber-500/10 transition">Close</button>
+            <button
+              onClick={() => setShowPrivacy(false)}
+              className="mt-6 w-full py-3 rounded-xl text-sm font-semibold transition-colors"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
 
-      {/* TERMS OF SERVICE MODAL */}
+      {/* ═══════════ TERMS OF SERVICE MODAL ═══════════ */}
       {showTerms && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
-          <div className="bg-[#0a0a0d] border border-amber-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-auto p-8 text-left">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}>
+          <div className="rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-auto p-8 text-left" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-luxury-title font-bold text-white">Terms of Service</h3>
-              <button onClick={() => setShowTerms(false)}><X size={22} className="text-white/60 hover:text-white" /></button>
+              <h3 className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>Terms of Service</h3>
+              <button onClick={() => setShowTerms(false)} style={{ color: TEXT_SECONDARY }}><X size={22} /></button>
             </div>
-            <div className="space-y-4 text-sm text-amber-100/80 leading-relaxed">
-              <p><strong>1. Acceptance of Terms</strong><br />By accessing or using Menifest OS, you agree to be bound by these Terms of Service.</p>
-              <p><strong>2. Description of Service</strong><br />Menifest OS is a manifestation and personal development RPG that combines AI verification with a leveling system.</p>
-              <p><strong>3. User Responsibilities</strong><br />You must provide accurate information and authentic proof for daily quests.</p>
-              <p><strong>4. Subscription & Billing</strong><br />Plans start at ₹99/month. No free trial is offered.</p>
+            <div className="space-y-4 text-sm leading-relaxed" style={{ color: TEXT_SECONDARY }}>
+              <p><strong style={{ color: TEXT_PRIMARY }}>1. Acceptance of Terms</strong><br />By accessing or using Menifest OS, you agree to be bound by these Terms of Service.</p>
+              <p><strong style={{ color: TEXT_PRIMARY }}>2. Description of Service</strong><br />Menifest OS is a manifestation and personal development RPG that combines AI verification with a leveling system.</p>
+              <p><strong style={{ color: TEXT_PRIMARY }}>3. User Responsibilities</strong><br />You must provide accurate information and authentic proof for daily quests.</p>
+              <p><strong style={{ color: TEXT_PRIMARY }}>4. Subscription & Billing</strong><br />Plans start at ₹99/month. No free trial is offered.</p>
             </div>
-            <button onClick={() => setShowTerms(false)} className="mt-6 w-full py-3 border border-amber-500/30 rounded-xl text-amber-200 hover:bg-amber-500/10 transition">Close</button>
+            <button
+              onClick={() => setShowTerms(false)}
+              className="mt-6 w-full py-3 rounded-xl text-sm font-semibold transition-colors"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
 
-      {/* CONTACT MODAL */}
+      {/* ═══════════ CONTACT MODAL ═══════════ */}
       {showContact && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
-          <div className="bg-[#0a0a0d] border border-amber-500/30 rounded-3xl max-w-md w-full p-8 text-left">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}>
+          <div className="rounded-3xl max-w-md w-full p-8 text-left" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-luxury-title font-bold text-white">Contact Us</h3>
-              <button onClick={() => setShowContact(false)}><X size={22} className="text-white/60 hover:text-white" /></button>
+              <h3 className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>Contact Us</h3>
+              <button onClick={() => setShowContact(false)} style={{ color: TEXT_SECONDARY }}><X size={22} /></button>
             </div>
-            <div className="space-y-4 text-sm text-amber-100/80">
+            <div className="space-y-4 text-sm" style={{ color: TEXT_SECONDARY }}>
               <div>
-                <div className="text-amber-400 text-xs tracking-wider font-mono">EMAIL US</div>
-                <a href="mailto:asarist20@gmail.com" className="text-white hover:underline text-base font-semibold">asarist20@gmail.com</a>
+                <div className="text-xs tracking-wider font-semibold" style={{ color: TEXT_TERTIARY }}>EMAIL US</div>
+                <a href="mailto:asarist20@gmail.com" className="text-base font-semibold transition-colors" style={{ color: TEXT_PRIMARY }}>asarist20@gmail.com</a>
               </div>
               <div>
-                <div className="text-amber-400 text-xs tracking-wider font-mono">SUPPORT</div>
+                <div className="text-xs tracking-wider font-semibold" style={{ color: TEXT_TERTIARY }}>SUPPORT</div>
                 <div>We usually reply within 24 hours on business days.</div>
               </div>
             </div>
-            <button onClick={() => setShowContact(false)} className="mt-6 w-full py-3 border border-amber-500/30 rounded-xl text-amber-200 hover:bg-amber-500/10 transition">Close</button>
+            <button
+              onClick={() => setShowContact(false)}
+              className="mt-6 w-full py-3 rounded-xl text-sm font-semibold transition-colors"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
 
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-[100] bg-[#050505]/95 backdrop-blur-2xl border-b border-amber-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+      {/* ═══════════ NAVBAR (iOS 17 style, no neon) ═══════════ */}
+      <header
+        className="sticky top-0 z-[100]"
+        style={{ backgroundColor: "rgba(0,0,0,0.72)", backdropFilter: "saturate(180%) blur(24px)" }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          
-          {/* Logo */}
           <a href="#hero" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 border border-amber-400/60 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.4)] group-hover:scale-105 transition-transform">
-              <span className="text-black font-luxury-title font-bold text-sm sm:text-base tracking-tighter">MO</span>
+            <div
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: TEXT_PRIMARY }}
+            >
+              <span className="font-bold text-sm sm:text-base" style={{ color: "#000" }}>M</span>
             </div>
-            <span className="font-luxury-title font-bold text-lg sm:text-xl tracking-tight text-white group-hover:text-amber-300 transition-colors">
+            <span className="font-bold text-lg sm:text-xl tracking-tight" style={{ color: TEXT_PRIMARY }}>
               Menifest OS
             </span>
           </a>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-amber-100/70">
-            <a href="#hero" className="hover:text-amber-300 transition-colors">Home</a>
-            <a href="#features" className="hover:text-amber-300 transition-colors">Features</a>
-            <a href="#ranks" className="hover:text-amber-300 transition-colors">Ranks</a>
-            <a href="#reviews" className="hover:text-amber-300 transition-colors">Reviews</a>
-            <a href="#pricing" className="hover:text-amber-300 transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-amber-300 transition-colors">FAQ</a>
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium" style={{ color: TEXT_SECONDARY }}>
+            <a href="#hero" className="hover:text-white transition-colors">Home</a>
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#ranks" className="hover:text-white transition-colors">Ranks</a>
+            <a href="#reviews" className="hover:text-white transition-colors">Reviews</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>
 
-          {/* Nav Buttons & Mobile Menu Toggle */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <button 
+            <button
               onClick={() => setShowAuth(true)}
-              className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full border border-amber-500/30 text-xs sm:text-sm font-medium text-amber-200 hover:bg-amber-500/15 hover:border-amber-500/50 transition-all shrink-0"
+              className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-colors shrink-0"
+              style={{ border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
             >
               Log in
             </button>
-            <button 
+            <button
               onClick={() => setShowAuth(true)}
-              className="hidden sm:inline-flex px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-400 hover:to-yellow-400 text-black text-xs sm:text-sm font-bold shadow-[0_0_25px_rgba(234,179,8,0.4)] active:scale-95 transition-all shrink-0"
+              className="hidden sm:inline-flex px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-colors active:scale-95 shrink-0"
+              style={{ backgroundColor: ORANGE, color: "#000" }}
             >
-              Start Transformation
+              Start transformation
             </button>
-
-            {/* Mobile Hamburger Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:text-white hover:bg-amber-500/20 transition-all"
+              className="lg:hidden p-2 rounded-xl transition-colors"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY }}
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -335,360 +397,342 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
           </div>
         </div>
 
-        {/* Mobile Dropdown Navigation Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#0a0a0d]/98 border-b border-amber-500/30 px-6 py-5 space-y-4 shadow-[0_15px_30px_rgba(0,0,0,0.9)]">
-            <nav className="flex flex-col gap-3.5 text-base font-medium text-amber-100/80">
-              <a 
-                href="#hero" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between border-b border-white/5"
-              >
-                <span>Home</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
-              <a 
-                href="#features" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between border-b border-white/5"
-              >
-                <span>Features</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
-              <a 
-                href="#ranks" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between border-b border-white/5"
-              >
-                <span>Ranks</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
-              <a 
-                href="#reviews" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between border-b border-white/5"
-              >
-                <span>Reviews</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
-              <a 
-                href="#pricing" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between border-b border-white/5"
-              >
-                <span>Pricing</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
-              <a 
-                href="#faq" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-amber-300 transition-colors flex items-center justify-between"
-              >
-                <span>FAQ</span>
-                <ChevronRight size={16} className="text-amber-500/50" />
-              </a>
+          <div className="lg:hidden px-6 py-5 space-y-4" style={{ backgroundColor: "rgba(10,10,10,0.98)", borderTop: `1px solid ${HAIRLINE}` }}>
+            <nav className="flex flex-col gap-3.5 text-base font-medium" style={{ color: TEXT_PRIMARY }}>
+              {["Home", "Features", "Ranks", "Reviews", "Pricing", "FAQ"].map((item) => (
+                <a
+                  key={item}
+                  href={`#${item.toLowerCase()}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-1.5 transition-colors flex items-center justify-between"
+                  style={{ borderBottom: `1px solid ${HAIRLINE}` }}
+                >
+                  <span>{item}</span>
+                  <ChevronRight size={16} style={{ color: TEXT_TERTIARY }} />
+                </a>
+              ))}
             </nav>
-
-            <div className="pt-3 border-t border-amber-500/20">
-              <button 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setShowAuth(true);
-                }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-black font-luxury-title font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(234,179,8,0.4)] active:scale-98 transition-all"
+            <div className="pt-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+              <button
+                onClick={() => { setMobileMenuOpen(false); setShowAuth(true); }}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                style={{ backgroundColor: ORANGE, color: "#000" }}
               >
-                <span>Begin Your Ascension</span>
-                <Zap size={16} className="fill-black text-black" />
+                <span>Begin your ascension</span>
+                <Zap size={16} style={{ color: "#000" }} />
               </button>
             </div>
           </div>
         )}
       </header>
 
-      {/* HERO SECTION WITH BACKGROUND IMAGE */}
-      <section id="hero" className="relative pt-12 pb-24 md:pt-16 md:pb-32 px-6 overflow-hidden">
-        
-        {/* Full Hero Background Image with Smokey Golden Lightning Aura Overlay */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {/* Main Background Image — user-supplied hero character */}
-          <img
-            src="/images/hero_anime_landing.jpg"
-            alt="Hero Background Warrior"
-            className="w-full h-full object-cover object-right-top opacity-50 filter contrast-125 saturate-125 scale-105"
-          />
-          {/* Dark Gradients to ensure perfect contrast and legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/85 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/80" />
-          <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-amber-500/20 blur-[150px] rounded-full" />
-          <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-emerald-500/10 blur-[160px] rounded-full" />
-        </div>
+      {/* ═══════════ HERO SECTION — Solo Leveling ARISE inspired ═══════════ */}
+      <section id="hero" className="relative pt-8 pb-16 md:pt-12 md:pb-20 px-4 sm:px-6 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          {/* Top Badge / Icon — minimalist white shield */}
+          <div className="flex justify-center mb-5">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}` }}
+            >
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill={TEXT_PRIMARY}>
+                <path d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2ZM12 4.5L18 7V12C18 16 15.5 19 12 19.5C8.5 19 6 16 6 12V7L12 4.5ZM12 7L9 10L10.5 11.5L12 10L13.5 11.5L15 10L12 7Z" />
+              </svg>
+            </div>
+          </div>
 
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center relative z-10">
-          
-          {/* Hero Left Content */}
-          <div className="lg:col-span-7 text-left">
+          {/* Hero Headline — Large bold, matches reference */}
+          <h1
+            className="text-center font-bold tracking-tight leading-[1.05] mb-5"
+            style={{ color: TEXT_PRIMARY, fontSize: "clamp(2.25rem, 6vw, 3.5rem)", letterSpacing: "-0.03em" }}
+          >
+            Turn your life into a RPG<br />game
+          </h1>
 
-            {/* URGENCY + VALUE Badge Row */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/60 border border-red-500/40 text-red-300 text-[10px] font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                FOUNDER'S PRICING — ENDS SOON
-              </div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold tracking-wider uppercase">
-                <Shield size={11} className="text-emerald-400" />
-                30-DAY MONEY-BACK GUARANTEE
-              </div>
+          {/* Subheadline — bold key words */}
+          <p className="text-center text-base sm:text-lg max-w-2xl mx-auto mb-10" style={{ color: TEXT_SECONDARY }}>
+            Climb from <span className="font-bold" style={{ color: TEXT_PRIMARY }}>Bronze V</span> to <span className="font-bold" style={{ color: TEXT_PRIMARY }}>Legend I</span> by completing tasks.
+          </p>
+
+          {/* 🎨 LARGE JINWOO CHARACTER (centerpiece, full body) — sd_jin_hero.jpg */}
+          <div className="relative max-w-md mx-auto mb-10">
+            <div className="relative aspect-[3/4] max-h-[460px]">
+              <img
+                src={resolveImageUrl("/images/sd_jin_hero.jpg")}
+                alt="Sung Jin-Woo — Shadow Monarch"
+                onError={onImgError("/images/sd_jin_minimal.jpg")}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ objectPosition: "center 30%" }}
+              />
             </div>
 
-            {/* Solo Level up Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold tracking-wider uppercase mb-6 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              SOLO LEVELING × MANIFESTATION
-            </div>
-
-            {/* Headline with Gold Shimmer */}
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-luxury-title font-semibold tracking-tight leading-[1.05] mb-5 text-white">
-              Stop Wishing. <br />
-              <span className="text-gradient-gold drop-shadow-[0_0_35px_rgba(234,179,8,0.5)]">
-                Start Becoming.
-              </span>
-            </h1>
-
-            {/* Outcome-driven Subtitle — Specific, emotional, benefit-first */}
-            <p className="text-base sm:text-lg text-amber-100/90 font-luxury-serif font-semibold leading-relaxed max-w-2xl mb-5">
-              The AI-powered life system that turns your goals into <span className="text-amber-300">daily quests</span>,
-              your habits into <span className="text-amber-300">XP</span>, and your stuck identity into the
-              <span className="text-amber-300"> main character</span> you've been watching in your head.
-            </p>
-
-            {/* 3-step "What happens next" micro-checklist */}
-            <div className="flex flex-col gap-2 mb-7 text-sm text-amber-100/90 max-w-xl">
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">1</span>
-                <span>Sign in with Google — takes <span className="font-bold text-white">10 seconds</span></span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">2</span>
-                <span>Set your first goal — AI generates a <span className="font-bold text-white">90-day blueprint</span></span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-[10px] font-mono font-bold text-amber-300 shrink-0">3</span>
-                <span>Complete daily quests — watch your <span className="font-bold text-white">streak, XP & identity</span> transform</span>
-              </div>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
-              <button
-                onClick={() => setShowAuth(true)}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-base flex items-center justify-center gap-3 shadow-[0_0_45px_rgba(234,179,8,0.6)] active:scale-[0.98] transition-all group relative overflow-hidden"
-              >
-                {/* Subtle shine effect */}
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <span className="relative">Start Your Transformation — ₹99/month</span>
-                <Zap size={18} className="fill-black text-black group-hover:scale-125 transition-transform relative" />
-              </button>
-
-              <a
-                href="#how-it-works"
-                className="px-6 py-4 rounded-2xl bg-black/60 hover:bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 font-luxury-title font-semibold text-base flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(34,197,94,0.15)]"
-              >
-                <Play size={16} className="fill-emerald-400 text-emerald-400" />
-                <span>See How It Works</span>
-              </a>
-            </div>
-
-            {/* Risk-reversal microcopy directly under CTA */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-amber-200/70 font-medium mb-8">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={12} className="text-emerald-400" />
-                No credit card to start
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={12} className="text-emerald-400" />
-                Cancel anytime
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={12} className="text-emerald-400" />
-                30-day full refund
-              </span>
-            </div>
-
-            {/* Micro Metrics Row */}
-            <div className="pt-6 border-t border-amber-500/15 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs sm:text-sm text-amber-200/80 font-medium">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-amber-500 border-2 border-black" />
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-black" />
-                  <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-black" />
+            {/* Floating Phone Mockup — left side, overlapping bottom */}
+            <div
+              className="hidden md:block absolute -bottom-12 -left-16 w-44 rounded-3xl overflow-hidden"
+              style={{
+                backgroundColor: "#1a1a1a",
+                border: "1px solid rgba(255,255,255,0.15)",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.7)",
+                transform: "rotate(-3deg)",
+              }}
+            >
+              <div className="p-3 space-y-2">
+                <div className="flex justify-between items-center text-[8px]" style={{ color: TEXT_SECONDARY }}>
+                  <span>Mastery</span>
+                  <span>12/40 level</span>
                 </div>
-                <span><span className="font-bold text-white">4,872+</span> Warriors Rising</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star size={16} className="text-amber-400 fill-amber-400" />
-                <span><span className="font-bold text-white">4.9/5</span> Rating</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Brain size={16} className="text-amber-400" />
-                <span>AI-Powered Blueprints</span>
+                <div
+                  className="rounded-2xl p-2.5"
+                  style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${HAIRLINE}` }}
+                >
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#a855f7" }} />
+                    <span className="text-[9px] font-semibold" style={{ color: TEXT_PRIMARY }}>Wisdom</span>
+                  </div>
+                  <div
+                    className="rounded-full aspect-square w-12 h-12 mx-auto flex items-center justify-center font-bold text-xs"
+                    style={{
+                      background: "radial-gradient(circle, #f59e0b 0%, #b45309 70%, #1a1a1a 100%)",
+                      color: "#000",
+                    }}
+                  >
+                    IV
+                  </div>
+                  <div className="text-center text-[8px] mt-1 font-semibold" style={{ color: "#f5e7a3" }}>
+                    Gold IV
+                  </div>
+                  <div className="h-1 bg-black/50 rounded-full mt-1.5 overflow-hidden">
+                    <div className="h-full bg-amber-400 rounded-full" style={{ width: "30%" }} />
+                  </div>
+                </div>
+                <div className="flex justify-between text-[7.5px]" style={{ color: TEXT_TERTIARY }}>
+                  <span>Top 12%</span>
+                  <span>128 tasks</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Hero Right Visual & Player Status Card */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
-              
-              {/* Main Character Image with Gold Lighting Aura Frame */}
-              <div className="relative rounded-3xl overflow-hidden border border-amber-500/40 bg-[#0a0a0d] shadow-[0_0_80px_rgba(234,179,8,0.35)] group">
-                <img 
-                  src={shadowMonarchCrowsImg} 
-                  alt="Solo Leveling Shadow Monarch"
-                  className="w-full h-[520px] object-cover object-center opacity-90 hover:scale-105 transition-transform duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/20 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-900/20 via-transparent to-amber-900/20 pointer-events-none" />
-                
-                {/* Floating Solo Leveling Monarch Wings Crest */}
-                <div className="absolute top-6 right-6 p-3 rounded-2xl bg-black/80 backdrop-blur-md border border-amber-500/50 shadow-[0_0_25px_rgba(234,179,8,0.5)]">
-                  <Crown className="w-8 h-8 text-amber-400 animate-pulse" />
-                </div>
-
-                {/* Floating Player Status HUD */}
-                <div className="absolute bottom-6 left-6 right-6 bg-[#0a0a0d]/95 backdrop-blur-xl border border-amber-500/40 rounded-2xl p-5 shadow-[0_0_35px_rgba(0,0,0,0.9)]">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-bold">PLAYER STATUS</div>
-                      <div className="text-2xl font-luxury-title font-bold text-white flex items-center gap-2">
-                        LEVEL 27
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-sans font-semibold">
-                          ASCENDED
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Rank Badge Emblem */}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 p-0.5 shadow-[0_0_20px_rgba(234,179,8,0.6)]">
-                      <div className="w-full h-full bg-[#0a0a0d] rounded-[10px] flex items-center justify-center text-amber-300">
-                        <svg className="w-7 h-7 fill-amber-400 text-amber-400 filter drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" viewBox="0 0 24 24">
-                          <path d="M12 2L15 8L21 9L16.5 13.5L18 19.5L12 16L6 19.5L7.5 13.5L3 9L9 8L12 2Z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* XP Bar */}
-                  <div>
-                    <div className="flex justify-between text-[11px] font-mono text-amber-200/80 mb-1.5">
-                      <span>XP PROGRESS</span>
-                      <span>12,450 / 15,000 XP</span>
-                    </div>
-                    <div className="h-2.5 w-full bg-amber-950/80 rounded-full overflow-hidden p-0.5 border border-amber-500/30">
-                      <div className="h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 rounded-full shadow-[0_0_12px_rgba(234,179,8,0.9)]" style={{ width: '83%' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* 🟠 BIG ORANGE CTA — "Continue" */}
+          <div className="max-w-md mx-auto px-2">
+            <button
+              onClick={() => setShowAuth(true)}
+              className="w-full py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+              style={{ backgroundColor: ORANGE, color: "#000" }}
+            >
+              <ArrowRight size={18} style={{ color: "#000" }} />
+              <span>Continue</span>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* FEATURES GRID SECTION */}
-      <section id="features" className="py-24 px-6 border-t border-amber-500/15 bg-gradient-to-b from-[#050505] via-[#0a0a0d] to-[#050505]">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              BUILT FOR YOUR EVOLUTION
+      {/* ═══════════ YOUR CURRENT RATING — new section (reference 2) ═══════════ */}
+      <section className="relative pt-12 pb-20 px-4 sm:px-6 overflow-hidden">
+        {/* Subtle anime character image on right side */}
+        <div className="absolute top-0 right-0 bottom-0 w-1/2 pointer-events-none hidden md:block">
+          <img
+            src={resolveImageUrl("/images/sd_jin_hero.jpg")}
+            alt=""
+            onError={onImgError("/images/sd_jin_minimal.jpg")}
+            className="absolute inset-0 w-full h-full object-cover opacity-25"
+            style={{ objectPosition: "center 25%" }}
+          />
+          {/* Fade from left to darken the image so text stays readable */}
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(to right, #000 0%, #000 30%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.3) 100%)" }}
+          />
+        </div>
+
+        <div className="max-w-3xl mx-auto relative z-10">
+          {/* Title */}
+          <h2
+            className="font-bold tracking-tight leading-[1.1] mb-4"
+            style={{ color: TEXT_PRIMARY, fontSize: "clamp(2rem, 5.5vw, 3rem)", letterSpacing: "-0.03em" }}
+          >
+            Your Current<br />Rating
+            <span
+              className="inline-block ml-2 align-middle w-7 h-7 rounded-md"
+              style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${HAIRLINE}` }}
+            />
+          </h2>
+
+          {/* How Rating works pill */}
+          <div className="mb-5">
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.06)",
+                color: TEXT_SECONDARY,
+                border: `1px solid ${HAIRLINE}`,
+              }}
+            >
+              <span style={{ color: TEXT_TERTIARY }}>❓</span>
+              How Rating works
+            </span>
+          </div>
+
+          {/* Big Orange Level Card + XP earned */}
+          <div className="flex items-stretch gap-0 mb-4">
+            {/* Orange Level card — slanted corner like reference */}
+            <div
+              className="relative flex flex-col items-center justify-center px-6 py-5 min-w-[140px]"
+              style={{
+                backgroundColor: ORANGE,
+                color: "#000",
+                clipPath: "polygon(0 0, 100% 0, 92% 100%, 0 100%)",
+                borderTopLeftRadius: 16,
+                borderBottomLeftRadius: 16,
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
+              }}
+            >
+              <div className="text-5xl sm:text-6xl font-bold leading-none" style={{ color: "#000" }}>1</div>
+              <div className="text-xs font-semibold tracking-widest uppercase mt-1" style={{ color: "#000" }}>LEVEL</div>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight leading-tight">
-              Everything You Need to Become <span className="text-gradient-green">Limitless.</span>
+
+            {/* XP earned card */}
+            <div
+              className="flex-1 rounded-r-2xl px-5 py-5 flex items-center justify-between"
+              style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+            >
+              <div>
+                <div className="text-3xl sm:text-4xl font-bold leading-none" style={{ color: TEXT_PRIMARY }}>0</div>
+                <div className="text-xs font-medium mt-1" style={{ color: TEXT_SECONDARY }}>XP earned</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar — segmented like reference */}
+          <div className="mb-1.5">
+            <div className="flex gap-0.5">
+              {Array.from({ length: 32 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-2.5 flex-1 rounded-sm"
+                  style={{ backgroundColor: i < 2 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.08)" }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="text-xs mb-6" style={{ color: TEXT_SECONDARY }}>
+            <span style={{ color: TEXT_TERTIARY }}>125 XP to Lvl 2</span>
+          </div>
+
+          {/* Stats List — icon + label + green triangle + big bold number */}
+          <div className="space-y-3">
+            {PLAYER_STATS.map((stat) => {
+              const IconComp = stat.icon;
+              return (
+                <div
+                  key={stat.label}
+                  className="flex items-center justify-between py-2"
+                  style={{ borderBottom: `1px solid ${HAIRLINE}` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <IconComp size={18} style={{ color: stat.color }} />
+                    <span className="font-semibold text-base" style={{ color: TEXT_PRIMARY }}>
+                      {stat.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-0 h-0"
+                      style={{
+                        borderLeft: "5px solid transparent",
+                        borderRight: "5px solid transparent",
+                        borderBottom: "8px solid #22c55e",
+                      }}
+                    />
+                    <span className="text-4xl sm:text-5xl font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>
+                      {stat.value}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Orange CTA — "See potential rating" */}
+          <div className="mt-8 max-w-md">
+            <button
+              onClick={() => setShowAuth(true)}
+              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+              style={{ backgroundColor: ORANGE, color: "#000" }}
+            >
+              <Zap size={18} style={{ color: "#000" }} />
+              See potential rating
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════ FEATURES GRID ═══════════ */}
+      <section id="features" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="text-xs font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: TEXT_TERTIARY }}>
+              Built for your evolution
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+              Everything you need to become <span style={{ color: ORANGE }}>limitless.</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            {/* Feature 1 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-amber-500/20 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.2)] transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-amber-950/50 border border-amber-500/40 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
-                <BookOpen size={26} />
-              </div>
-              <h3 className="text-xl font-luxury-title font-bold text-white mb-3">Manifestation OS</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Powerful methods like 369, 555, scripting, visualization and more — all in one place.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-amber-500/20 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.2)] transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-amber-950/50 border border-amber-500/40 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
-                <Swords size={26} />
-              </div>
-              <h3 className="text-xl font-luxury-title font-bold text-white mb-3">RPG Life System</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Earn XP, level up, unlock abilities and evolve into your greatest version.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
-                <Brain size={26} />
-              </div>
-              <h3 className="text-xl font-luxury-title font-bold text-white mb-3">AI Blueprint</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                AI builds a custom plan for your goals. Real steps. Real results.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-amber-500/20 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.2)] transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-amber-950/50 border border-amber-500/40 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
-                <LineChart size={26} />
-              </div>
-              <h3 className="text-xl font-luxury-title font-bold text-white mb-3">Track. Reflect. Evolve.</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Track habits, mindset, income and growth in one powerful dashboard.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all group md:col-span-2 lg:col-span-1">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
-                <Users size={26} />
-              </div>
-              <h3 className="text-xl font-luxury-title font-bold text-white mb-3">Community of Warriors</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Join a global tribe of high achievers on the same mission as you.
-              </p>
-            </div>
-
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: BookOpen, title: "Manifestation OS", desc: "Powerful methods like 369, 555, scripting, visualization and more — all in one place." },
+              { icon: Swords, title: "RPG Life System", desc: "Earn XP, level up, unlock abilities and evolve into your greatest version." },
+              { icon: Brain, title: "AI Blueprint", desc: "AI builds a custom plan for your goals. Real steps. Real results." },
+              { icon: LineChart, title: "Track. Reflect. Evolve.", desc: "Track habits, mindset, income and growth in one powerful dashboard." },
+              { icon: Users, title: "Community of Warriors", desc: "Join a global tribe of high achievers on the same mission as you." },
+            ].map((feature) => {
+              const IconComp = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="p-6 rounded-2xl transition-colors"
+                  style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = HAIRLINE_STRONG; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = HAIRLINE; }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                  >
+                    <IconComp size={22} style={{ color: TEXT_PRIMARY }} />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2" style={{ color: TEXT_PRIMARY }}>{feature.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: TEXT_SECONDARY }}>{feature.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* BEFORE vs AFTER — Pain vs Solution Comparison (high-conversion pattern) */}
-      <section className="py-20 px-6 border-t border-amber-500/15 bg-gradient-to-b from-transparent via-red-950/5 to-transparent">
+      {/* ═══════════ BEFORE vs AFTER ═══════════ */}
+      <section className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/40 border border-red-500/30 text-red-300 text-[10px] font-mono font-bold tracking-wider uppercase mb-4">
-              THE HONEST TRUTH
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wider uppercase mb-4"
+                 style={{ backgroundColor: "rgba(255,69,58,0.08)", color: "#ff453a", border: "1px solid rgba(255,69,58,0.2)" }}>
+              The honest truth
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-semibold tracking-tight text-white mb-3">
-              Where You Are <span className="text-zinc-600">vs.</span> Where You Could Be
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+              Where you are <span style={{ color: TEXT_TERTIARY }}>vs.</span> where you could be
             </h2>
-            <p className="text-amber-100/70 text-sm sm:text-base font-luxury-serif">
+            <p className="text-sm sm:text-base" style={{ color: TEXT_SECONDARY }}>
               Most people stay stuck because they only have willpower. We replace willpower with a system.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5">
-            {/* WITHOUT Menifest OS */}
-            <div className="relative bg-zinc-950/60 border border-red-500/20 rounded-3xl p-6 sm:p-8 space-y-4">
-              <div className="absolute top-4 right-4 text-red-400/50 text-3xl font-serif">✕</div>
-              <h3 className="text-lg font-luxury-title font-bold text-red-300/80">Without Menifest OS</h3>
-              <ul className="space-y-2.5 text-sm text-zinc-400">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="rounded-2xl p-6 sm:p-8 space-y-4" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
+              <h3 className="text-base font-bold" style={{ color: "#ff453a" }}>Without Menifest OS</h3>
+              <ul className="space-y-2.5 text-sm" style={{ color: TEXT_SECONDARY }}>
                 {[
                   "Setting vague goals like 'get fit' or 'make money'",
                   "Waking up with no clear direction or daily plan",
@@ -698,18 +742,16 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   "Reading motivation quotes but never taking action",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <X size={14} className="text-red-400/60 mt-0.5 shrink-0" />
+                    <X size={14} className="mt-0.5 shrink-0" style={{ color: "#ff453a" }} />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* WITH Menifest OS */}
-            <div className="relative bg-gradient-to-br from-emerald-950/40 to-amber-950/30 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-              <div className="absolute top-4 right-4 text-emerald-400 text-3xl font-serif">✓</div>
-              <h3 className="text-lg font-luxury-title font-bold text-emerald-300">With Menifest OS</h3>
-              <ul className="space-y-2.5 text-sm text-amber-100/90">
+            <div className="rounded-2xl p-6 sm:p-8 space-y-4" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
+              <h3 className="text-base font-bold" style={{ color: "#34c759" }}>With Menifest OS</h3>
+              <ul className="space-y-2.5 text-sm" style={{ color: TEXT_PRIMARY }}>
                 {[
                   "AI-generated 90-day blueprints with daily micro-actions",
                   "Wake up to a clear quest list designed by your future self",
@@ -719,7 +761,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   "Solo Dominion RPG turns your life into an addictive game",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "#34c759" }} />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -729,434 +771,243 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         </div>
       </section>
 
-      {/* HOW IT WORKS / STEP PROCESS SECTION */}
-      <section id="how-it-works" className="py-24 px-6 border-t border-amber-500/15">
+      {/* ═══════════ HOW IT WORKS ═══════════ */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              HOW IT WORKS
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="text-xs font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: TEXT_TERTIARY }}>
+              How it works
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight">
-              Your Journey. Your Rules. <span className="text-gradient-green">Your Rise.</span>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+              Your journey. Your rules. <span style={{ color: ORANGE }}>Your rise.</span>
             </h2>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-            
-            {/* Step 1 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/30 relative hover:border-emerald-500 transition-all">
-              <div className="w-10 h-10 rounded-full border border-emerald-400 text-emerald-400 font-mono font-bold flex items-center justify-center text-sm mb-6 shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                01
-              </div>
-              <div className="text-emerald-400 mb-4"><Target size={28} /></div>
-              <h3 className="text-lg font-luxury-title font-bold text-white mb-2">Set Your Intent</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Define your ultimate goal. AI creates your personalized transformation blueprint.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/30 relative hover:border-emerald-500 transition-all">
-              <div className="w-10 h-10 rounded-full border border-emerald-400 text-emerald-400 font-mono font-bold flex items-center justify-center text-sm mb-6 shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                02
-              </div>
-              <div className="text-emerald-400 mb-4"><FileText size={28} /></div>
-              <h3 className="text-lg font-luxury-title font-bold text-white mb-2">Take Real Action</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Complete daily quests, build habits, and earn XP like a true warrior.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/30 relative hover:border-emerald-500 transition-all">
-              <div className="w-10 h-10 rounded-full border border-emerald-400 text-emerald-400 font-mono font-bold flex items-center justify-center text-sm mb-6 shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                03
-              </div>
-              <div className="text-emerald-400 mb-4"><TrendingUp size={28} /></div>
-              <h3 className="text-lg font-luxury-title font-bold text-white mb-2">Level Up</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                Upgrade your player card, unlock new powers and become a higher version of yourself.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-emerald-500/30 relative hover:border-emerald-500 transition-all">
-              <div className="w-10 h-10 rounded-full border border-emerald-400 text-emerald-400 font-mono font-bold flex items-center justify-center text-sm mb-6 shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                04
-              </div>
-              <div className="text-amber-400 mb-4"><Crown size={28} /></div>
-              <h3 className="text-lg font-luxury-title font-bold text-white mb-2">Manifest & Ascend</h3>
-              <p className="text-amber-100/60 text-sm leading-relaxed">
-                See real-world results. Live your dream life. Inspire millions.
-              </p>
-            </div>
-
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { num: "01", icon: Target, title: "Set your intent", desc: "Define your ultimate goal. AI creates your personalized transformation blueprint." },
+              { num: "02", icon: FileText, title: "Take real action", desc: "Complete daily quests, build habits, and earn XP like a true warrior." },
+              { num: "03", icon: TrendingUp, title: "Level up", desc: "Upgrade your player card, unlock new powers and become a higher version of yourself." },
+              { num: "04", icon: Crown, title: "Manifest & ascend", desc: "See real-world results. Live your dream life. Inspire millions." },
+            ].map((step) => {
+              const IconComp = step.icon;
+              return (
+                <div
+                  key={step.num}
+                  className="p-6 rounded-2xl relative transition-colors"
+                  style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm mb-5"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.06)",
+                      color: TEXT_PRIMARY,
+                      border: `1px solid ${HAIRLINE}`,
+                    }}
+                  >
+                    {step.num}
+                  </div>
+                  <div className="mb-3" style={{ color: TEXT_PRIMARY }}>
+                    <IconComp size={24} />
+                  </div>
+                  <h3 className="text-base font-bold mb-1.5" style={{ color: TEXT_PRIMARY }}>{step.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: TEXT_SECONDARY }}>{step.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* NEW SECTION FROM REFERENCE IMAGE: "THIS IS YOUR NEW IDENTITY" PLAYER STATS CARD */}
-      <section className="py-24 px-6 border-t border-amber-500/15 bg-gradient-to-b from-[#050505] via-[#0d0d12] to-[#050505]">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              THIS ISN'T JUST PROGRESS.
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight mb-4">
-              This is Your New Identity.
-            </h2>
-            <p className="text-amber-100/70 text-base">
-              Every action counts. Every habit earns you XP. Every level unlocks a stronger you.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-12 gap-8 items-center">
-            
-            {/* Left Player Character Card */}
-            <div className="lg:col-span-5 relative">
-              <div className="rounded-3xl bg-[#0a0a0d] border-2 border-amber-500/40 p-6 shadow-[0_0_60px_rgba(234,179,8,0.25)] relative overflow-hidden group">
-                
-                {/* Background Warrior Graphic */}
-                <div className="absolute inset-0 z-0">
-                  <img src={shadowKnightImg} alt="Character" className="w-full h-full object-cover object-top opacity-40 mix-blend-luminosity group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0d] via-[#0a0a0d]/70 to-transparent" />
-                </div>
-
-                <div className="relative z-10 space-y-5">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-bold text-white text-xl">ANURAG</div>
-                      <div className="text-xs text-amber-400 font-mono">The Dream Chaser</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-luxury-title font-bold text-amber-400">LEVEL 27</div>
-                      <div className="text-[10px] text-emerald-400 font-mono font-bold">ASCENDED</div>
-                    </div>
-                  </div>
-
-                  {/* XP Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-mono text-amber-200/80">
-                      <span>XP PROGRESS</span>
-                      <span>12,450 / 15,000 XP</span>
-                    </div>
-                    <div className="h-2 w-full bg-black/80 rounded-full overflow-hidden p-0.5 border border-amber-500/30">
-                      <div className="h-full bg-amber-400 rounded-full" style={{ width: '83%' }} />
-                    </div>
-                  </div>
-
-                  {/* Character Stats Breakdown */}
-                  <div className="space-y-2.5 pt-3 border-t border-amber-500/20 text-xs font-mono">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-amber-200/80">🧠 Mindset</span>
-                      <span className="text-amber-400 font-bold">92</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-amber-200/80">🛡️ Discipline</span>
-                      <span className="text-amber-400 font-bold">95</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-amber-200/80">⚡ Action</span>
-                      <span className="text-amber-400 font-bold">90</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-amber-200/80">🔥 Energy</span>
-                      <span className="text-amber-400 font-bold">88</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-amber-200/80">✨ Faith</span>
-                      <span className="text-amber-400 font-bold">93</span>
-                    </div>
-                  </div>
-
-                  {/* Current Rank Badge Footer */}
-                  <div className="pt-4 border-t border-amber-500/20 flex items-center justify-between">
-                    <div className="text-[10px] font-mono text-amber-300/60 uppercase">CURRENT RANK</div>
-                    <div className="flex items-center gap-2 text-amber-400 font-bold font-luxury-title">
-                      <span>❖ GOLD III</span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            {/* Right Stats Grid & Testimonial Box */}
-            <div className="lg:col-span-7 space-y-6">
-              
-              {/* 4 Stat Boxes */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-[#0a0a0d] border border-amber-500/20 text-center">
-                  <div className="text-3xl font-luxury-title font-extrabold text-amber-400 mb-1">128</div>
-                  <div className="text-xs text-amber-200/60">Quests Completed</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-[#0a0a0d] border border-amber-500/20 text-center">
-                  <div className="text-3xl font-luxury-title font-extrabold text-amber-400 mb-1">47</div>
-                  <div className="text-xs text-amber-200/60">Day Streak</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-[#0a0a0d] border border-amber-500/20 text-center">
-                  <div className="text-3xl font-luxury-title font-extrabold text-amber-400 mb-1">16</div>
-                  <div className="text-xs text-amber-200/60">Powers Unlocked</div>
-                </div>
-                <div className="p-5 rounded-2xl bg-[#0a0a0d] border border-amber-500/20 text-center">
-                  <div className="text-3xl font-luxury-title font-extrabold text-emerald-400 mb-1">98%</div>
-                  <div className="text-xs text-amber-200/60">Transformation Rate</div>
-                </div>
-              </div>
-
-              {/* Highlight Quote Box */}
-              <div className="p-8 rounded-3xl bg-[#0a0a0d] border border-amber-500/30 relative shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-                <p className="text-base sm:text-lg text-amber-100 font-luxury-serif italic leading-relaxed mb-6">
-                  “The system changed my mindset, habits and bank balance. I'm not the same person anymore.”
-                </p>
-                <div className="flex items-center gap-3">
-                  <img 
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" 
-                    alt="Rohit T." 
-                    className="w-10 h-10 rounded-full object-cover border border-amber-500/40" 
-                  />
-                  <div>
-                    <div className="font-bold text-white text-sm">Rohit T.</div>
-                    <div className="text-xs text-amber-300/60">Delhi, India</div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* PREMIUM MEMBERSHIP PRICING SECTION */}
-      <section id="pricing" className="py-24 px-6 border-t border-amber-500/15 bg-[#050505] relative overflow-hidden">
-        {/* Background ambient glows */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-amber-500/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none" />
-
+      {/* ═══════════ PRICING ═══════════ */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 relative overflow-hidden" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-4xl mx-auto relative z-10 text-center">
-          
-          {/* Section Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold tracking-[3px] uppercase mb-6 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-            <Crown size={14} className="text-amber-400" />
-            MEMBERSHIP
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase mb-6"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
+          >
+            <Crown size={13} />
+            Membership
           </div>
 
-          {/* Headline */}
-          <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight mb-4 leading-tight">
-            You're Not Buying An App.<br />
-            <span className="text-gradient-gold drop-shadow-[0_0_35px_rgba(234,179,8,0.5)]">
-              You're Unlocking Your Next Identity.
-            </span>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4 leading-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+            You're not buying an app.<br />
+            <span style={{ color: ORANGE }}>You're unlocking your next identity.</span>
           </h2>
 
-          {/* Subheadline */}
-          <p className="text-amber-100/70 text-base sm:text-lg max-w-2xl mx-auto mb-14 font-light leading-relaxed">
+          <p className="max-w-2xl mx-auto mb-12 text-base sm:text-lg" style={{ color: TEXT_SECONDARY }}>
             Every day without a system keeps your future self locked. Start your evolution today.
           </p>
 
-          {/* Single Centered Pricing Card */}
-          <div className="max-w-md mx-auto relative rounded-3xl bg-[#0a0a0d]/90 backdrop-blur-2xl border-2 border-amber-500/50 shadow-[0_0_60px_rgba(234,179,8,0.25)] p-8 sm:p-10 hover:border-amber-400 hover:shadow-[0_0_80px_rgba(234,179,8,0.35)] transition-all duration-500 group text-left">
-            
-            {/* Most Popular Badge */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-black text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.6)] flex items-center gap-1.5">
-              <Sparkles size={13} className="fill-black text-black" />
-              <span>MOST POPULAR</span>
-            </div>
-
-            {/* Card Header */}
-            <div className="text-center pb-6 border-b border-amber-500/20">
-              <h3 className="text-2xl font-luxury-title font-bold text-white mb-2">Hunter Membership</h3>
+          <div
+            className="max-w-md mx-auto rounded-3xl p-8 sm:p-10 text-left"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+          >
+            <div className="text-center pb-6" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+              <h3 className="text-2xl font-bold mb-2" style={{ color: TEXT_PRIMARY }}>Hunter Membership</h3>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-5xl sm:text-6xl font-luxury-title font-extrabold text-white tracking-tight">₹99</span>
-                <span className="text-amber-300/70 text-sm font-mono">/month</span>
+                <span className="text-5xl sm:text-6xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY }}>₹99</span>
+                <span className="text-sm font-medium" style={{ color: TEXT_SECONDARY }}>/month</span>
               </div>
             </div>
 
-            {/* Includes Checklist */}
-            <div className="py-6 space-y-3.5">
-              <div className="text-xs font-mono tracking-wider text-amber-400 font-semibold uppercase mb-2">Includes:</div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>AI-Powered Transformation Blueprint</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Solo Leveling RPG Progression</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Daily Quests & XP System</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Manifestation Journal</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Identity Evolution Tracking</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Progress Analytics</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-amber-100/90">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                <span>Future Updates</span>
-              </div>
+            <div className="py-6 space-y-3">
+              <div className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXT_TERTIARY }}>Includes:</div>
+              {[
+                "AI-Powered Transformation Blueprint",
+                "Solo Leveling RPG Progression",
+                "Daily Quests & XP System",
+                "Manifestation Journal",
+                "Identity Evolution Tracking",
+                "Progress Analytics",
+                "Future Updates",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3 text-sm" style={{ color: TEXT_PRIMARY }}>
+                  <CheckCircle2 size={16} className="shrink-0" style={{ color: "#34c759" }} />
+                  <span>{item}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Primary CTA */}
             <div className="pt-2">
-              <button 
+              <button
                 onClick={() => setShowAuth(true)}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(234,179,8,0.5)] active:scale-[0.98] transition-all group/btn"
+                className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                style={{ backgroundColor: ORANGE, color: "#000" }}
               >
-                <span>Begin Your Ascension</span>
-                <Zap size={18} className="fill-black text-black group-hover/btn:scale-125 transition-transform" />
+                <span>Begin your ascension</span>
+                <Zap size={16} style={{ color: "#000" }} />
               </button>
             </div>
 
-            {/* Trust Text */}
-            <div className="mt-6 pt-5 border-t border-amber-500/15 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] font-mono text-amber-300/80">
-              <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> Cancel Anytime</span>
-              <span className="flex items-center gap-1.5"><Zap size={13} className="text-amber-400" /> Instant Access</span>
-              <span className="flex items-center gap-1.5"><Shield size={13} className="text-amber-400" /> 7-Day Money-Back Guarantee</span>
+            <div className="mt-5 pt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] font-medium" style={{ borderTop: `1px solid ${HAIRLINE}`, color: TEXT_SECONDARY }}>
+              <span className="flex items-center gap-1.5"><CheckCircle2 size={12} style={{ color: "#34c759" }} /> Cancel anytime</span>
+              <span className="flex items-center gap-1.5"><Zap size={12} style={{ color: ORANGE }} /> Instant access</span>
+              <span className="flex items-center gap-1.5"><Shield size={12} style={{ color: ORANGE }} /> 30-day refund</span>
             </div>
-
           </div>
 
-          {/* Bottom Closing Statement */}
-          <p className="mt-10 text-sm font-mono text-amber-300/80 tracking-wide font-medium">
-            The Cost Of Staying The Same Is Greater Than ₹99.
+          <p className="mt-8 text-sm font-medium" style={{ color: TEXT_SECONDARY }}>
+            The cost of staying the same is greater than ₹99.
           </p>
-
         </div>
       </section>
 
-      {/* RANKS / ASCENSION PATH */}
-      <section id="ranks" className="py-24 px-6 border-t border-amber-500/15 bg-[#08080a]">
+      {/* ═══════════ RANKS ═══════════ */}
+      <section id="ranks" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              YOUR ASCENSION PATH
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="text-xs font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: TEXT_TERTIARY }}>
+              Your ascension path
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight mb-3">
-              Rise Through the Ranks
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+              Rise through the ranks
             </h2>
-            <p className="text-amber-200/60 text-base">Every rank permanently multiplies your manifestation power.</p>
+            <p className="text-base" style={{ color: TEXT_SECONDARY }}>Every rank permanently multiplies your manifestation power.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {RANKS.map((rank, i) => (
-              <div 
-                key={i} 
-                className="rounded-3xl bg-[#0a0a0d] border border-amber-500/20 hover:border-amber-500/60 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all flex flex-col justify-between overflow-hidden group"
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {RANKS.map((rank) => (
+              <div
+                key={rank.name}
+                className="rounded-2xl p-5 flex flex-col gap-3 transition-colors"
+                style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = HAIRLINE_STRONG; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = HAIRLINE; }}
               >
-                <div className="relative h-32 w-full overflow-hidden bg-black/40">
-                  <img 
-                    src={rank.image} 
-                    alt={rank.name} 
-                    className="w-full h-full object-cover object-top opacity-75 group-hover:scale-110 transition-transform duration-500" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0d] via-[#0a0a0d]/50 to-transparent" />
-                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/80 border border-amber-500/40 text-[10px] font-mono text-amber-300">
+                <div className="flex items-center justify-between">
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_SECONDARY }}
+                  >
                     RANK {rank.level}
-                  </div>
-                  <div className="absolute top-3 right-3 text-lg text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
-                    {rank.badge}
-                  </div>
+                  </span>
+                  <span className="text-lg">{rank.badge}</span>
                 </div>
-
-                <div className="p-5 pt-1">
-                  <div className="font-luxury-title font-bold text-xl text-white mb-1">{rank.name}</div>
-                  <div className="text-amber-400 font-mono text-xs font-semibold mb-3">{rank.power} Power Multiplier</div>
-                  <p className="text-xs text-amber-200/60 leading-relaxed pt-3 border-t border-amber-500/15">
-                    {rank.desc}
-                  </p>
+                <div>
+                  <div className="text-lg font-bold" style={{ color: TEXT_PRIMARY }}>{rank.name}</div>
+                  <div className="text-xs font-semibold mt-0.5" style={{ color: ORANGE }}>{rank.power} power multiplier</div>
                 </div>
+                <p className="text-xs leading-relaxed" style={{ color: TEXT_SECONDARY }}>{rank.desc}</p>
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
-      {/* REVIEWS / TESTIMONIALS SECTION */}
-      <section id="reviews" className="py-24 px-6 border-t border-amber-500/15">
+      {/* ═══════════ REVIEWS ═══════════ */}
+      <section id="reviews" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              LOVED BY WARRIORS WORLDWIDE
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="text-xs font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: TEXT_TERTIARY }}>
+              Loved by warriors worldwide
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight">
-              Real People. Real Transformations.
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
+              Real people. Real transformations.
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="p-8 rounded-3xl bg-[#0a0a0d] border border-amber-500/20 flex flex-col justify-between">
+          <div className="grid md:grid-cols-3 gap-4">
+            {TESTIMONIALS.map((t) => (
+              <div
+                key={t.name}
+                className="p-6 rounded-2xl flex flex-col justify-between"
+                style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+              >
                 <div>
-                  <div className="flex gap-1 text-amber-400 mb-6">
-                    {[...Array(5)].map((_, starI) => (
-                      <Star key={starI} size={16} className="fill-amber-400" />
+                  <div className="flex gap-1 mb-4" style={{ color: ORANGE }}>
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} size={14} fill="currentColor" />
                     ))}
                   </div>
-                  <p className="text-amber-100/90 text-base font-luxury-serif italic leading-relaxed mb-6">
-                    “{t.quote}”
+                  <p className="text-sm leading-relaxed mb-5" style={{ color: TEXT_PRIMARY }}>
+                    "{t.quote}"
                   </p>
                 </div>
-
-                <div className="flex items-center gap-4 pt-6 border-t border-amber-500/15">
-                  <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-full object-cover border border-amber-500/30" />
+                <div className="flex items-center gap-3 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                  <img src={t.avatar} alt={t.name} className="w-9 h-9 rounded-full object-cover" style={{ border: `1px solid ${HAIRLINE}` }} />
                   <div>
-                    <div className="font-bold text-white text-sm">{t.name}</div>
-                    <div className="text-xs text-amber-300/60">{t.location}</div>
+                    <div className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>{t.name}</div>
+                    <div className="text-xs" style={{ color: TEXT_SECONDARY }}>{t.location}</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
-      {/* FAQ SECTION */}
-      <section id="faq" className="py-24 px-6 border-t border-amber-500/15 bg-[#08080a]">
+      {/* ═══════════ FAQ ═══════════ */}
+      <section id="faq" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-4xl mx-auto">
-          
-          <div className="text-center mb-16">
-            <div className="text-xs font-mono tracking-[4px] text-amber-400 uppercase font-semibold mb-3">
-              GOT QUESTIONS?
+          <div className="text-center mb-12">
+            <div className="text-xs font-semibold tracking-[0.2em] uppercase mb-3" style={{ color: TEXT_TERTIARY }}>
+              Got questions?
             </div>
-            <h2 className="text-3xl sm:text-5xl font-luxury-title font-bold text-white tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
               Frequently Asked Questions
             </h2>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FAQS.map((faq, index) => {
               const isOpen = openFaq === index;
               return (
-                <div 
+                <div
                   key={index}
-                  className="rounded-2xl bg-[#0a0a0d] border border-amber-500/20 overflow-hidden transition-all"
+                  className="rounded-2xl overflow-hidden transition-colors"
+                  style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="w-full p-6 text-left flex justify-between items-center font-luxury-title text-lg font-semibold text-white hover:text-amber-300 transition"
+                    className="w-full p-5 text-left flex justify-between items-center font-semibold text-base transition-colors"
+                    style={{ color: TEXT_PRIMARY }}
                   >
                     <span>{faq.q}</span>
-                    <span className="text-amber-400 font-mono text-xl">{isOpen ? "−" : "+"}</span>
+                    <span className="text-xl font-bold" style={{ color: TEXT_SECONDARY }}>{isOpen ? "−" : "+"}</span>
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-6 text-amber-200/70 text-sm leading-relaxed border-t border-amber-500/10 pt-4">
+                    <div className="px-5 pb-5 text-sm leading-relaxed" style={{ color: TEXT_SECONDARY, borderTop: `1px solid ${HAIRLINE}`, paddingTop: 12 }}>
                       {faq.a}
                     </div>
                   )}
@@ -1164,208 +1015,94 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               );
             })}
           </div>
-
         </div>
       </section>
 
-      {/* CALL TO ACTION BANNER */}
-      <section className="py-24 px-6 border-t border-amber-500/15 bg-gradient-to-b from-[#08080a] via-[#0a0a0d] to-[#050505]">
-        <div className="max-w-6xl mx-auto p-8 sm:p-12 rounded-3xl bg-[#0a0a0d] border border-amber-500/30 shadow-[0_0_80px_rgba(234,179,8,0.25)] grid lg:grid-cols-12 gap-8 items-center overflow-hidden relative">
-          
-          {/* Subtle background glow */}
-          <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/20 blur-[100px] pointer-events-none rounded-full" />
-
-          {/* Left Text Column */}
-          <div className="lg:col-span-5 text-left z-10">
-            <h2 className="text-3xl sm:text-4xl font-luxury-title font-extrabold text-white tracking-tight leading-tight mb-4">
-              YOUR NEW LIFE IS WAITING.<br />
-              ARE YOU READY TO <br />
-              <span className="text-gradient-green drop-shadow-[0_0_25px_rgba(34,197,94,0.5)]">BECOME LEGENDARY?</span>
-            </h2>
-            <p className="text-amber-200/70 text-sm font-light leading-relaxed">
-              Stop wishing. Start becoming.<br />
-              Your transformation begins now.
-            </p>
-          </div>
-
-          {/* Middle Card Column */}
-          <div className="lg:col-span-4 p-6 sm:p-8 rounded-2xl bg-[#050505]/90 backdrop-blur-xl border border-amber-500/30 text-center z-10 shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-            <p className="text-xs text-amber-200/80 mb-4 font-medium">
-              Join 4,872+ warriors and start your transformation today.
-            </p>
-            
-            <button 
-              onClick={() => setShowAuth(true)}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-extrabold text-sm sm:text-base shadow-[0_0_35px_rgba(234,179,8,0.5)] flex items-center justify-center gap-2 mb-4 active:scale-95 transition-all"
-            >
-              <span>START YOUR JOURNEY NOW</span>
-              <Zap size={18} className="fill-black text-black" />
-            </button>
-
-            <div className="flex justify-center flex-wrap gap-3 text-[11px] font-mono text-amber-300/80">
-              <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-amber-400" /> 1 Day Access</span>
-              <span className="flex items-center gap-1"><Clock size={12} className="text-amber-400" /> Cancel Anytime</span>
-              <span className="flex items-center gap-1"><Zap size={12} className="text-amber-400" /> Instant Access</span>
-            </div>
-          </div>
-
-          {/* Right Monarch Wings Graphic Emblem Column */}
-          <div className="lg:col-span-3 hidden lg:flex items-center justify-center relative z-10">
-            <div className="relative w-48 h-48 rounded-3xl bg-gradient-to-br from-amber-950/60 via-[#0a0a0d] to-[#050505] border border-amber-500/40 p-4 flex items-center justify-center shadow-[0_0_50px_rgba(234,179,8,0.4)] group overflow-hidden">
-              <div className="absolute inset-0 bg-amber-500/10 blur-xl group-hover:bg-amber-500/25 transition-all" />
-              
-              {/* Gold Wings SVG Crest */}
-              <div className="relative z-10 flex flex-col items-center">
-                <svg className="w-28 h-28 text-amber-400 filter drop-shadow-[0_0_15px_rgba(234,179,8,0.8)] animate-pulse" viewBox="0 0 100 100" fill="none" stroke="currentColor">
-                  <path d="M50 15 L58 32 L75 22 L68 40 L90 42 L72 58 L85 75 L62 68 L50 90 L38 68 L15 75 L28 58 L10 42 L32 40 L25 22 L42 32 Z" fill="url(#goldGrad)" stroke="rgba(253,224,71,0.9)" strokeWidth="1.5" />
-                  <circle cx="50" cy="50" r="10" fill="#eab308" className="animate-ping opacity-30" />
-                  <circle cx="50" cy="50" r="6" fill="#fef08a" />
-                  <defs>
-                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#ca8a04" />
-                      <stop offset="50%" stopColor="#eab308" />
-                      <stop offset="100%" stopColor="#fef08a" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <span className="mt-2 text-[10px] font-mono tracking-widest text-amber-300/90 font-bold uppercase">MONARCH RISE</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 30-DAY MONEY-BACK GUARANTEE — Risk reversal (high-conversion trust builder) */}
-      <section className="py-20 px-6 border-t border-amber-500/15 bg-gradient-to-b from-emerald-950/10 via-transparent to-transparent">
-        <div className="max-w-5xl mx-auto">
-          <div className="relative bg-zinc-950/80 border-2 border-emerald-500/40 rounded-3xl p-8 sm:p-10 text-center shadow-[0_0_50px_rgba(16,185,129,0.2)]">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-emerald-500 border-4 border-zinc-950 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.5)]">
-              <Shield size={28} className="text-black" />
-            </div>
-            <div className="mt-4 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold tracking-widest uppercase">
-                100% RISK-FREE
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-luxury-title font-semibold text-white tracking-tight">
-                30-Day Money-Back Guarantee
-              </h2>
-              <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto font-luxury-serif leading-relaxed">
-                Try Menifest OS for 30 full days. If you don't feel your life is becoming
-                more focused, more powerful, and more aligned — email us and we'll refund
-                every rupee. No questions. No friction. No fine print.
-              </p>
-              <div className="grid sm:grid-cols-3 gap-4 pt-4 text-left max-w-3xl mx-auto">
-                {[
-                  { title: "Try it for 30 days", desc: "Full access to every feature" },
-                  { title: "Don't transform?", desc: "Email us within 30 days" },
-                  { title: "Get 100% back", desc: "Refunded in 24-48 hours" },
-                ].map((step, i) => (
-                  <div key={i} className="bg-black/40 border border-emerald-500/20 rounded-2xl p-3">
-                    <div className="text-[10px] font-mono text-emerald-400 font-bold mb-1">STEP {i + 1}</div>
-                    <div className="text-sm font-bold text-white">{step.title}</div>
-                    <div className="text-[11px] text-amber-100/60 mt-0.5">{step.desc}</div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11px] text-amber-200/50 font-mono uppercase tracking-widest pt-2">
-                Zero risk. All upside. Your transformation or your money back.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FINAL CTA — Urgency-driven call to action (high-conversion closer) */}
-      <section className="py-20 px-6 relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-amber-500/15 blur-[160px] rounded-full" />
-        </div>
+      {/* ═══════════ FINAL CTA ═══════════ */}
+      <section className="py-20 px-4 sm:px-6 relative overflow-hidden" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold tracking-wider uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            FOUNDER'S PRICING • ENDS SOON
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wider uppercase"
+            style={{ backgroundColor: "rgba(255,159,10,0.08)", color: ORANGE, border: "1px solid rgba(255,159,10,0.2)" }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: ORANGE }}
+            />
+            Founder's pricing · ends soon
           </div>
-          <h2 className="text-3xl sm:text-5xl md:text-6xl font-luxury-title font-semibold tracking-tight text-white leading-[1.05]">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.05]" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
             Your next chapter starts<br />
-            <span className="text-gradient-gold">the moment you decide.</span>
+            <span style={{ color: ORANGE }}>the moment you decide.</span>
           </h2>
-          <p className="text-amber-100/80 text-base sm:text-lg max-w-2xl mx-auto font-luxury-serif">
-            Every day you wait is a day your future self doesn't get to live.
-            Start today — for less than a coffee a day.
+          <p className="text-base sm:text-lg max-w-2xl mx-auto" style={{ color: TEXT_SECONDARY }}>
+            Every day you wait is a day your future self doesn't get to live. Start today — for less than a coffee a day.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={() => setShowAuth(true)}
-              className="px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-luxury-title font-bold text-lg flex items-center justify-center gap-3 shadow-[0_0_50px_rgba(234,179,8,0.6)] active:scale-[0.98] transition-all group relative overflow-hidden"
+              className="px-10 py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+              style={{ backgroundColor: ORANGE, color: "#000" }}
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <span className="relative">Claim Your Spot — ₹99/mo</span>
-              <Zap size={20} className="fill-black text-black group-hover:scale-125 transition-transform relative" />
+              <span>Claim your spot — ₹99/mo</span>
+              <Zap size={18} style={{ color: "#000" }} />
             </button>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-amber-200/70 font-medium pt-2">
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> 30-day refund</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> Cancel anytime</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> No hidden fees</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-400" /> Secure checkout</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs pt-2" style={{ color: TEXT_SECONDARY }}>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> 30-day refund</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> Cancel anytime</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> No hidden fees</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> Secure checkout</span>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-[#030303] border-t border-amber-500/15 pt-16 pb-12 text-amber-200/60 text-sm">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
-            
-            {/* Brand Info */}
+      {/* ═══════════ FOOTER ═══════════ */}
+      <footer className="pt-12 pb-8 text-xs" style={{ backgroundColor: "#030303", borderTop: `1px solid ${HAIRLINE}`, color: TEXT_SECONDARY }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             <div className="col-span-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-amber-500 border border-amber-400/50 flex items-center justify-center">
-                  <span className="text-black font-luxury-title font-bold text-sm">MO</span>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: TEXT_PRIMARY }}>
+                  <span className="text-xs font-bold" style={{ color: "#000" }}>M</span>
                 </div>
-                <span className="font-luxury-title font-bold text-xl text-white">Menifest OS</span>
+                <span className="font-bold text-base" style={{ color: TEXT_PRIMARY }}>Menifest OS</span>
               </div>
-              <p className="text-xs text-amber-300/50 leading-relaxed max-w-sm">
+              <p className="text-xs leading-relaxed max-w-sm" style={{ color: TEXT_TERTIARY }}>
                 The manifestation RPG that turns your desires into real power. Align your mind, complete verified quests, and level up your reality.
               </p>
             </div>
 
-            {/* Product Links */}
             <div>
-              <div className="font-semibold text-white mb-4 text-xs tracking-wider uppercase font-mono">Product</div>
-              <ul className="space-y-2.5 text-xs">
-                <li><a href="#features" className="hover:text-white transition">Features</a></li>
-                <li><a href="#ranks" className="hover:text-white transition">Ranks</a></li>
-                <li><a href="#pricing" className="hover:text-white transition">Pricing</a></li>
-                <li><a href="#faq" className="hover:text-white transition">FAQ</a></li>
+              <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Product</div>
+              <ul className="space-y-2 text-xs">
+                <li><a href="#features" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Features</a></li>
+                <li><a href="#ranks" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Ranks</a></li>
+                <li><a href="#pricing" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Pricing</a></li>
+                <li><a href="#faq" className="transition-colors" style={{ color: TEXT_SECONDARY }}>FAQ</a></li>
               </ul>
             </div>
 
-            {/* Legal */}
             <div>
-              <div className="font-semibold text-white mb-4 text-xs tracking-wider uppercase font-mono">Legal</div>
-              <ul className="space-y-2.5 text-xs">
-                <li><button onClick={() => setShowPrivacy(true)} className="hover:text-white transition">Privacy Policy</button></li>
-                <li><button onClick={() => setShowTerms(true)} className="hover:text-white transition">Terms of Service</button></li>
-                <li><button onClick={() => setShowContact(true)} className="hover:text-white transition">Refund Policy</button></li>
+              <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Legal</div>
+              <ul className="space-y-2 text-xs">
+                <li><button onClick={() => setShowPrivacy(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Privacy Policy</button></li>
+                <li><button onClick={() => setShowTerms(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Terms of Service</button></li>
+                <li><button onClick={() => setShowContact(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Refund Policy</button></li>
               </ul>
             </div>
 
-            {/* Support */}
             <div>
-              <div className="font-semibold text-white mb-4 text-xs tracking-wider uppercase font-mono">Support</div>
-              <ul className="space-y-2.5 text-xs">
-                <li><button onClick={() => setShowContact(true)} className="hover:text-white transition">Help Center</button></li>
-                <li><button onClick={() => setShowContact(true)} className="hover:text-white transition">Contact Us</button></li>
-                <li><a href="mailto:hello@menifestos.in" className="hover:text-white transition">hello@menifestos.in</a></li>
+              <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Support</div>
+              <ul className="space-y-2 text-xs">
+                <li><button onClick={() => setShowContact(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Help Center</button></li>
+                <li><button onClick={() => setShowContact(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Contact Us</button></li>
+                <li><a href="mailto:hello@menifestos.in" className="transition-colors" style={{ color: TEXT_SECONDARY }}>hello@menifestos.in</a></li>
               </ul>
             </div>
-
           </div>
 
-          <div className="mt-16 pt-8 border-t border-amber-500/10 flex flex-col md:flex-row justify-between items-center text-xs text-amber-300/40 gap-4">
+          <div className="mt-12 pt-6 flex flex-col md:flex-row justify-between items-center text-xs gap-3" style={{ borderTop: `1px solid ${HAIRLINE}`, color: TEXT_TERTIARY }}>
             <div>© {new Date().getFullYear()} Menifest OS. All rights reserved.</div>
             <div>Made for those who refuse to stay ordinary.</div>
           </div>
