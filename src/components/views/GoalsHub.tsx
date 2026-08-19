@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { resolveImageUrl } from "../../lib/imageHelper";
 import {
   Plus, Target, Trophy, Flame, X, Check, Sparkles, Edit3, Trash2
@@ -133,18 +133,181 @@ interface GoalsHubProps {
   onBack?: () => void;
   onEditGoal?: (goal: GoalItem) => void;
   onDeleteGoal?: (goal: GoalItem) => void;
+  handleCreateGoal?: (...args: any[]) => any;
+  handleUpdateGoal?: (...args: any[]) => any;
+  handleDeleteGoalExternal?: (...args: any[]) => any;
+  isCreatingGoal?: boolean;
+  newGoalTitle?: string;
+  setNewGoalTitle?: (s: any) => void;
+  newGoalCategory?: any;
+  setNewGoalCategory?: (s: any) => void;
+  newGoalIcon?: string;
+  setNewGoalIcon?: (s: any) => void;
   [k: string]: any;
 }
 
 export const GoalsHub: React.FC<GoalsHubProps> = ({
   playerName = "Hunter",
-  goals = FALLBACK_GOALS,
+  goals: externalGoals,
   onCreateGoal,
   onGoalClick,
-  onEditGoal,
-  onDeleteGoal,
+  onEditGoal: externalEdit,
+  onDeleteGoal: externalDelete,
+  handleCreateGoal,
+  handleUpdateGoal,
+  handleDeleteGoalExternal,
+  isCreatingGoal = false,
+  newGoalTitle,
+  setNewGoalTitle,
+  newGoalCategory,
+  setNewGoalCategory,
+  newGoalIcon,
+  setNewGoalIcon,
 }) => {
+  // Local state for in-component CRUD
+  const [localGoals, setLocalGoals] = useState<GoalItem[]>(
+    externalGoals || FALLBACK_GOALS
+  );
+  const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingExisting, setEditingExisting] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+
+  // Form state for create/edit
+  const [newGoal, setNewGoal] = useState<{
+    title: string;
+    description: string;
+    rank: "E" | "D" | "C" | "B" | "A";
+    xp: number;
+    category: string;
+    icon: string;
+    deadline: string;
+    progress: number;
+  }>({
+    title: "",
+    description: "",
+    rank: "C",
+    xp: 200,
+    category: "Lifestyle",
+    icon: "🎯",
+    deadline: "",
+    progress: 0,
+  });
+
+  // Sync external goals
+  useEffect(() => {
+    if (externalGoals) setLocalGoals(externalGoals);
+  }, [externalGoals]);
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 2400);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+
+  const showToast = (msg: string, type: "ok" | "err" = "ok") =>
+    setToast({ msg, type });
+
+  const openCreateModal = () => {
+    setEditingExisting(false);
+    setNewGoal({
+      title: "",
+      description: "",
+      rank: "C",
+      xp: 200,
+      category: "Lifestyle",
+      icon: "🎯",
+      deadline: "",
+      progress: 0,
+    });
+    setShowCreateModal(true);
+    if (onCreateGoal) onCreateGoal();
+  };
+
+  const handleEditClick = (goal: GoalItem) => {
+    setEditingExisting(true);
+    setNewGoal({
+      title: goal.title,
+      description: goal.description,
+      rank: goal.rank,
+      xp: goal.xp,
+      progress: goal.progress,
+      category: goal.category || "Lifestyle",
+      icon: goal.icon,
+      deadline: goal.deadline || "",
+    });
+    setShowCreateModal(true);
+    if (externalEdit) externalEdit(goal);
+  };
+
+  const handleSaveGoal = () => {
+    if (!newGoal.title.trim()) {
+      showToast("Title is required", "err");
+      return;
+    }
+
+    const jpLabels: Record<string, string> = {
+      Lifestyle: "ライフスタイル",
+      Health: "健康",
+      Career: "キャリア",
+      Wealth: "富",
+      Knowledge: "知識",
+      Relationships: "関係",
+    };
+
+    const goalData: GoalItem = {
+      id: editingExisting
+        ? selectedGoal?.id || `g_${Date.now()}`
+        : `g_${Date.now()}`,
+      title: newGoal.title.trim(),
+      description:
+        newGoal.description.trim() ||
+        `Achieve your ${newGoal.category.toLowerCase()} goal.`,
+      rank: newGoal.rank,
+      xp: newGoal.xp,
+      progress: newGoal.progress,
+      image: FALLBACK_GOALS[Math.floor(Math.random() * FALLBACK_GOALS.length)]
+        .image,
+      jpLabel: jpLabels[newGoal.category] || "目標",
+      icon: newGoal.icon,
+      category: newGoal.category,
+      deadline: newGoal.deadline,
+      totalMilestones: 10,
+      completedMilestones: Math.floor((newGoal.progress / 100) * 10),
+    };
+
+    if (editingExisting) {
+      setLocalGoals((prev) =>
+        prev.map((g) => (g.id === goalData.id ? goalData : g))
+      );
+      showToast("Goal updated", "ok");
+      if (handleUpdateGoal) handleUpdateGoal(goalData);
+    } else {
+      setLocalGoals((prev) => [goalData, ...prev]);
+      showToast("Goal created", "ok");
+      if (handleCreateGoal) handleCreateGoal(goalData);
+    }
+    setShowCreateModal(false);
+    setSelectedGoal(null);
+  };
+
+  const handleDeleteGoal = (goal: GoalItem) => {
+    setLocalGoals((prev) => prev.filter((g) => g.id !== goal.id));
+    if (externalDelete) externalDelete(goal);
+    if (handleDeleteGoalExternal) handleDeleteGoalExternal(goal);
+    showToast("Goal deleted", "ok");
+  };
+
+  const handleGoalCardClick = (goal: GoalItem) => {
+    setSelectedGoal(goal);
+    if (onGoalClick) onGoalClick(goal);
+  };
+
+  // Use local goals for rendering
+  const goals = localGoals;
 
   // Stats
   const activeCount = goals.length;
@@ -229,6 +392,20 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
             Forge your <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>future identity</span>.
             Set goals, complete milestones, claim XP, ascend the ranks.
           </p>
+
+          {/* Create New Goal button — RED, right under heading */}
+          <button
+            onClick={openCreateModal}
+            className="mt-5 px-7 py-3 rounded-2xl font-extrabold text-[14px] flex items-center gap-2 transition active:scale-[0.97]"
+            style={{
+              backgroundColor: IOS_RED,
+              color: "#fff",
+              boxShadow: "0 8px 24px rgba(255,69,58,0.3)",
+            }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span>Create New Goal</span>
+          </button>
         </div>
       </section>
 
@@ -298,7 +475,7 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
                 key={goal.id}
                 onMouseEnter={() => setHovered(goal.id)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => onGoalClick?.(goal)}
+                onClick={() => handleGoalCardClick(goal)}
                 className="relative flex items-stretch gap-3 rounded-2xl p-3 cursor-pointer transition active:scale-[0.99]"
                 style={{
                   backgroundColor: SURFACE,
@@ -428,40 +605,36 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
 
                 {/* Action buttons (edit/delete) — top right corner */}
                 <div className="absolute top-2 right-2 flex items-center gap-1">
-                  {onEditGoal && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditGoal(goal);
-                      }}
-                      className="p-1 rounded active:scale-90"
-                      style={{
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        color: TEXT_SECONDARY,
-                      }}
-                      aria-label="Edit goal"
-                    >
-                      <Edit3 size={11} />
-                    </button>
-                  )}
-                  {onDeleteGoal && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`Delete "${goal.title}"?`)) {
-                          onDeleteGoal(goal);
-                        }
-                      }}
-                      className="p-1 rounded active:scale-90"
-                      style={{
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        color: IOS_RED,
-                      }}
-                      aria-label="Delete goal"
-                    >
-                      <Trash2 size={11} />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(goal);
+                    }}
+                    className="p-1 rounded active:scale-90"
+                    style={{
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      color: TEXT_SECONDARY,
+                    }}
+                    aria-label="Edit goal"
+                  >
+                    <Edit3 size={11} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Delete "${goal.title}"?`)) {
+                        handleDeleteGoal(goal);
+                      }
+                    }}
+                    className="p-1 rounded active:scale-90"
+                    style={{
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      color: IOS_RED,
+                    }}
+                    aria-label="Delete goal"
+                  >
+                    <Trash2 size={11} />
+                  </button>
                 </div>
               </div>
             );
@@ -469,27 +642,478 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
         </div>
       </section>
 
-      {/* ===================== STICKY CREATE BUTTON ===================== */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 px-5 pb-6 pt-4"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,1) 100%)",
-        }}
-      >
-        <button
-          onClick={onCreateGoal}
-          className="w-full max-w-[420px] mx-auto flex items-center justify-center gap-2 font-extrabold text-[15px] py-3.5 rounded-2xl transition-transform active:scale-[0.98]"
+      {/* ===================== GOAL DETAIL MODAL ===================== */}
+      {selectedGoal && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
+          onClick={() => setSelectedGoal(null)}
+        >
+          <div
+            className="w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[80vh] overflow-y-auto"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className="text-[10px] font-bold tracking-widest uppercase"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                {selectedGoal.jpLabel}
+              </div>
+              <button
+                onClick={() => setSelectedGoal(null)}
+                className="p-1 rounded-lg active:scale-90"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <h2
+              className="font-extrabold text-2xl mb-2"
+              style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
+            >
+              {selectedGoal.icon} {selectedGoal.title}
+            </h2>
+
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase"
+                style={{
+                  border: `1px solid ${ORANGE}`,
+                  color: ORANGE,
+                  backgroundColor: "rgba(255,159,10,0.08)",
+                }}
+              >
+                {selectedGoal.rank}-RANK
+              </span>
+              {selectedGoal.category && (
+                <span
+                  className="text-[10px] font-bold tracking-wider uppercase"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  {selectedGoal.category}
+                </span>
+              )}
+              {selectedGoal.deadline && (
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  · Due {selectedGoal.deadline}
+                </span>
+              )}
+            </div>
+
+            <p
+              className="text-[13px] leading-relaxed mb-4"
+              style={{ color: TEXT_SECONDARY }}
+            >
+              {selectedGoal.description}
+            </p>
+
+            {/* Progress display */}
+            <div
+              className="rounded-2xl p-4 mb-3"
+              style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className="text-[10px] font-bold tracking-widest uppercase"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  Progress
+                </span>
+                <span
+                  className="text-[16px] font-extrabold tabular-nums"
+                  style={{ color: ORANGE }}
+                >
+                  {selectedGoal.progress}%
+                </span>
+              </div>
+              <div
+                className="h-1.5 rounded-full overflow-hidden"
+                style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${selectedGoal.progress}%`,
+                    background: `linear-gradient(90deg, ${ORANGE_DARK}, ${ORANGE})`,
+                  }}
+                />
+              </div>
+              {selectedGoal.completedMilestones !== undefined &&
+                selectedGoal.totalMilestones !== undefined && (
+                  <div
+                    className="text-[11px] mt-2"
+                    style={{ color: TEXT_SECONDARY }}
+                  >
+                    <span style={{ color: ORANGE, fontWeight: 700 }}>
+                      {selectedGoal.completedMilestones}
+                    </span>{" "}
+                    of {selectedGoal.totalMilestones} milestones complete
+                  </div>
+                )}
+            </div>
+
+            {/* XP + actions */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div
+                className="rounded-xl p-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+              >
+                <div
+                  className="text-[9px] font-bold uppercase tracking-widest"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  XP Earned
+                </div>
+                <div
+                  className="text-[18px] font-extrabold tabular-nums mt-0.5"
+                  style={{ color: ORANGE, letterSpacing: "-0.02em" }}
+                >
+                  +{Math.round((selectedGoal.xp * selectedGoal.progress) / 100)}
+                </div>
+              </div>
+              <div
+                className="rounded-xl p-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
+              >
+                <div
+                  className="text-[9px] font-bold uppercase tracking-widest"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  Total XP
+                </div>
+                <div
+                  className="text-[18px] font-extrabold tabular-nums mt-0.5"
+                  style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
+                >
+                  {selectedGoal.xp}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setSelectedGoal(null);
+                  setTimeout(() => handleEditClick(selectedGoal), 50);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-[13px] active:scale-95"
+                style={{
+                  backgroundColor: SURFACE,
+                  color: TEXT_PRIMARY,
+                  border: `1px solid ${HAIRLINE}`,
+                }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteGoal(selectedGoal);
+                  setSelectedGoal(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-extrabold text-[13px] active:scale-95"
+                style={{ backgroundColor: IOS_RED, color: "#fff" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== CREATE GOAL MODAL ===================== */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[80vh] overflow-y-auto"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className="text-[10px] font-bold tracking-widest uppercase"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                {editingExisting ? "Edit Goal" : "New Goal"}
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-lg active:scale-90"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <h2
+              className="font-extrabold text-xl mb-4"
+              style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
+            >
+              {editingExisting ? "Edit your goal" : "What do you want to achieve?"}
+            </h2>
+
+            {/* Title */}
+            <label
+              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+              style={{ color: TEXT_TERTIARY }}
+            >
+              Goal Title *
+            </label>
+            <input
+              type="text"
+              value={newGoal.title}
+              onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+              maxLength={60}
+              className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none mb-3"
+              style={{
+                backgroundColor: "#000",
+                border: `1px solid ${HAIRLINE}`,
+                color: TEXT_PRIMARY,
+                fontFamily: "inherit",
+              }}
+              placeholder="e.g., Buy a house"
+              autoFocus
+            />
+
+            {/* Description */}
+            <label
+              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+              style={{ color: TEXT_TERTIARY }}
+            >
+              Description
+            </label>
+            <textarea
+              value={newGoal.description}
+              onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+              maxLength={200}
+              rows={2}
+              className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none mb-3"
+              style={{
+                backgroundColor: "#000",
+                border: `1px solid ${HAIRLINE}`,
+                color: TEXT_PRIMARY,
+                fontFamily: "inherit",
+              }}
+              placeholder="Why does this matter?"
+            />
+
+            {/* Category + Rank row */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label
+                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  Category
+                </label>
+                <select
+                  value={newGoal.category}
+                  onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                  style={{
+                    backgroundColor: "#000",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <option value="Lifestyle">Lifestyle</option>
+                  <option value="Health">Health</option>
+                  <option value="Career">Career</option>
+                  <option value="Wealth">Wealth</option>
+                  <option value="Knowledge">Knowledge</option>
+                  <option value="Relationships">Relationships</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  Rank
+                </label>
+                <select
+                  value={newGoal.rank}
+                  onChange={(e) => setNewGoal({ ...newGoal, rank: e.target.value as any })}
+                  className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                  style={{
+                    backgroundColor: "#000",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <option value="E">E — Easy</option>
+                  <option value="D">D — Normal</option>
+                  <option value="C">C — Hard</option>
+                  <option value="B">B — Epic</option>
+                  <option value="A">A — Legendary</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Icon picker */}
+            <label
+              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+              style={{ color: TEXT_TERTIARY }}
+            >
+              Icon
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {["🎯", "💪", "🏠", "💰", "📚", "🚀", "🗾", "✍️", "🔥", "🌟", "👑", "⚡"].map((ic) => (
+                <button
+                  key={ic}
+                  onClick={() => setNewGoal({ ...newGoal, icon: ic })}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg active:scale-90"
+                  style={{
+                    backgroundColor:
+                      newGoal.icon === ic ? "rgba(255,69,58,0.15)" : SURFACE,
+                    border: `1px solid ${
+                      newGoal.icon === ic
+                        ? "rgba(255,69,58,0.4)"
+                        : HAIRLINE
+                    }`,
+                  }}
+                >
+                  {ic}
+                </button>
+              ))}
+            </div>
+
+            {/* XP + deadline row */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div>
+                <label
+                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  XP Reward
+                </label>
+                <input
+                  type="number"
+                  value={newGoal.xp}
+                  onChange={(e) =>
+                    setNewGoal({ ...newGoal, xp: Math.max(50, Number(e.target.value) || 0) })
+                  }
+                  min={50}
+                  step={50}
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
+                  style={{
+                    backgroundColor: "#000",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  Deadline
+                </label>
+                <input
+                  type="text"
+                  value={newGoal.deadline}
+                  onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
+                  maxLength={20}
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
+                  style={{
+                    backgroundColor: "#000",
+                    border: `1px solid ${HAIRLINE}`,
+                    color: TEXT_PRIMARY,
+                    fontFamily: "inherit",
+                  }}
+                  placeholder="31 Dec 2026"
+                />
+              </div>
+            </div>
+
+            {/* Progress slider (edit mode) */}
+            {editingExisting && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    className="text-[10px] font-bold tracking-widest uppercase"
+                    style={{ color: TEXT_TERTIARY }}
+                  >
+                    Progress
+                  </label>
+                  <span
+                    className="text-[12px] font-extrabold tabular-nums"
+                    style={{ color: ORANGE }}
+                  >
+                    {newGoal.progress}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={newGoal.progress}
+                  onChange={(e) => setNewGoal({ ...newGoal, progress: Number(e.target.value) })}
+                  className="w-full"
+                  style={{ accentColor: ORANGE }}
+                />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-[13px] active:scale-95"
+                style={{
+                  backgroundColor: SURFACE,
+                  border: `1px solid ${HAIRLINE}`,
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveGoal}
+                disabled={!newGoal.title.trim()}
+                className="flex-1 py-3 rounded-xl font-extrabold text-[13px] active:scale-95 disabled:opacity-40"
+                style={{
+                  backgroundColor: IOS_RED,
+                  color: "#fff",
+                }}
+              >
+                {editingExisting ? "Save Changes" : "Create Goal"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TOAST ===================== */}
+      {toast && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 rounded-2xl text-[12px] font-bold flex items-center gap-2"
           style={{
-            backgroundColor: ORANGE,
-            color: "#000",
-            boxShadow: "0 8px 24px rgba(255,159,10,0.25)",
+            top: "20px",
+            backgroundColor:
+              toast.type === "ok" ? "rgba(52,199,89,0.95)" : "rgba(255,69,58,0.95)",
+            color: "#fff",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            minWidth: 200,
           }}
         >
-          <Plus size={18} strokeWidth={2.5} />
-          <span>Create New Goal</span>
-        </button>
-      </div>
+          {toast.type === "ok" ? <Check size={14} /> : <X size={14} />}
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 };
