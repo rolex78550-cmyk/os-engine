@@ -15,8 +15,9 @@ import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { SoloDominionHub } from "./SoloDominionHub";
 import { DominionFeatureView } from "./DominionFeatureView";
-import { TaskListView } from "./TaskListView";
+import { TaskListView, type TaskDef } from "./TaskListView";
 import { LeaderboardView } from "./LeaderboardView";
+import { TaskTrackingView } from "./TaskTrackingView";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
@@ -271,8 +272,10 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
-  type DominionView = "hub" | "main" | "quests" | "tasks" | "leaderboard";
+  type DominionView = "hub" | "tasks" | "leaderboard" | "tracking";
+  type TrackingTaskId = "pushup" | "plank" | "squat" | "sprint" | "writing" | "water";
   const [dominionView, setDominionView] = useState<DominionView>("hub");
+  const [trackingTask, setTrackingTask] = useState<TrackingTaskId>("pushup");
   const [playerName, setPlayerName] = useState<string>("Hunter");
   useEffect(() => {
     try {
@@ -1398,7 +1401,10 @@ export const SoloDominion: React.FC<any> = (props) => {
     return (
       <TaskListView
         onBack={() => setDominionView("hub")}
-        onTaskClick={() => setDominionView("main")}
+        onTaskClick={(task) => {
+          setTrackingTask(task.id);
+          setDominionView("tracking");
+        }}
       />
     );
   }
@@ -1408,6 +1414,17 @@ export const SoloDominion: React.FC<any> = (props) => {
     return (
       <LeaderboardView
         onBack={() => setDominionView("hub")}
+      />
+    );
+  }
+
+  // ===================== TRACKING ROUTE =====================
+  // (Replaces old 'main' view for task click flow — full app-style page)
+  if (dominionView === "tracking") {
+    return (
+      <TaskTrackingView
+        taskId={trackingTask}
+        onBack={() => setDominionView("tasks")}
       />
     );
   }
