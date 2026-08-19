@@ -4,7 +4,6 @@ import {
   Bell,
   BellOff,
   LogOut,
-  Settings as SettingsIcon,
   User as UserIcon,
   Edit3,
   Camera,
@@ -348,61 +347,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       />
 
       <div className="relative z-10">
-        {/* ===================== TOP BAR ===================== */}
-        <div
-          className="sticky top-0 z-30 flex items-center justify-between px-4 pt-5 pb-3"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.7)",
-            backdropFilter: "blur(16px)",
-            borderBottom: `1px solid ${HAIRLINE}`,
-          }}
-        >
-          <div className="flex items-center gap-2.5">
-            <div
-              className="flex items-center justify-center font-extrabold"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                border: `1px solid ${HAIRLINE_STRONG}`,
-                color: TEXT_PRIMARY,
-                fontSize: 15,
-                backgroundColor: SURFACE,
-              }}
-            >
-              M
-            </div>
-            <div className="flex flex-col">
-              <div
-                className="font-extrabold tracking-tight leading-none"
-                style={{ color: TEXT_PRIMARY, fontSize: 16, letterSpacing: "-0.01em" }}
-              >
-                MANIFEST OS
-              </div>
-              <div
-                className="text-[10px] mt-0.5 uppercase tracking-wider"
-                style={{ color: TEXT_TERTIARY }}
-              >
-                Profile · Lvl {level}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => (setActiveTab ? setActiveTab("settings") : null)}
-            className="flex items-center justify-center active:scale-95 transition"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              backgroundColor: SURFACE,
-              border: `1px solid ${HAIRLINE_STRONG}`,
-              color: TEXT_PRIMARY,
-            }}
-            aria-label="Settings"
-          >
-            <SettingsIcon size={16} />
-          </button>
-        </div>
+        {/* (Top bar removed — MainLayout already provides app header with
+            page title, brand, notification bell, and subscribe CTA) */}
 
         {/* ===================== HERO PROFILE ===================== */}
         <section className="px-5 pt-6 pb-2">
