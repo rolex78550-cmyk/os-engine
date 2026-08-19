@@ -3,6 +3,7 @@ import { resolveImageUrl } from "../../lib/imageHelper";
 import {
   Plus, Target, Trophy, Flame, X, Check, Sparkles, Edit3, Trash2
 } from "lucide-react";
+import { CreateGoalPage, type GoalFormData } from "./CreateGoalPage";
 
 // Design tokens (matches Solo Dominion style)
 const TEXT_PRIMARY = "#ffffff";
@@ -173,10 +174,14 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     return FALLBACK_GOALS;
   });
   const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Router state: "hub" = main page, "create" = create full page, "edit" = edit full page
+  const [currentView, setCurrentView] = useState<"hub" | "create" | "edit">("hub");
   const [editingExisting, setEditingExisting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+
+  // Form state for create/edit (initial values for the full page)
+  const [formInitial, setFormInitial] = useState<Partial<GoalFormData>>({});
 
   // Form state for create/edit
   const [newGoal, setNewGoal] = useState<{
@@ -217,23 +222,15 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
 
   const openCreateModal = () => {
     setEditingExisting(false);
-    setNewGoal({
-      title: "",
-      description: "",
-      rank: "C",
-      xp: 200,
-      category: "Lifestyle",
-      icon: "🎯",
-      deadline: "",
-      progress: 0,
-    });
-    setShowCreateModal(true);
+    setFormInitial({});
+    setCurrentView("create");
     if (onCreateGoal) onCreateGoal();
   };
 
   const handleEditClick = (goal: GoalItem) => {
     setEditingExisting(true);
-    setNewGoal({
+    setSelectedGoal(goal);
+    setFormInitial({
       title: goal.title,
       description: goal.description,
       rank: goal.rank,
@@ -243,12 +240,12 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
       icon: goal.icon,
       deadline: goal.deadline || "",
     });
-    setShowCreateModal(true);
+    setCurrentView("edit");
     if (externalEdit) externalEdit(goal);
   };
 
-  const handleSaveGoal = () => {
-    if (!newGoal.title.trim()) {
+  const handleSaveGoal = (formData: GoalFormData) => {
+    if (!formData.title.trim()) {
       showToast("Title is required", "err");
       return;
     }
@@ -266,21 +263,21 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
       id: editingExisting
         ? selectedGoal?.id || `g_${Date.now()}`
         : `g_${Date.now()}`,
-      title: newGoal.title.trim(),
+      title: formData.title.trim(),
       description:
-        newGoal.description.trim() ||
-        `Achieve your ${newGoal.category.toLowerCase()} goal.`,
-      rank: newGoal.rank,
-      xp: newGoal.xp,
-      progress: newGoal.progress,
+        formData.description.trim() ||
+        `Achieve your ${formData.category.toLowerCase()} goal.`,
+      rank: formData.rank,
+      xp: formData.xp,
+      progress: formData.progress,
       image: FALLBACK_GOALS[Math.floor(Math.random() * FALLBACK_GOALS.length)]
         .image,
-      jpLabel: jpLabels[newGoal.category] || "目標",
-      icon: newGoal.icon,
-      category: newGoal.category,
-      deadline: newGoal.deadline,
+      jpLabel: jpLabels[formData.category] || "目標",
+      icon: formData.icon,
+      category: formData.category,
+      deadline: formData.deadline,
       totalMilestones: 10,
-      completedMilestones: Math.floor((newGoal.progress / 100) * 10),
+      completedMilestones: Math.floor((formData.progress / 100) * 10),
     };
 
     if (editingExisting) {
@@ -294,7 +291,7 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
       showToast("Goal created", "ok");
       if (handleCreateGoal) handleCreateGoal(goalData);
     }
-    setShowCreateModal(false);
+    setCurrentView("hub");
     setSelectedGoal(null);
   };
 
@@ -319,6 +316,29 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
   const avgProgress = goals.length > 0
     ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / goals.length)
     : 0;
+
+  // ===================== ROUTER: Full page views =====================
+  if (currentView === "create") {
+    return (
+      <CreateGoalPage
+        isEdit={false}
+        initialData={formInitial}
+        onBack={() => setCurrentView("hub")}
+        onSave={handleSaveGoal}
+      />
+    );
+  }
+
+  if (currentView === "edit") {
+    return (
+      <CreateGoalPage
+        isEdit={true}
+        initialData={formInitial}
+        onBack={() => setCurrentView("hub")}
+        onSave={handleSaveGoal}
+      />
+    );
+  }
 
   return (
     <div
@@ -829,279 +849,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
           </div>
         </div>
       )}
-
-      {/* ===================== CREATE GOAL MODAL ===================== */}
-      {showCreateModal && (
-        <div
-          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
-          onClick={() => setShowCreateModal(false)}
-        >
-          <div
-            className="w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[80vh] overflow-y-auto"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div
-                className="text-[10px] font-bold tracking-widest uppercase"
-                style={{ color: TEXT_TERTIARY }}
-              >
-                {editingExisting ? "Edit Goal" : "New Goal"}
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1 rounded-lg active:scale-90"
-                style={{ color: TEXT_TERTIARY }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <h2
-              className="font-extrabold text-xl mb-4"
-              style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
-            >
-              {editingExisting ? "Edit your goal" : "What do you want to achieve?"}
-            </h2>
-
-            {/* Title */}
-            <label
-              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-              style={{ color: TEXT_TERTIARY }}
-            >
-              Goal Title *
-            </label>
-            <input
-              type="text"
-              value={newGoal.title}
-              onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-              maxLength={60}
-              className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none mb-3"
-              style={{
-                backgroundColor: "#000",
-                border: `1px solid ${HAIRLINE}`,
-                color: TEXT_PRIMARY,
-                fontFamily: "inherit",
-              }}
-              placeholder="e.g., Buy a house"
-              autoFocus
-            />
-
-            {/* Description */}
-            <label
-              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-              style={{ color: TEXT_TERTIARY }}
-            >
-              Description
-            </label>
-            <textarea
-              value={newGoal.description}
-              onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-              maxLength={200}
-              rows={2}
-              className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none mb-3"
-              style={{
-                backgroundColor: "#000",
-                border: `1px solid ${HAIRLINE}`,
-                color: TEXT_PRIMARY,
-                fontFamily: "inherit",
-              }}
-              placeholder="Why does this matter?"
-            />
-
-            {/* Category + Rank row */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div>
-                <label
-                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Category
-                </label>
-                <select
-                  value={newGoal.category}
-                  onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                  style={{
-                    backgroundColor: "#000",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  <option value="Lifestyle">Lifestyle</option>
-                  <option value="Health">Health</option>
-                  <option value="Career">Career</option>
-                  <option value="Wealth">Wealth</option>
-                  <option value="Knowledge">Knowledge</option>
-                  <option value="Relationships">Relationships</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Rank
-                </label>
-                <select
-                  value={newGoal.rank}
-                  onChange={(e) => setNewGoal({ ...newGoal, rank: e.target.value as any })}
-                  className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                  style={{
-                    backgroundColor: "#000",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  <option value="E">E — Easy</option>
-                  <option value="D">D — Normal</option>
-                  <option value="C">C — Hard</option>
-                  <option value="B">B — Epic</option>
-                  <option value="A">A — Legendary</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Icon picker */}
-            <label
-              className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-              style={{ color: TEXT_TERTIARY }}
-            >
-              Icon
-            </label>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {["🎯", "💪", "🏠", "💰", "📚", "🚀", "🗾", "✍️", "🔥", "🌟", "👑", "⚡"].map((ic) => (
-                <button
-                  key={ic}
-                  onClick={() => setNewGoal({ ...newGoal, icon: ic })}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg active:scale-90"
-                  style={{
-                    backgroundColor:
-                      newGoal.icon === ic ? "rgba(255,69,58,0.15)" : SURFACE,
-                    border: `1px solid ${
-                      newGoal.icon === ic
-                        ? "rgba(255,69,58,0.4)"
-                        : HAIRLINE
-                    }`,
-                  }}
-                >
-                  {ic}
-                </button>
-              ))}
-            </div>
-
-            {/* XP + deadline row */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div>
-                <label
-                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  XP Reward
-                </label>
-                <input
-                  type="number"
-                  value={newGoal.xp}
-                  onChange={(e) =>
-                    setNewGoal({ ...newGoal, xp: Math.max(50, Number(e.target.value) || 0) })
-                  }
-                  min={50}
-                  step={50}
-                  className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                  style={{
-                    backgroundColor: "#000",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  className="text-[10px] font-bold tracking-widest uppercase mb-1.5 block"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Deadline
-                </label>
-                <input
-                  type="text"
-                  value={newGoal.deadline}
-                  onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
-                  maxLength={20}
-                  className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                  style={{
-                    backgroundColor: "#000",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontFamily: "inherit",
-                  }}
-                  placeholder="31 Dec 2026"
-                />
-              </div>
-            </div>
-
-            {/* Progress slider (edit mode) */}
-            {editingExisting && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label
-                    className="text-[10px] font-bold tracking-widest uppercase"
-                    style={{ color: TEXT_TERTIARY }}
-                  >
-                    Progress
-                  </label>
-                  <span
-                    className="text-[12px] font-extrabold tabular-nums"
-                    style={{ color: ORANGE }}
-                  >
-                    {newGoal.progress}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={newGoal.progress}
-                  onChange={(e) => setNewGoal({ ...newGoal, progress: Number(e.target.value) })}
-                  className="w-full"
-                  style={{ accentColor: ORANGE }}
-                />
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-[13px] active:scale-95"
-                style={{
-                  backgroundColor: SURFACE,
-                  border: `1px solid ${HAIRLINE}`,
-                  color: TEXT_PRIMARY,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveGoal}
-                disabled={!newGoal.title.trim()}
-                className="flex-1 py-3 rounded-xl font-extrabold text-[13px] active:scale-95 disabled:opacity-40"
-                style={{
-                  backgroundColor: IOS_RED,
-                  color: "#fff",
-                }}
-              >
-                {editingExisting ? "Save Changes" : "Create Goal"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===================== TOAST ===================== */}
       {toast && (
         <div
           className="fixed left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 rounded-2xl text-[12px] font-bold flex items-center gap-2"
