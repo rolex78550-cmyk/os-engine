@@ -140,47 +140,10 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
   const userCountry = selectedCountry;
   const isIndia = isCountryIndia(userCountry);
 
-  const indiaPlans = [
-    {
-      id: 'monthly' as PlanType,
-      name: 'Hunter Monthly',
-      price: '₹99',
-      period: '/month',
-      duration: '30 Days Full Access',
-      description: 'Test the waters and experience the power of structured reality tracking.',
-      features: [
-        'Unlimited Goals & Desires',
-        'Advanced Journal Pattern Analysis',
-        'Priority Quest Verification',
-        'Full Premium Rituals Library',
-        'Deep Resistance Spotting'
-      ],
-      popular: false,
-      cta: 'Start Subscription',
-      gateway: 'Razorpay'
-    },
-    {
-      id: 'yearly' as PlanType,
-      name: 'Yearly Alignment',
-      price: '₹799',
-      period: '/year',
-      duration: '365 Days Full Access',
-      description: 'Commit to your growth. Best value for serious transformation (~₹66/month).',
-      features: [
-        'Everything in Monthly Access',
-        'Save 33% Compared to Monthly',
-        'Annual Alignment Reports',
-        'Early Access to New Templates',
-        'Exclusive Hunter Community Entry'
-      ],
-      popular: true,
-      cta: 'Start Subscription',
-      badge: 'Most Popular',
-      gateway: 'Razorpay'
-    }
-  ];
-
-  const globalPlans = [
+  // ============== UNIFIED PRICING — same for all users worldwide ==============
+  // Pricing is in USD. Razorpay charges INR locally (auto-converted),
+  // Dodo Payments charges USD directly.
+  const plans = [
     {
       id: 'monthly' as PlanType,
       name: 'Hunter Monthly',
@@ -197,18 +160,18 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
       ],
       popular: false,
       cta: 'Start Subscription',
-      gateway: 'Dodo Payments'
+      gateway: isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)',
     },
     {
       id: 'yearly' as PlanType,
       name: 'Yearly Alignment',
-      price: '$49.99',
+      price: '$39.99',
       period: '/year',
       duration: '365 Days Full Access',
-      description: 'Commit to your growth. Best value for serious transformation (~$4.16/month).',
+      description: 'Commit to your growth. Best value for serious transformation (~$3.33/month).',
       features: [
         'Everything in Monthly Access',
-        'Save 16% Compared to Monthly',
+        'Save 33% Compared to Monthly',
         'Annual Alignment Reports',
         'Early Access to New Templates',
         'Exclusive Hunter Community Entry'
@@ -216,12 +179,12 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
       popular: true,
       cta: 'Start Subscription',
       badge: 'Most Popular',
-      gateway: 'Dodo Payments'
+      gateway: isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)',
     },
     ...(remainingSlots > 0 ? [{
       id: 'lifetime' as PlanType,
       name: 'Founder Lifetime',
-      price: '$99',
+      price: '$99.99',
       period: 'one-time',
       duration: 'Permanent Forever Access',
       description: 'Zero subscriptions. One investment. Own your journey forever (First 100 users only).',
@@ -235,18 +198,16 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
       popular: false,
       cta: 'Start Subscription',
       limited: true,
-      gateway: 'Dodo Payments'
+      gateway: isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)',
     }] : [])
   ];
-
-  const plans = isIndia ? indiaPlans : globalPlans;
 
   const handleSubscribe = async (planType: PlanType) => {
     console.log('[PricingPage] Subscribe button clicked!', {
       planType,
       selectedCountry: userCountry,
       isIndia,
-      gateway: isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)',
+      gateway: isIndia ? 'Razorpay (INR ~₹415)' : 'Dodo Payments (USD $4.99)',
       user: user ? { uid: user.uid, email: user.email } : null
     });
 
@@ -387,7 +348,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
                 }`}
               >
-                <span>🇮🇳</span> India (INR - Razorpay)
+                <span>🇮🇳</span> India (Pay in INR via Razorpay)
               </button>
               <button
                 type="button"
@@ -398,16 +359,15 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
                 }`}
               >
-                <span>🌐</span> Global / International (USD - Dodo Payments)
+                <span>🌐</span> Global (Pay in USD via Dodo)
               </button>
             </div>
 
             <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-neutral-950 border border-neutral-800 text-[11px] font-mono text-neutral-300 shadow-md">
               <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="text-neutral-400 font-medium">Selected Gateway:</span>
+              <span className="text-neutral-400 font-medium">Same global price ·</span>
               <span className="text-emerald-400 font-extrabold tracking-wide">
-                {isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)'}
-              </span>
+                {isIndia ? 'Charged in INR via Razorpay' : 'Charged in USD via Dodo'}              </span>
             </div>
           </div>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 bg-gradient-to-b from-white via-neutral-100 to-neutral-500 bg-clip-text text-transparent">
@@ -528,7 +488,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
             </div>
             <div className="text-left">
               <div className="font-bold text-sm text-neutral-200">100% Secure Checkout</div>
-              <div className="text-xs text-neutral-500">256-bit SSL via {isIndia ? 'Razorpay' : 'Dodo Payments'}</div>
+              <div className="text-xs text-neutral-500">256-bit SSL via {isIndia ? 'Razorpay' : 'Dodo Payments'} · Same global price $4.99/mo</div>
             </div>
           </div>
           

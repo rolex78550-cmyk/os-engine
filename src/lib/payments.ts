@@ -100,7 +100,10 @@ export async function initiateSubscription(
   }
 
   const plan = PLAN_PRICING[planType];
-  const amountInRupees = plan.price;
+  // Razorpay charges in INR. Convert from USD (using fixed rate of ₹83/$1).
+  // Server-side /api/razorpay/order can override this with live FX rate.
+  const USD_TO_INR = 83;
+  const amountInRupees = Math.round(plan.price * USD_TO_INR);
 
   // Order creation — resolved before modal opens, so errors are handled here.
   let order: any;
@@ -130,7 +133,7 @@ export async function initiateSubscription(
     amount: order.amount,
     currency: order.currency,
     name: "Menifest OS",
-    description: `${plan.name} Plan (₹${amountInRupees})`,
+    description: `${plan.name} Plan ($${plan.price} USD ≈ ₹${amountInRupees})`,
     order_id: order.id,
     handler: async function (response: any) {
       // ── PAYMENT CONFIRMED BY RAZORPAY ──

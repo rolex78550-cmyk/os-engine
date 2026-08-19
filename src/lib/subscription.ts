@@ -5,11 +5,16 @@ import { SubscriptionData, PaymentRecord, PlanType, SubscriptionStatus } from '.
 const FOUNDER_LIFETIME_LIMIT = 100;
 export const TRIAL_DURATION_DAYS = 1;
 
+// Global pricing — same for every user worldwide (USD).
+// Razorpay will charge in INR locally; Dodo will charge in USD.
 export const PLAN_PRICING = {
-  monthly: { price: 99, durationDays: 30, name: 'Hunter Monthly' },
-  yearly: { price: 799, durationDays: 365, name: 'Yearly Alignment' },
-  lifetime: { price: 1999, durationDays: Infinity, name: 'Founder Lifetime' }
+  monthly: { price: 4.99, currency: 'USD', durationDays: 30, name: 'Hunter Monthly' },
+  yearly: { price: 39.99, currency: 'USD', durationDays: 365, name: 'Yearly Alignment' },
+  lifetime: { price: 99.99, currency: 'USD', durationDays: Infinity, name: 'Founder Lifetime' }
 } as const;
+
+/** Default currency code used in payments. */
+export const DEFAULT_CURRENCY = 'USD';
 
 /**
  * Build the Firestore fields to persist when a payment succeeds.
