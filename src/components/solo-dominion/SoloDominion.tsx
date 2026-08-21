@@ -139,7 +139,7 @@ interface StreakCard {
 export const SoloDominion: React.FC<any> = (props) => {
   const hookLogic = useAppLogic();
   const logic = props?.profile ? props : hookLogic;
-  const { profile, currentRank = "Recruit", setActiveTab } = logic;
+  const { profile, currentRank = "Recruit", setActiveTab, updateUserProfile } = logic as any;
   const { recordXPGain } = useRPG(profile, {});
   const { user } = useFirebase();
 
@@ -1423,6 +1423,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     return (
       <TaskListView
         onBack={() => setDominionView("hub")}
+        currentUser={user}
+        currentProfile={profile}
+        updateUserProfile={updateUserProfile}
         onTaskClick={(task) => {
           // SPECIAL: "Affirmation Reading" task → go straight to AffirmationHub
           // The AffirmationHub already has a bridge that awards 50 XP for

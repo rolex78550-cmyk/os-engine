@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { TaskProofCamera, type ProofTaskId } from "./TaskProofCamera";
+import { db } from "../../lib/firebase";
+import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
+import { Sparkles, Camera } from "lucide-react";
 
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
@@ -180,13 +184,121 @@ export const TASKS: TaskDef[] = [
 interface TaskListViewProps {
   onBack: () => void;
   onTaskClick?: (task: TaskDef) => void;
+  currentUser?: any;
+  currentProfile?: any;
+  updateUserProfile?: (u: any) => Promise<void>;
 }
 
 export const TaskListView: React.FC<TaskListViewProps> = ({
   onBack,
   onTaskClick,
+  currentUser,
+  currentProfile,
+  updateUserProfile,
 }) => {
   const [hovered, setHovered] = useState<TaskId | null>(null);
+
+  // ============== AI CAMERA PROOF MODAL ==============
+  const [proofTask, setProofTask] = useState<ProofTaskId | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
+
+  const handleTaskClickInternal = async (task: TaskDef) => {
+    // Writing tasks go through AI Camera Proof flow
+    if (task.id === "writing" || task.id === "gratitude" || task.id === "script369") {
+      setProofError(null);
+      setProofTask(task.id as ProofTaskId);
+      return;
+    }
+    // Other tasks (workouts) go through normal tracker
+    onTaskClick?.(task);
+  };
+
+  const handleProofVerified = async (result: {
+    verified: boolean;
+    score: number;
+    feedback: string;
+    imageBase64?: string;
+    imageHash?: string;
+  }) => {
+    if (!proofTask) return;
+    if (!result.verified) {
+      setProofError(result.feedback || "AI didn't verify. Try again with a fresh photo.");
+      return;
+    }
+    // Award 50 XP
+    setVerifying(true);
+    try {
+      const uid = (currentUser as any)?.uid;
+      const taskDef = TASKS.find((t) => t.id === proofTask);
+      const xpReward = taskDef?.xpReward ?? 50;
+      const profileObj = (currentProfile as any) || {};
+      const currentTotalXp = Number(profileObj.totalXp) || Number(profileObj.xp) || 0;
+      const currentXp = Number(profileObj.xp) || currentTotalXp;
+      const newTotalXp = currentTotalXp + xpReward;
+      const newXp = currentXp + xpReward;
+      const newLevel = Math.floor(newTotalXp / 1000) + 1;
+      // Update via useAppLogic
+      if (updateUserProfile) {
+        await updateUserProfile({
+          totalXp: newTotalXp,
+          xp: newXp,
+          level: newLevel,
+        } as any);
+      }
+      // Direct Firestore write as safety net
+      if (uid) {
+        try {
+          await setDoc(
+            doc(db, "users", uid),
+            {
+              totalXp: increment(xpReward),
+              xp: increment(xpReward),
+              level: newLevel,
+              [`lastProof_${proofTask}`]: serverTimestamp(),
+              updatedAt: Date.now(),
+            },
+            { merge: true }
+          );
+        } catch (e) {
+          console.warn("[proof] direct write failed:", e);
+        }
+      }
+      // Mark task progress as complete for today
+      const today = new Date().toLocaleDateString("en-CA");
+      try {
+        const raw = window.localStorage.getItem(PROGRESS_KEY);
+        const progress = raw ? JSON.parse(raw) : {};
+        progress[proofTask] = taskDef?.defaultGoal ?? 100;
+        window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+        setTaskProgress((p) => ({ ...p, [proofTask]: taskDef?.defaultGoal ?? 100 }));
+      } catch {}
+      // Mark as completed today (so can't claim again)
+      try {
+        window.localStorage.setItem(
+          `manifest_proof_completed_${proofTask}_${today}`,
+          "1"
+        );
+      } catch {}
+      // Close modal + show toast
+      setProofTask(null);
+      window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+      window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
+      window.dispatchEvent(
+        new CustomEvent("manifest_toast", {
+          detail: {
+            msg: `+${xpReward} XP · ${taskDef?.title} verified by AI`,
+            type: "ok",
+          },
+        })
+      );
+    } catch (e: any) {
+      console.error("[proof] award error:", e);
+      setProofError(e?.message || "Failed to award XP");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   // ============== PER-TASK PROGRESS (persisted in localStorage, resets at midnight) ==============
   const PROGRESS_KEY = "manifest_task_progress_v1";
@@ -321,7 +433,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
             return (
               <button
                 key={task.id}
-                onClick={() => onTaskClick?.(task)}
+                onClick={() => handleTaskClickInternal(task)}
                 onMouseEnter={() => setHovered(task.id)}
                 onMouseLeave={() => setHovered(null)}
                 className="relative flex items-stretch gap-3 rounded-2xl p-3 text-left transition-all active:scale-[0.99]"
@@ -364,6 +476,24 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                 >
                   {task.rank}
                 </div>
+                {/* AI Proof badge for writing tasks */}
+                {(task.id === "writing" || task.id === "gratitude" || task.id === "script369") && (
+                  <div
+                    className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-md"
+                    style={{
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                      backdropFilter: "blur(4px)",
+                    }}
+                  >
+                    <Camera size={9} style={{ color: ORANGE }} />
+                    <span
+                      className="text-[8px] font-extrabold tracking-wider uppercase"
+                      style={{ color: ORANGE }}
+                    >
+                      AI PROOF
+                    </span>
+                  </div>
+                )}
                 {/* Segmented progress overlay on image */}
                 <div
                   className="absolute top-1.5 right-1.5 flex items-center gap-px"
@@ -470,6 +600,41 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           })}
         </div>
       </section>
+
+      {/* ============== AI CAMERA PROOF MODAL ============== */}
+      {proofTask && (
+        <TaskProofCamera
+          taskId={proofTask}
+          taskTitle={TASKS.find((t) => t.id === proofTask)?.title || proofTask}
+          taskDescription={
+            TASKS.find((t) => t.id === proofTask)?.description ||
+            "Submit photo proof of today's practice"
+          }
+          onVerified={handleProofVerified}
+          onClose={() => {
+            setProofTask(null);
+            setProofError(null);
+          }}
+        />
+      )}
+
+      {/* ============== TOAST ============== */}
+      {(proofError || verifying) && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 rounded-2xl text-[12px] font-bold flex items-center gap-2"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)",
+            backgroundColor: proofError
+              ? "rgba(255,69,58,0.95)"
+              : "rgba(255,159,10,0.95)",
+            color: "#fff",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            minWidth: 200,
+          }}
+        >
+          {proofError ? "❌" : "⏳"} {proofError || "Awarding XP..."}
+        </div>
+      )}
     </div>
   );
 };
