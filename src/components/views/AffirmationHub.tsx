@@ -10,7 +10,9 @@ const SURFACE = "#0a0a0a";
 const HAIRLINE = "rgba(255,255,255,0.08)";
 const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
 const ORANGE = "#ff9f0a";
+const ORANGE_DARK = "#ff7a00";
 const IOS_RED = "#ff453a";
+const IOS_GREEN = "#34c759";
 
 // ===================================================================
 // AFFIRMATIONS — 100+ "I AM" + famous philosophy
@@ -194,6 +196,15 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
       return raw ? Number(raw) : 0;
     } catch { return 0; }
   });
+  // Today's flips (for Solo Dominion task progress — refresh on mount + when date changes)
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const FLIP_KEY = `manifest_affirmation_flips_${todayStr}`;
+  const [todayFlips, setTodayFlips] = useState<number>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(FLIP_KEY) : null;
+      return raw ? Number(raw) : 0;
+    } catch { return 0; }
+  });
   const [showInfo, setShowInfo] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
 
@@ -214,11 +225,36 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
   }, [seenCount]);
 
   useEffect(() => {
+    try {
+      window.localStorage.setItem(FLIP_KEY, String(todayFlips));
+      // Persist task progress to manifest_task_progress_v1 (so Solo Dominion sees it)
+      const raw = window.localStorage.getItem("manifest_task_progress_v1");
+      const progress = raw ? JSON.parse(raw) : {};
+      const prev = Number(progress.affirmation) || 0;
+      // Use the larger of the two values to handle parallel updates
+      progress.affirmation = Math.max(prev, todayFlips);
+      window.localStorage.setItem("manifest_task_progress_v1", JSON.stringify(progress));
+    } catch {}
+  }, [todayFlips, FLIP_KEY]);
+
+  useEffect(() => {
     if (toast) {
-      const t = setTimeout(() => setToast(null), 1500);
+      const t = setTimeout(() => setToast(null), 2500);
       return () => clearTimeout(t);
     }
   }, [toast]);
+
+  // Listen for XP-awarded toast from App.tsx
+  useEffect(() => {
+    const onToast = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setToast({ msg: detail.msg, type: detail.type || "ok" });
+      }
+    };
+    window.addEventListener("manifest_toast", onToast as EventListener);
+    return () => window.removeEventListener("manifest_toast", onToast as EventListener);
+  }, []);
 
   const showToast = (msg: string, type: "ok" | "err" = "ok") =>
     setToast({ msg, type });
@@ -242,6 +278,23 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
     setCurrentIdx(nextAff);
     setCardImageIdx(nextImg);
     setSeenCount((c) => c + 1);
+    // Synchronously increment today flips + persist (so bridge listener reads correct value)
+    setTodayFlips((c) => {
+      const next = c + 1;
+      try {
+        const todayStr = new Date().toLocaleDateString("en-CA");
+        window.localStorage.setItem(`manifest_affirmation_flips_${todayStr}`, String(next));
+        // Also persist to Solo Dominion task progress
+        const raw = window.localStorage.getItem("manifest_task_progress_v1");
+        const progress = raw ? JSON.parse(raw) : {};
+        const prev = Number(progress.affirmation) || 0;
+        progress.affirmation = Math.max(prev, next);
+        window.localStorage.setItem("manifest_task_progress_v1", JSON.stringify(progress));
+      } catch {}
+      return next;
+    });
+    // Dispatch global event so App.tsx can award 50 XP on every 10th flip
+    window.dispatchEvent(new CustomEvent("manifest_affirmation_flip"));
     window.dispatchEvent(new CustomEvent("manifest_sfx_whoosh"));
   }, [currentIdx, cardImageIdx]);
 
@@ -298,8 +351,14 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
         style={{ minHeight: 56 }}
       >
         <div
-          className="text-[10px] font-extrabold tracking-[0.25em] uppercase tabular-nums"
-          style={{ color: TEXT_TERTIARY }}
+          className="px-3 py-1.5 rounded-full text-[10.5px] font-extrabold tracking-[0.2em] uppercase tabular-nums"
+          style={{
+            color: "#ffffff",
+            backgroundColor: "rgba(0,0,0,0.78)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            backdropFilter: "blur(14px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+          }}
         >
           {seenCount} witnessed
         </div>
@@ -307,9 +366,11 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
           onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{
-            backgroundColor: "rgba(255,255,255,0.05)",
-            border: `1px solid ${HAIRLINE}`,
-            color: TEXT_SECONDARY,
+            backgroundColor: "rgba(0,0,0,0.78)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            backdropFilter: "blur(14px)",
+            color: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
           }}
         >
           <BookOpen size={14} />
@@ -421,10 +482,58 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
         </div>
       </div>
 
-      {/* =================== BOTTOM HINT =================== */}
-      <div className="relative z-10 px-5 pb-8 pt-2 flex items-center justify-center">
+      {/* =================== BOTTOM TASK PROGRESS (Solo Dominion link) =================== */}
+      <div className="relative z-10 px-5 pb-8 pt-3 space-y-2.5">
+        {/* Progress bar */}
         <div
-          className="text-[10px] font-extrabold tracking-[0.3em] uppercase"
+          className="mx-auto max-w-[420px] px-4 py-3 rounded-2xl"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.78)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            backdropFilter: "blur(14px)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <div
+              className="text-[10px] font-extrabold tracking-[0.2em] uppercase"
+              style={{ color: "#ffffff" }}
+            >
+              📖 Affirmation Reading
+            </div>
+            <div
+              className="text-[10px] font-extrabold tabular-nums"
+              style={{ color: todayFlips >= 10 ? "#34c759" : ORANGE }}
+            >
+              {Math.min(todayFlips, 10)} / 10
+            </div>
+          </div>
+          <div
+            className="h-1.5 rounded-full overflow-hidden"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+          >
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, (todayFlips / 10) * 100)}%`,
+                background:
+                  todayFlips >= 10
+                    ? "linear-gradient(90deg, #34c759, #2da44e)"
+                    : `linear-gradient(90deg, ${ORANGE_DARK || "#ff7a00"}, ${ORANGE})`,
+              }}
+            />
+          </div>
+          <div
+            className="text-[10px] mt-1.5 font-medium"
+            style={{ color: todayFlips >= 10 ? "#34c759" : "rgba(235,235,245,0.6)" }}
+          >
+            {todayFlips >= 10
+              ? "✓ Task complete — 50 XP awarded. Keep flipping for more truth."
+              : `Flip ${10 - todayFlips} more card${10 - todayFlips === 1 ? "" : "s"} to complete the task + 50 XP`}
+          </div>
+        </div>
+        <div
+          className="text-center text-[10px] font-extrabold tracking-[0.3em] uppercase"
           style={{ color: TEXT_TERTIARY }}
         >
           Tap card · next truth
@@ -483,7 +592,8 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
                 "Tap the card to reveal a new affirmation",
                 "Heart the ones that resonate with your soul",
                 "Read them aloud, three times, with conviction",
-                `${seenCount} truths witnessed so far · ${likedSet.size} saved`,
+                "Flip 10 cards → Affirmation Reading task complete (+50 XP)",
+                `${seenCount} truths witnessed · ${likedSet.size} saved · ${todayFlips} today`,
               ].map((tip) => (
                 <div
                   key={tip}

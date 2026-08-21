@@ -19,6 +19,7 @@ import { ProfileView } from "./components/views/ProfileView";
 
 // Hooks
 import { useAppLogic } from "./hooks/useAppLogic";
+import { useRPG } from "./hooks/useRPG";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
 const VisionBoard = lazy(() => import("./components/VisionBoard"));
@@ -30,9 +31,57 @@ const SoloDominion = lazy(() => import("./components/solo-dominion/SoloDominion"
 export default function App() {
   const logic = useAppLogic();
   const { user, fbLoading, activeTab } = logic;
+  // Always call useRPG (hook order must be stable) — pass profile or undefined
+  const profileForRPG = (logic.profile as any) || undefined;
+  const { recordXPGain } = useRPG(
+    profileForRPG || ({ name: "", alignment: 0, streak: 0, belief: "" } as any),
+    {}
+  );
 
   // FABLE 5 MODEL: Hard safety net
   const [forceRender, setForceRender] = useState(false);
+
+  // ============== AFFIRMATION → SOLO DOMINION TASK BRIDGE ==============
+  // When user flips 10 cards in AffirmationHub, award 50 XP
+  // and write to the same task-progress store that TaskListView reads.
+  useEffect(() => {
+    const onFlip = () => {
+      try {
+        const todayStr = new Date().toLocaleDateString("en-CA");
+        const FLIP_KEY = `manifest_affirmation_flips_${todayStr}`;
+        const REWARD_KEY = `manifest_affirmation_rewarded_${todayStr}`;
+        // Read latest flips
+        const raw = window.localStorage.getItem(FLIP_KEY);
+        const flips = raw ? Number(raw) : 0;
+        const rewardedRaw = window.localStorage.getItem(REWARD_KEY);
+        const rewarded = rewardedRaw ? Number(rewardedRaw) : 0;
+        if (flips >= 10 && rewarded < Math.floor(flips / 10)) {
+          // Award 50 XP per milestone (every 10 flips)
+          const milestones = Math.floor(flips / 10);
+          const toAward = (milestones - rewarded) * 50;
+          if (toAward > 0 && recordXPGain) {
+            recordXPGain(toAward, undefined, false);
+            window.localStorage.setItem(REWARD_KEY, String(milestones));
+            window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+            window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
+            // Show toast via custom event
+            window.dispatchEvent(
+              new CustomEvent("manifest_toast", {
+                detail: {
+                  msg: `+${toAward} XP · Affirmation Reading task complete`,
+                  type: "ok",
+                },
+              })
+            );
+          }
+        }
+      } catch (e) {
+        console.warn("[affirmation bridge] error:", e);
+      }
+    };
+    window.addEventListener("manifest_affirmation_flip", onFlip);
+    return () => window.removeEventListener("manifest_affirmation_flip", onFlip);
+  }, [recordXPGain]);
 
   useEffect(() => {
     if (!fbLoading) return;
