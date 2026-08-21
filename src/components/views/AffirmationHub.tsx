@@ -271,7 +271,24 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
       className="min-h-screen relative font-sans flex flex-col"
       style={{ backgroundColor: "#000", color: TEXT_PRIMARY }}
     >
-      {/* =================== NO BG IMAGE — just pure black =================== */}
+      {/* =================== PAGE BG — Jinwoo warrior sunset (FULL OPACITY) =================== */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: "url(/images/affirmation_jinwoo_warrior.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+      {/* =================== DARK GRADIENT OVERLAY (so card pops on top) =================== */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.85) 100%)",
+        }}
+      />
 
       {/* =================== MINIMAL TOP STRIP =================== */}
       <div
