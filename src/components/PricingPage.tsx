@@ -457,6 +457,37 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
           </motion.div>
         </div>
 
+        {/* ============== MANIFEST OS APP SHOWCASE ============== */}
+        <div className="max-w-5xl mx-auto mb-16 px-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative rounded-3xl overflow-hidden"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.5)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <img
+              src="/images/manifest_app_showcase.png"
+              alt="Manifest OS app — track goals, complete tasks, level up your life"
+              className="w-full h-auto"
+              style={{ display: "block" }}
+            />
+            <div
+              className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-widest uppercase"
+              style={{
+                backgroundColor: "rgba(255,159,10,0.95)",
+                color: "#000",
+              }}
+            >
+              Manifest OS
+            </div>
+          </motion.div>
+        </div>
+
         {/* ============== WIN YOUR MONEY BACK - DETAIL RULES ============== */}
         <div id="money-back-rules" className="max-w-3xl mx-auto mb-16">
           <motion.div
@@ -506,7 +537,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
             <ul className="space-y-3">
               {[
                 "Do at least 70% of all your tasks in your 66 days program",
-                "Need to show proof of tasks completion, send to support@manifestos.com before 2 Nov",
+                "Need to show proof of tasks completion, send to asartist20@gmail.com before 2 Nov",
                 "Your Razorpay or Dodo Payments purchase from this screen qualifies automatically",
               ].map((rule, i) => (
                 <li key={i} className="flex items-start gap-3">
