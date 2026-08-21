@@ -130,7 +130,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
               <nav className="space-y-0.5 mt-2">
                 {[
-                  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+                  { id: "dashboard", label: "Affirmations", icon: Sparkles },
                   { id: "goals", label: "Goals", icon: Target },
                   { id: "streaks", label: "Solo Dominion", icon: Flame },
                   { id: "vision", label: "Vision Board", icon: ImageIcon },
@@ -260,7 +260,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     Menifest OS
                   </h2>
                   <div className="text-[10px] font-medium text-white/45 tracking-tight truncate">
-                    {activeTab === 'streaks' ? 'Solo Dominion' : activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'goals' ? 'Goals' : activeTab === 'vision' ? 'Vision Board' : activeTab === 'journal' ? 'Journal' : activeTab === 'profile' ? 'Profile' : activeTab}
+                    {activeTab === 'streaks' ? 'Solo Dominion' : activeTab === 'dashboard' ? 'Affirmations' : activeTab === 'goals' ? 'Goals' : activeTab === 'vision' ? 'Vision Board' : activeTab === 'journal' ? 'Journal' : activeTab === 'profile' ? 'Profile' : activeTab}
                   </div>
                 </div>
               </div>
@@ -446,7 +446,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         }}
       >
         {[
-          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "dashboard", label: "Affirm", icon: Sparkles },
           { id: "goals", label: "Goals", icon: Target },
           { id: "streaks", label: "Solo", icon: Flame },
           { id: "journal", label: "Journal", icon: BookOpen },

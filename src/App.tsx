@@ -11,8 +11,7 @@ import { PricingPage } from "./components/PricingPage";
 import { ManifestOnboarding } from "./components/ManifestOnboarding";
 
 // Views
-import { DashboardView } from "./components/views/DashboardView";
-import { CleanDashboard } from "./components/views/CleanDashboard";
+import { AffirmationHub } from "./components/views/AffirmationHub";
 import { GoalsView } from "./components/views/GoalsView";
 import { GoalsHub } from "./components/views/GoalsHub";
 import { JournalView } from "./components/views/JournalView";
@@ -136,7 +135,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             {activeTab === "dashboard" && (
               <motion.div key="dashboard" {...pageTransition} className="will-change-transform">
-                <CleanDashboard {...logic} />
+                <AffirmationHub {...logic} />
               </motion.div>
             )}
             {activeTab === "goals" && (
