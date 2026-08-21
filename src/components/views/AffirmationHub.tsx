@@ -1,22 +1,19 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Heart, X, BookOpen
-} from "lucide-react";
+import { Heart, X, BookOpen } from "lucide-react";
 
-// iOS 17 + Solo Leveling ARISE design tokens (no neon)
+// iOS 17 + Solo Leveling ARISE design tokens
 const TEXT_PRIMARY = "#ffffff";
-const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
-const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
+const TEXT_SECONDARY = "rgba(235,235,245,0.65)";
+const TEXT_TERTIARY = "rgba(235,235,245,0.35)";
 const SURFACE = "#0a0a0a";
 const HAIRLINE = "rgba(255,255,255,0.08)";
 const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
 const ORANGE = "#ff9f0a";
-const ORANGE_DARK = "#ff7a00";
 const IOS_RED = "#ff453a";
 
 // ===================================================================
-// AFFIRMATION COLLECTIONS — 100+ "I AM" + famous philosophy lines
+// AFFIRMATIONS — 100+ "I AM" + famous philosophy
 // ===================================================================
 type Affirmation = {
   text: string;
@@ -25,7 +22,7 @@ type Affirmation = {
 };
 
 const AFFIRMATIONS: Affirmation[] = [
-  // ===== I AM (50 lines) =====
+  // ===== I AM (50) =====
   { text: "I am the master of my fate, the captain of my soul.", author: "Invictus", category: "i-am" },
   { text: "I am disciplined when no one is watching.", category: "i-am" },
   { text: "I am the storm that others take shelter from.", category: "i-am" },
@@ -153,18 +150,20 @@ const AFFIRMATIONS: Affirmation[] = [
   { text: "Awakening is not a moment. It is a choice made every day.", category: "shadow" },
 ];
 
-// Anime card background images (vary each shuffle)
+// Anime card background images — user's 12 new + existing
 const CARD_IMAGES = [
-  "/images/sd_jin_hero.jpg",
-  "/images/sd_jin_redeye.jpg",
-  "/images/sd_jin_throne.jpg",
-  "/images/sd_jin_shadow_army.jpg",
-  "/images/sd_jin_blue_eyes.jpg",
-  "/images/sd_jin_warrior_sunset.jpg",
-  "/images/sd_jin_minimal.jpg",
-  "/images/sd_jin_black.jpg",
-  "/images/sd_jin_mirror.jpg",
-  "/images/sd_jin_portrait.jpg",
+  "/images/anime_dragon_facing.jpg",
+  "/images/anime_ice_lion.jpg",
+  "/images/anime_purple_hero.jpg",
+  "/images/anime_shadow_army_rubble.jpg",
+  "/images/anime_red_tree_wolf.jpg",
+  "/images/anime_dark_hero_purple.jpg",
+  "/images/anime_dark_monarch_throne.jpg",
+  "/images/anime_eminence_shadow.jpg",
+  "/images/anime_neutrality.jpg",
+  "/images/anime_shadow_monarch_dark.jpg",
+  "/images/anime_solo_standing.jpg",
+  "/images/anime_igris_armor.jpg",
 ];
 
 interface AffirmationHubProps {
@@ -214,7 +213,6 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
     } catch {}
   }, [seenCount]);
 
-  // Toast auto-dismiss
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(null), 1500);
@@ -225,10 +223,9 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
   const showToast = (msg: string, type: "ok" | "err" = "ok") =>
     setToast({ msg, type });
 
-  // ----- CORE ACTION: tap card → next random affirmation -----
+  // ----- TAP → NEXT RANDOM -----
   const showRandomCard = useCallback(() => {
     let nextAff = Math.floor(Math.random() * AFFIRMATIONS.length);
-    // ensure different from current
     if (AFFIRMATIONS.length > 1) {
       let safety = 0;
       while (nextAff === currentIdx && safety < 10) {
@@ -248,7 +245,7 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
     window.dispatchEvent(new CustomEvent("manifest_sfx_whoosh"));
   }, [currentIdx, cardImageIdx]);
 
-  // ----- LIKE (single click won't navigate) -----
+  // ----- LIKE -----
   const toggleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     setLikedSet((prev) => {
@@ -274,26 +271,9 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
       className="min-h-screen relative font-sans flex flex-col"
       style={{ backgroundColor: "#000", color: TEXT_PRIMARY }}
     >
-      {/* =================== ANIME BG (5-8% opacity, very subtle) =================== */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: "url(/images/affirmation_jinwoo_warrior.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center center",
-          backgroundRepeat: "no-repeat",
-          opacity: 0.07,
-        }}
-      />
-      <div
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 30%, rgba(255,159,10,0.05) 0%, rgba(0,0,0,0) 60%)",
-        }}
-      />
+      {/* =================== NO BG IMAGE — just pure black =================== */}
 
-      {/* =================== MINIMAL TOP STRIP (only info icon + counter) =================== */}
+      {/* =================== MINIMAL TOP STRIP =================== */}
       <div
         className="relative z-10 flex items-center justify-between px-5 pt-5 pb-2"
         style={{ minHeight: 56 }}
@@ -317,116 +297,112 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
         </button>
       </div>
 
-      {/* =================== MAIN: JUST THE TAP-TO-CHANGE CARD =================== */}
+      {/* =================== MAIN: TAP-TO-CHANGE CARD =================== */}
       <div
         className="relative z-10 flex-1 flex items-center justify-center px-4 py-2"
         style={{ minHeight: "calc(100vh - 200px)" }}
       >
         <div
           className="w-full max-w-[420px] cursor-pointer"
-          style={{ perspective: 1400 }}
           onClick={showRandomCard}
         >
           <AnimatePresence mode="wait">
             <motion.div
               key={`${currentIdx}-${cardImageIdx}`}
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              initial={{ opacity: 0, scale: 0.96, y: 14 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -8 }}
-              transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
-              className="relative w-full"
+              exit={{ opacity: 0, scale: 0.98, y: -6 }}
+              transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+              className="relative w-full overflow-hidden"
               style={{
                 aspectRatio: "9 / 14",
                 minHeight: 540,
+                backgroundColor: "#0a0a0a",
+                borderRadius: 24,
+                border: `1px solid ${HAIRLINE_STRONG}`,
               }}
             >
+              {/* ============== ANIME BG (FULL OPACITY) ============== */}
               <div
-                className="absolute inset-0 rounded-[28px] overflow-hidden"
+                className="absolute inset-0"
                 style={{
-                  border: `1px solid ${HAIRLINE_STRONG}`,
-                  boxShadow: "0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset",
+                  backgroundImage: `url(${cardImage})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+
+              {/* ============== TEXT-AREA GRADIENT ONLY (top + bottom for legibility) ============== */}
+              <div
+                className="absolute inset-x-0 top-0 h-24 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%)",
+                }}
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.0) 100%)",
+                }}
+              />
+
+              {/* ============== TOP HEART BUTTON ============== */}
+              <button
+                onClick={toggleLike}
+                className="absolute top-4 right-4 z-20 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition"
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(14px)",
+                  border: `1px solid ${isLiked ? IOS_RED : "rgba(255,255,255,0.22)"}`,
                 }}
               >
-                {/* Image background */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage: `url(${cardImage})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
+                <Heart
+                  size={20}
+                  fill={isLiked ? IOS_RED : "transparent"}
+                  color={isLiked ? IOS_RED : "#fff"}
+                  strokeWidth={2.2}
                 />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.94) 100%)",
-                  }}
-                />
+              </button>
 
-                {/* Top-right heart (single subtle button) */}
-                <button
-                  onClick={toggleLike}
-                  className="absolute top-4 right-4 z-20 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition"
+              {/* ============== BOTTOM TEXT BLOCK ============== */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-7">
+                <div
+                  className="text-[10px] font-extrabold tracking-[0.3em] uppercase mb-3"
+                  style={{ color: ORANGE }}
+                >
+                  Tap to reveal
+                </div>
+                <h2
+                  className="font-extrabold tracking-tight leading-[1.05]"
                   style={{
-                    backgroundColor: "rgba(0,0,0,0.5)",
-                    backdropFilter: "blur(12px)",
-                    border: `1px solid ${isLiked ? IOS_RED : "rgba(255,255,255,0.18)"}`,
+                    color: "#fff",
+                    fontSize: "clamp(22px, 5.8vw, 30px)",
+                    letterSpacing: "-0.03em",
+                    textShadow: "0 2px 18px rgba(0,0,0,0.85), 0 1px 4px rgba(0,0,0,0.6)",
                   }}
                 >
-                  <Heart
-                    size={20}
-                    fill={isLiked ? IOS_RED : "transparent"}
-                    color={isLiked ? IOS_RED : "#fff"}
-                    strokeWidth={2.2}
-                  />
-                </button>
-
-                {/* Center big "A" watermark (Instagram-style) */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.05]">
+                  {current.text}
+                </h2>
+                {current.author && (
                   <div
-                    className="font-black"
-                    style={{ color: "#fff", fontSize: 320, lineHeight: 1 }}
-                  >
-                    A
-                  </div>
-                </div>
-
-                {/* Bottom content */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-7">
-                  <div
-                    className="text-[10px] font-extrabold tracking-[0.3em] uppercase mb-3"
-                    style={{ color: ORANGE }}
-                  >
-                    Tap to reveal
-                  </div>
-                  <h2
-                    className="font-extrabold tracking-tight leading-[1.05]"
+                    className="mt-3 text-[12px] font-semibold italic"
                     style={{
-                      color: "#fff",
-                      fontSize: "clamp(22px, 5.8vw, 32px)",
-                      letterSpacing: "-0.03em",
-                      textShadow: "0 2px 14px rgba(0,0,0,0.65)",
+                      color: "rgba(255,255,255,0.75)",
+                      textShadow: "0 1px 8px rgba(0,0,0,0.8)",
                     }}
                   >
-                    {current.text}
-                  </h2>
-                  {current.author && (
-                    <div
-                      className="mt-3 text-[12px] font-semibold italic"
-                      style={{ color: "rgba(255,255,255,0.7)" }}
-                    >
-                      — {current.author}
-                    </div>
-                  )}
-                </div>
+                    — {current.author}
+                  </div>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
 
-      {/* =================== BOTTOM HINT (no buttons, just a hint) =================== */}
+      {/* =================== BOTTOM HINT =================== */}
       <div className="relative z-10 px-5 pb-8 pt-2 flex items-center justify-center">
         <div
           className="text-[10px] font-extrabold tracking-[0.3em] uppercase"
