@@ -18,6 +18,7 @@ export type TrackingTaskId =
   | "squat"
   | "sprint"
   | "writing"
+  | "crunch"
   | "water"
   | "affirmation"
   | "gratitude"
@@ -77,7 +78,7 @@ const TASK_META: Record<
     mode: "sensor",
   },
   sprint: {
-    title: "Sprint",
+    title: "Sprinting",
     jpLabel: "スプリント",
     icon: "⚡",
     image: "/images/anime_sprint_hero.jpg",
@@ -88,14 +89,25 @@ const TASK_META: Record<
     mode: "timer",
   },
   writing: {
-    title: "Writing",
-    jpLabel: "執筆",
+    title: "Scripting",
+    jpLabel: "スクリプティング",
     icon: "✍️",
     image: "/images/anime_writing_hero.jpg",
     rank: "D",
     unit: "words",
     xpPerUnit: 1,
     goal: 200,
+    mode: "counter",
+  },
+  crunch: {
+    title: "Crunch for Abs",
+    jpLabel: "腹筋",
+    icon: "🔥",
+    image: "/images/anime_squat_hero.jpg",
+    rank: "D",
+    unit: "reps",
+    xpPerUnit: 1,
+    goal: 50,
     mode: "counter",
   },
   water: {
