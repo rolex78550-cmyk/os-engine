@@ -683,6 +683,71 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         </div>
       </section>
 
+      {/* ═══════════ APP SCREENSHOTS GALLERY ═══════════ */}
+      <section className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-[0.25em] uppercase mb-3"
+              style={{
+                backgroundColor: "rgba(255,159,10,0.10)",
+                border: "1px solid rgba(255,159,10,0.30)",
+                color: "#ff9f0a",
+              }}
+            >
+              ✨ Inside the app
+            </div>
+            <h2
+              className="text-3xl sm:text-4xl font-bold tracking-tight"
+              style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
+            >
+              Every feature, <span style={{ color: ORANGE }}>mastered.</span>
+            </h2>
+            <p className="text-sm mt-3" style={{ color: TEXT_SECONDARY }}>
+              Track goals, complete Solo Dominion tasks, journal with the 369 method, and build your dream life — all in one app.
+            </p>
+          </div>
+
+          {/* Phone screenshot gallery — 7 screens */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+            {[
+              { src: "/images/preview_1_affirmations.jpg", label: "Affirmations" },
+              { src: "/images/preview_6_goals.jpg", label: "Goals" },
+              { src: "/images/preview_3_solo_hub.jpg", label: "Solo Dominion" },
+              { src: "/images/preview_4_tasks.jpg", label: "Tasks" },
+              { src: "/images/preview_5_369_journal.jpg", label: "369 Journal" },
+              { src: "/images/preview_2_vision_board.jpg", label: "Vision Board" },
+              { src: "/images/preview_7_profile.jpg", label: "Profile" },
+            ].map((s, i) => (
+              <div key={i} className="relative group">
+                <div
+                  className="rounded-2xl overflow-hidden relative transition-transform duration-300 group-hover:scale-105"
+                  style={{
+                    backgroundColor: SURFACE,
+                    border: `1px solid ${HAIRLINE}`,
+                    aspectRatio: "9 / 19",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <img
+                    src={s.src}
+                    alt={`Manifest OS — ${s.label}`}
+                    className="w-full h-full object-cover"
+                    style={{ display: "block" }}
+                  />
+                </div>
+                <div
+                  className="text-center text-[10px] font-bold tracking-wider uppercase mt-2"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════ FEATURES GRID ═══════════ */}
       <section id="features" className="py-20 px-4 sm:px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-7xl mx-auto">

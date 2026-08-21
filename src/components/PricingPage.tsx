@@ -457,35 +457,77 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
           </motion.div>
         </div>
 
-        {/* ============== MANIFEST OS APP SHOWCASE ============== */}
-        <div className="max-w-5xl mx-auto mb-16 px-2">
+        {/* ============== MANIFEST OS APP SCREENSHOTS (REAL) ============== */}
+        <div className="max-w-6xl mx-auto mb-16 px-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="relative rounded-3xl overflow-hidden"
-            style={{
-              backgroundColor: "rgba(10,10,10,0.5)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
+            className="mb-6 text-center"
           >
-            <img
-              src="/images/manifest_app_showcase.png"
-              alt="Manifest OS app — track goals, complete tasks, level up your life"
-              className="w-full h-auto"
-              style={{ display: "block" }}
-            />
             <div
-              className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-widest uppercase"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-[0.25em] uppercase mb-2"
               style={{
-                backgroundColor: "rgba(255,159,10,0.95)",
-                color: "#000",
+                backgroundColor: "rgba(255,159,10,0.10)",
+                border: "1px solid rgba(255,159,10,0.30)",
+                color: "#ff9f0a",
               }}
             >
-              Manifest OS
+              <Sparkles size={11} /> Inside the app
             </div>
+            <h2
+              className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+              style={{ color: "#ffffff", letterSpacing: "-0.02em" }}
+            >
+              Every feature,{" "}
+              <span style={{ color: "#ff9f0a" }}>mastered.</span>
+            </h2>
           </motion.div>
+
+          {/* Real screenshot gallery — 7 phone screens */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+            {[
+              { src: "/images/preview_1_affirmations.jpg", label: "Affirmations" },
+              { src: "/images/preview_6_goals.jpg", label: "Goals" },
+              { src: "/images/preview_3_solo_hub.jpg", label: "Solo Dominion" },
+              { src: "/images/preview_4_tasks.jpg", label: "Tasks" },
+              { src: "/images/preview_5_369_journal.jpg", label: "369 Journal" },
+              { src: "/images/preview_2_vision_board.jpg", label: "Vision Board" },
+              { src: "/images/preview_7_profile.jpg", label: "Profile" },
+            ].map((s, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.06 }}
+                className="relative group"
+              >
+                <div
+                  className="rounded-2xl overflow-hidden relative"
+                  style={{
+                    backgroundColor: "rgba(10,10,10,0.6)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    aspectRatio: "9 / 19",
+                  }}
+                >
+                  <img
+                    src={s.src}
+                    alt={`Manifest OS — ${s.label}`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    style={{ display: "block" }}
+                  />
+                </div>
+                <div
+                  className="text-center text-[10px] font-extrabold tracking-widest uppercase mt-2"
+                  style={{ color: "rgba(235,235,245,0.7)" }}
+                >
+                  {s.label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
         {/* ============== WIN YOUR MONEY BACK - DETAIL RULES ============== */}
