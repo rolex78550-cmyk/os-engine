@@ -30,7 +30,7 @@ const SoloDominion = lazy(() => import("./components/solo-dominion/SoloDominion"
 
 export default function App() {
   const logic = useAppLogic();
-  const { user, fbLoading, activeTab } = logic;
+  const { user, fbLoading, activeTab, profile, updateUserProfile } = logic;
   // Always call useRPG (hook order must be stable) — pass profile or undefined
   const profileForRPG = (logic.profile as any) || undefined;
   const { recordXPGain } = useRPG(
@@ -42,10 +42,10 @@ export default function App() {
   const [forceRender, setForceRender] = useState(false);
 
   // ============== AFFIRMATION → SOLO DOMINION TASK BRIDGE ==============
-  // When user flips 10 cards in AffirmationHub, award 50 XP
-  // and write to the same task-progress store that TaskListView reads.
+  // When user flips 10 cards in AffirmationHub, award 50 XP (writes
+  // totalXp + xp + level to Firestore + updates rank via recordXPGain).
   useEffect(() => {
-    const onFlip = () => {
+    const onFlip = async () => {
       try {
         const todayStr = new Date().toLocaleDateString("en-CA");
         const FLIP_KEY = `manifest_affirmation_flips_${todayStr}`;
@@ -59,12 +59,41 @@ export default function App() {
           // Award 50 XP per milestone (every 10 flips)
           const milestones = Math.floor(flips / 10);
           const toAward = (milestones - rewarded) * 50;
-          if (toAward > 0 && recordXPGain) {
-            recordXPGain(toAward, undefined, false);
+          if (toAward > 0) {
+            // 1) Update totalXp + xp + level in Firestore + local state
+            const currentTotalXp =
+              Number((profile as any)?.totalXp) || Number((profile as any)?.xp) || 0;
+            const currentXp =
+              Number((profile as any)?.xp) || currentTotalXp;
+            const newTotalXp = currentTotalXp + toAward;
+            const newXp = currentXp + toAward;
+            // 1 XP per level threshold (matches useRPG which uses 1000)
+            const newLevel = Math.floor(newTotalXp / 1000) + 1;
+            const oldLevel = Number((profile as any)?.level) || 1;
+            const leveledUp = newLevel > oldLevel;
+            if (updateUserProfile) {
+              try {
+                await updateUserProfile({
+                  totalXp: newTotalXp,
+                  xp: newXp,
+                  level: newLevel,
+                } as any);
+              } catch (e) {
+                console.warn("[affirmation bridge] updateUserProfile failed:", e);
+              }
+            }
+            // 2) Recompute RPG score / rank / coins via recordXPGain
+            if (recordXPGain) {
+              try {
+                await recordXPGain(toAward, newLevel, leveledUp);
+              } catch (e) {
+                console.warn("[affirmation bridge] recordXPGain failed:", e);
+              }
+            }
             window.localStorage.setItem(REWARD_KEY, String(milestones));
             window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
             window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
-            // Show toast via custom event
+            // Show toast
             window.dispatchEvent(
               new CustomEvent("manifest_toast", {
                 detail: {
@@ -81,7 +110,7 @@ export default function App() {
     };
     window.addEventListener("manifest_affirmation_flip", onFlip);
     return () => window.removeEventListener("manifest_affirmation_flip", onFlip);
-  }, [recordXPGain]);
+  }, [recordXPGain, profile, updateUserProfile]);
 
   useEffect(() => {
     if (!fbLoading) return;
