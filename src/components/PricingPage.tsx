@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Crown, Star, Zap, Check, Loader2, ArrowRight, ArrowLeft, LogOut,
   ShieldCheck, Lock, HelpCircle, ChevronDown, MessageSquare, Globe,
-  Shield, Trophy, Clock, Sparkles, CheckCircle2
+  Shield, Trophy, Clock, CheckCircle2
 } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
 import { db } from '../lib/firebase';
@@ -11,6 +11,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { initiateUnifiedSubscription, isCountryIndia } from '../lib/payments';
 import { getRemainingFounderSlots } from '../lib/subscription';
 import { PlanType } from '../types';
+import { ScreenshotCarousel } from './ScreenshotCarousel';
 
 interface PricingPageProps {
   onClose?: () => void;
@@ -457,78 +458,12 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
           </motion.div>
         </div>
 
-        {/* ============== MANIFEST OS APP SCREENSHOTS (REAL) ============== */}
-        <div className="max-w-6xl mx-auto mb-16 px-2">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 text-center"
-          >
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-[0.25em] uppercase mb-2"
-              style={{
-                backgroundColor: "rgba(255,159,10,0.10)",
-                border: "1px solid rgba(255,159,10,0.30)",
-                color: "#ff9f0a",
-              }}
-            >
-              <Sparkles size={11} /> Inside the app
-            </div>
-            <h2
-              className="text-2xl sm:text-3xl font-extrabold tracking-tight"
-              style={{ color: "#ffffff", letterSpacing: "-0.02em" }}
-            >
-              Every feature,{" "}
-              <span style={{ color: "#ff9f0a" }}>mastered.</span>
-            </h2>
-          </motion.div>
-
-          {/* Real screenshot gallery — 7 phone screens */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
-            {[
-              { src: "/images/preview_1_affirmations.jpg", label: "Affirmations" },
-              { src: "/images/preview_6_goals.jpg", label: "Goals" },
-              { src: "/images/preview_3_solo_hub.jpg", label: "Solo Dominion" },
-              { src: "/images/preview_4_tasks.jpg", label: "Tasks" },
-              { src: "/images/preview_5_369_journal.jpg", label: "369 Journal" },
-              { src: "/images/preview_2_vision_board.jpg", label: "Vision Board" },
-              { src: "/images/preview_7_profile.jpg", label: "Profile" },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                className="relative group"
-              >
-                <div
-                  className="rounded-2xl overflow-hidden relative"
-                  style={{
-                    backgroundColor: "rgba(10,10,10,0.6)",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    aspectRatio: "9 / 19",
-                  }}
-                >
-                  <img
-                    src={s.src}
-                    alt={`Manifest OS — ${s.label}`}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    style={{ display: "block" }}
-                  />
-                </div>
-                <div
-                  className="text-center text-[10px] font-extrabold tracking-widest uppercase mt-2"
-                  style={{ color: "rgba(235,235,245,0.7)" }}
-                >
-                  {s.label}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        {/* ============== MANIFEST OS APP SCREENSHOTS CAROUSEL ============== */}
+        <ScreenshotCarousel
+          title="Every feature, mastered."
+          subtitle="Tap, swipe, and explore — see exactly what your daily arsenal looks like."
+          className="!py-16"
+        />
 
         {/* ============== WIN YOUR MONEY BACK - DETAIL RULES ============== */}
         <div id="money-back-rules" className="max-w-3xl mx-auto mb-16">
