@@ -7,7 +7,7 @@ import { MainLayout } from "./components/MainLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { TabLoader } from "./components/LazyLoader";
 import LandingPage from "./components/LandingPage";
-import { PricingPage } from "./components/PricingPage";
+import { LifeResetPricing } from "./components/LifeResetPricing";
 import { ManifestOnboarding } from "./components/ManifestOnboarding";
 
 // Views
@@ -274,12 +274,13 @@ export default function App() {
     );
   }
 
-  // 3. Logged In & Onboarded, but NOT Paid -> Mandatory Payment Screen (PricingPage)
+  // 3. Logged In & Onboarded, but NOT Paid -> Mandatory Payment Screen
   if (!logic.hasPaidAccess && !isAdmin) {
     return (
       <ErrorBoundary>
-        <PricingPage
+        <LifeResetPricing
           paywallMessage={logic.paywallMessage || "Your personalized AI Life System is ready! Choose a plan to unlock full access."}
+          profile={profile}
         />
       </ErrorBoundary>
     );
@@ -362,9 +363,10 @@ export default function App() {
         )}
 
         {logic.showPricingPage && (
-          <PricingPage
+          <LifeResetPricing
             onClose={() => logic.setShowPricingPage(false)}
             paywallMessage={logic.paywallMessage || undefined}
+            profile={profile}
           />
         )}
       </AnimatePresence>
