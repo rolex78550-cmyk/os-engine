@@ -20,6 +20,7 @@ import { ProfileView } from "./components/views/ProfileView";
 // Hooks
 import { useAppLogic } from "./hooks/useAppLogic";
 import { useRPG } from "./hooks/useRPG";
+import { useFirebase } from "./components/FirebaseProvider";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
 const VisionBoard = lazy(() => import("./components/VisionBoard"));
@@ -30,13 +31,13 @@ const SoloDominion = lazy(() => import("./components/solo-dominion/SoloDominion"
 
 export default function App() {
   const logic = useAppLogic();
-  const { user, fbLoading, activeTab, profile, updateUserProfile } = logic;
-  // Always call useRPG (hook order must be stable) — pass profile or undefined
-  const profileForRPG = (logic.profile as any) || undefined;
-  const { recordXPGain } = useRPG(
-    profileForRPG || ({ name: "", alignment: 0, streak: 0, belief: "" } as any),
-    {}
-  );
+  const { user, fbLoading, activeTab, updateUserProfile } = logic;
+  // Use the SAME profile instance from FirebaseProvider (single source of truth)
+  const { profile: fbProfile } = useFirebase();
+  const profile = fbProfile || (logic as any).profile;
+  // Always call useRPG (hook order must be stable) — pass profile or fallback
+  const profileForRPG = profile || ({ name: "", alignment: 0, streak: 0, belief: "" } as any);
+  const { recordXPGain } = useRPG(profileForRPG, {});
 
   // FABLE 5 MODEL: Hard safety net
   const [forceRender, setForceRender] = useState(false);
@@ -54,7 +55,25 @@ export default function App() {
         const raw = window.localStorage.getItem(FLIP_KEY);
         const flips = raw ? Number(raw) : 0;
         const rewardedRaw = window.localStorage.getItem(REWARD_KEY);
-        const rewarded = rewardedRaw ? Number(rewardedRaw) : 0;
+        let rewarded = rewardedRaw ? Number(rewardedRaw) : 0;
+        // SELF-HEAL: if we previously marked "rewarded" but totalXp is still
+        // missing/zero, the old code failed to persist — reset and re-award.
+        const currentTotalXpForCheck =
+          Number(profile?.totalXp) || Number(profile?.xp) || 0;
+        const expectedXpFromRewards = rewarded * 50;
+        if (
+          rewarded > 0 &&
+          currentTotalXpForCheck < expectedXpFromRewards
+        ) {
+          console.warn(
+            `[affirmation bridge] self-heal: rewarded=${rewarded} but totalXp=${currentTotalXpForCheck} < expected ${expectedXpFromRewards}, resetting`
+          );
+          rewarded = 0;
+          window.localStorage.setItem(REWARD_KEY, "0");
+        }
+        console.log(
+          `[affirmation bridge] flips=${flips} rewarded=${rewarded} profile.totalXp=${profile?.totalXp}`
+        );
         if (flips >= 10 && rewarded < Math.floor(flips / 10)) {
           // Award 50 XP per milestone (every 10 flips)
           const milestones = Math.floor(flips / 10);
@@ -62,15 +81,17 @@ export default function App() {
           if (toAward > 0) {
             // 1) Update totalXp + xp + level in Firestore + local state
             const currentTotalXp =
-              Number((profile as any)?.totalXp) || Number((profile as any)?.xp) || 0;
-            const currentXp =
-              Number((profile as any)?.xp) || currentTotalXp;
+              Number(profile?.totalXp) || Number(profile?.xp) || 0;
+            const currentXp = Number(profile?.xp) || currentTotalXp;
             const newTotalXp = currentTotalXp + toAward;
             const newXp = currentXp + toAward;
             // 1 XP per level threshold (matches useRPG which uses 1000)
             const newLevel = Math.floor(newTotalXp / 1000) + 1;
-            const oldLevel = Number((profile as any)?.level) || 1;
+            const oldLevel = Number(profile?.level) || 1;
             const leveledUp = newLevel > oldLevel;
+            console.log(
+              `[affirmation bridge] awarding ${toAward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+            );
             if (updateUserProfile) {
               try {
                 await updateUserProfile({
@@ -78,17 +99,23 @@ export default function App() {
                   xp: newXp,
                   level: newLevel,
                 } as any);
+                console.log("[affirmation bridge] updateUserProfile OK");
               } catch (e) {
                 console.warn("[affirmation bridge] updateUserProfile failed:", e);
               }
+            } else {
+              console.warn("[affirmation bridge] updateUserProfile is undefined!");
             }
             // 2) Recompute RPG score / rank / coins via recordXPGain
             if (recordXPGain) {
               try {
                 await recordXPGain(toAward, newLevel, leveledUp);
+                console.log("[affirmation bridge] recordXPGain OK");
               } catch (e) {
                 console.warn("[affirmation bridge] recordXPGain failed:", e);
               }
+            } else {
+              console.warn("[affirmation bridge] recordXPGain is undefined!");
             }
             window.localStorage.setItem(REWARD_KEY, String(milestones));
             window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
