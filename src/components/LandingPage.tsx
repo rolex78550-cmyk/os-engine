@@ -457,17 +457,18 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             </div>
           </div>
 
-          {/* Hero Headline — Large bold, matches reference */}
+          {/* Hero Headline — Large bold, Identity Shift theme */}
           <h1
             className="text-center font-bold tracking-tight leading-[1.05] mb-5"
-            style={{ color: TEXT_PRIMARY, fontSize: "clamp(2.25rem, 6vw, 3.5rem)", letterSpacing: "-0.03em" }}
+            style={{ color: TEXT_PRIMARY, fontSize: "clamp(2rem, 5.5vw, 3.25rem)", letterSpacing: "-0.03em" }}
           >
-            Turn your life into a RPG<br />game
+            Shift your <span style={{ color: ORANGE }}>identity</span> &amp; persona.<br />
+            Become the person who already lives your desire.
           </h1>
 
           {/* Subheadline — bold key words */}
           <p className="text-center text-base sm:text-lg max-w-2xl mx-auto mb-10" style={{ color: TEXT_SECONDARY }}>
-            Climb from <span className="font-bold" style={{ color: TEXT_PRIMARY }}>Bronze V</span> to <span className="font-bold" style={{ color: TEXT_PRIMARY }}>Legend I</span> by completing tasks.
+            Drop the old belief. Step into the <span className="font-bold" style={{ color: TEXT_PRIMARY }}>new story</span>. Manifest OS turns your inner shift into real-world <span className="font-bold" style={{ color: TEXT_PRIMARY }}>power</span>.
           </p>
 
           {/* 🎨 LARGE JINWOO CHARACTER (centerpiece, full body) — sd_jin_hero.jpg */}
@@ -779,7 +780,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   "XP, streaks, and badges keep you locked in automatically",
                   "Streak freezes protect your momentum when life happens",
                   "All your goals, journal, vision board in one unified OS",
-                  "Solo Dominion RPG turns your life into an addictive game",
+                  "Solo Dominion RPG turns your identity shift into addictive daily action",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "#34c759" }} />
