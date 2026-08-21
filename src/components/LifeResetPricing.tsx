@@ -26,28 +26,32 @@ interface LifeResetPricingProps {
   profile?: any;
 }
 
-// =================== USD PRICES (global) ===================
-const PLAN_PRICING = {
-  monthly: {
-    id: "monthly" as PlanType,
-    name: "Monthly",
-    priceUSD: 4.99,
-    priceINR: 415,
-    originalINR: 1400,
-    savingsLabel: "",
-    cta: "Start Monthly",
-  },
-  yearly: {
-    id: "yearly" as PlanType,
-    name: "Yearly",
-    priceUSD: 39.99,
-    priceINR: 3320, // 39.99 × 83
-    monthlyINR: 441.66,
-    originalMonthlyINR: 1400,
-    savingsLabel: "SAVE 70%",
-    cta: "Start Yearly",
-  },
-};
+  // =================== USD PRICES (global) ===================
+  // Monthly: $4.99/mo
+  // Yearly:  $39.99/year (saves 33% vs $4.99 × 12 = $59.88)
+  const PLAN_PRICING = {
+    monthly: {
+      id: "monthly" as PlanType,
+      name: "Monthly",
+      priceUSD: 4.99,
+      priceINR: 415,
+      originalINR: 415,
+      savingsLabel: "",
+      cta: "Start Monthly",
+    },
+    yearly: {
+      id: "yearly" as PlanType,
+      name: "Yearly",
+      priceUSD: 39.99,           // flat /year
+      monthlyUSD: 3.33,          // 39.99 / 12
+      originalMonthlyUSD: 4.99,  // crossed out monthly equiv
+      priceINR: 3320,            // 39.99 × 83
+      monthlyINR: 276.66,        // 3320 / 12
+      originalMonthlyINR: 415,
+      savingsLabel: "SAVE 33%",
+      cta: "Start Yearly",
+    },
+  };
 
 export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
   onClose,
@@ -182,16 +186,20 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
           Restore
         </button>
 
-        {/* Center sunburst / brand mark */}
+        {/* Center brand mark — warrior sunset image */}
         <div
           className="absolute left-1/2 -translate-x-1/2 flex items-center"
           style={{ color: "#fff" }}
         >
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <path d="M18 6 L18 4 M18 32 L18 30 M6 18 L4 18 M32 18 L30 18 M9.5 9.5 L8 8 M27 27 L28.5 28.5 M9.5 26.5 L8 28 M27 9 L28.5 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M12 14 Q12 12 14 12 L22 12 Q24 12 24 14 L24 20 Q24 22 22 22 L14 22 Q12 22 12 20 Z" stroke="currentColor" strokeWidth="1.6" fill="none" />
-            <path d="M14 16 L22 16 M14 18 L20 18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
+          <img
+            src="/images/manifest_logo_warrior.jpg"
+            alt="Manifest OS"
+            className="h-9 w-9 rounded-full object-cover"
+            style={{
+              boxShadow: "0 0 16px rgba(255,159,10,0.4)",
+              border: "1px solid rgba(255,255,255,0.25)",
+            }}
+          />
         </div>
 
         {onClose && (
@@ -342,7 +350,7 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
             </div>
           </button>
 
-          {/* YEARLY CARD (selected - white, SAVE 70% badge) */}
+          {/* YEARLY CARD (selected - white, SAVE 33% badge) */}
           <button
             type="button"
             onClick={() => setSelectedPlan("yearly")}
@@ -361,7 +369,7 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
                 boxShadow: "0 4px 12px rgba(124,58,237,0.4)",
               }}
             >
-              SAVE 70%
+              SAVE 33%
             </div>
             {selectedPlan === "yearly" && (
               <div
@@ -377,12 +385,19 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
             >
               Yearly
             </div>
-            {isIndia && (
+            {isIndia ? (
               <div
                 className="text-[12px] line-through tabular-nums"
                 style={{ color: "rgba(0,0,0,0.40)" }}
               >
                 ₹{PLAN_PRICING.yearly.originalMonthlyINR}/mo
+              </div>
+            ) : (
+              <div
+                className="text-[12px] line-through tabular-nums"
+                style={{ color: "rgba(0,0,0,0.40)" }}
+              >
+                ${PLAN_PRICING.yearly.originalMonthlyUSD}/mo
               </div>
             )}
             <div
@@ -393,13 +408,15 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
                 letterSpacing: "-0.02em",
               }}
             >
-              {isIndia ? `₹${PLAN_PRICING.yearly.monthlyINR}` : `$${(PLAN_PRICING.yearly.priceUSD / 12).toFixed(2)}`}
+              {isIndia
+                ? `₹${PLAN_PRICING.yearly.monthlyINR}`
+                : `$${PLAN_PRICING.yearly.priceUSD}`}
             </div>
             <div
               className="text-[10px] font-semibold mt-0.5"
               style={{ color: "rgba(0,0,0,0.55)" }}
             >
-              /mo
+              {isIndia ? "/mo · billed annually" : "/year · billed annually"}
             </div>
           </button>
         </div>

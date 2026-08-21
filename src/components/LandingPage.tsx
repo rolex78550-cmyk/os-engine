@@ -840,77 +840,173 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         </div>
       </section>
 
-      {/* ═══════════ PRICING ═══════════ */}
+      {/* ═══════════ PRICING (Life Reset style) ═══════════ */}
       <section id="pricing" className="py-20 px-4 sm:px-6 relative overflow-hidden" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-        <div className="max-w-4xl mx-auto relative z-10 text-center">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase mb-6"
-            style={{ backgroundColor: "rgba(255,255,255,0.06)", color: TEXT_PRIMARY, border: `1px solid ${HAIRLINE}` }}
-          >
-            <Crown size={13} />
-            Membership
+        {/* Purple radial glow backdrop */}
+        <div
+          className="absolute inset-x-0 top-0 h-[600px] pointer-events-none -z-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at center top, rgba(124,58,237,0.20) 0%, rgba(124,58,237,0) 70%)",
+          }}
+        />
+        <div className="max-w-2xl mx-auto relative z-10">
+          {/* Headline */}
+          <div className="text-center mb-8">
+            <h2
+              className="font-extrabold tracking-tight leading-[1.1]"
+              style={{
+                fontSize: "clamp(1.6rem, 5vw, 2.2rem)",
+                color: TEXT_PRIMARY,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Invest in yourself and make an{" "}
+              <span style={{ color: "#a78bfa" }}>epic life comeback</span> in 66 days.
+            </h2>
+            <p
+              className="mt-4 text-[14px] sm:text-[15px] leading-relaxed max-w-md mx-auto"
+              style={{ color: TEXT_SECONDARY }}
+            >
+              Get full access to Manifest OS — unlimited goal generation, AI-powered task planning, daily rituals and improvement tracker + much more!
+            </p>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4 leading-tight" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
-            You're not buying an app.<br />
-            <span style={{ color: ORANGE }}>You're unlocking your next identity.</span>
-          </h2>
-
-          <p className="max-w-2xl mx-auto mb-12 text-base sm:text-lg" style={{ color: TEXT_SECONDARY }}>
-            Every day without a system keeps your future self locked. Start your evolution today.
-          </p>
-
+          {/* Win Your Money Back card */}
           <div
-            className="max-w-md mx-auto rounded-3xl p-8 sm:p-10 text-left"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
+            className="rounded-3xl p-5 sm:p-6 mb-6"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.85)",
+              border: `1px solid ${HAIRLINE}`,
+              backdropFilter: "blur(20px)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            }}
           >
-            <div className="text-center pb-6" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: TEXT_PRIMARY }}>Hunter Membership</h3>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-5xl sm:text-6xl font-bold tracking-tight" style={{ color: TEXT_PRIMARY }}>₹99</span>
-                <span className="text-sm font-medium" style={{ color: TEXT_SECONDARY }}>/month</span>
+            <div className="flex items-start gap-3">
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${HAIRLINE}`,
+                }}
+              >
+                <Shield size={18} style={{ color: "#fff" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-extrabold text-[17px] sm:text-lg tracking-tight leading-tight" style={{ color: TEXT_PRIMARY }}>
+                  Finish your reset — or it's free.
+                </h3>
+                <p className="text-[12.5px] sm:text-[13px] mt-1.5 leading-relaxed" style={{ color: TEXT_SECONDARY }}>
+                  Complete 70% of your 66-day plan → 100% of your money back. You keep the subscription.
+                </p>
+                <div className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold" style={{ color: ORANGE }}>
+                  How it works
+                  <span>›</span>
+                </div>
               </div>
             </div>
-
-            <div className="py-6 space-y-3">
-              <div className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXT_TERTIARY }}>Includes:</div>
-              {[
-                "AI-Powered Transformation Blueprint",
-                "Solo Leveling RPG Progression",
-                "Daily Quests & XP System",
-                "Manifestation Journal",
-                "Identity Evolution Tracking",
-                "Progress Analytics",
-                "Future Updates",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3 text-sm" style={{ color: TEXT_PRIMARY }}>
-                  <CheckCircle2 size={16} className="shrink-0" style={{ color: "#34c759" }} />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-2">
-              <button
-                onClick={() => setShowAuth(true)}
-                className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
-                style={{ backgroundColor: ORANGE, color: "#000" }}
-              >
-                <span>Begin your ascension</span>
-                <Zap size={16} style={{ color: "#000" }} />
-              </button>
-            </div>
-
-            <div className="mt-5 pt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] font-medium" style={{ borderTop: `1px solid ${HAIRLINE}`, color: TEXT_SECONDARY }}>
-              <span className="flex items-center gap-1.5"><CheckCircle2 size={12} style={{ color: "#34c759" }} /> Cancel anytime</span>
-              <span className="flex items-center gap-1.5"><Zap size={12} style={{ color: ORANGE }} /> Instant access</span>
-              <span className="flex items-center gap-1.5"><Shield size={12} style={{ color: ORANGE }} /> 30-day refund</span>
-            </div>
           </div>
 
-          <p className="mt-8 text-sm font-medium" style={{ color: TEXT_SECONDARY }}>
-            The cost of staying the same is greater than ₹99.
-          </p>
+          {/* 2 pricing cards side-by-side */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Monthly (purple, unselected) */}
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              className="relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
+              style={{
+                backgroundColor: "rgba(124,58,237,0.18)",
+                border: "1px solid rgba(124,58,237,0.40)",
+                minHeight: 150,
+              }}
+            >
+              <div className="text-[12px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#a78bfa" }}>
+                Monthly
+              </div>
+              <div
+                className="font-extrabold tracking-tight tabular-nums"
+                style={{
+                  color: "#fff",
+                  fontSize: "clamp(20px, 5vw, 26px)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                $4.99
+              </div>
+              <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                /mo
+              </div>
+            </button>
+
+            {/* Yearly (WHITE, selected, SAVE 33%) */}
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              className="relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
+              style={{
+                backgroundColor: "#fff",
+                border: "2px solid #fff",
+                minHeight: 150,
+              }}
+            >
+              <div
+                className="absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-widest uppercase"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+                  color: "#fff",
+                  boxShadow: "0 4px 12px rgba(124,58,237,0.4)",
+                }}
+              >
+                SAVE 33%
+              </div>
+              <div
+                className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#7c3aed" }}
+              >
+                <span style={{ color: "#fff", fontSize: 10, fontWeight: 800 }}>✓</span>
+              </div>
+              <div className="text-[12px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#7c3aed" }}>
+                Yearly
+              </div>
+              <div className="text-[12px] line-through tabular-nums" style={{ color: "rgba(0,0,0,0.40)" }}>
+                $4.99/mo
+              </div>
+              <div
+                className="font-extrabold tracking-tight tabular-nums"
+                style={{
+                  color: "#0a0a0a",
+                  fontSize: "clamp(20px, 5vw, 26px)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                $39.99
+              </div>
+              <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
+                /year · billed annually
+              </div>
+            </button>
+          </div>
+
+          {/* Footer note */}
+          <div className="flex items-center justify-center gap-1.5 text-center mb-6 px-4">
+            <Shield size={11} style={{ color: "rgba(255,255,255,0.55)" }} />
+            <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Win-your-money-back challenge applies to this purchase.
+            </span>
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={() => setShowAuth(true)}
+            className="w-full py-4 rounded-full font-extrabold text-[14px] tracking-wider uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition"
+            style={{
+              background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+              color: "#fff",
+              boxShadow: "0 8px 32px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset",
+            }}
+          >
+            Kickstart My Journey
+          </button>
         </div>
       </section>
 
