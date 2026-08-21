@@ -237,6 +237,16 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
     } catch {}
   }, [todayFlips, FLIP_KEY]);
 
+  // Listen for midnight reset
+  useEffect(() => {
+    const onReset = () => {
+      setTodayFlips(0);
+      setSeenCount(0);
+    };
+    window.addEventListener("manifest_tasks_reset", onReset as EventListener);
+    return () => window.removeEventListener("manifest_tasks_reset", onReset as EventListener);
+  }, []);
+
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(null), 2500);

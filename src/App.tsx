@@ -44,9 +44,52 @@ export default function App() {
   // FABLE 5 MODEL: Hard safety net
   const [forceRender, setForceRender] = useState(false);
 
+  // ============== MIDNIGHT TASK RESET ==============
+  // At midnight (date rollover), clear today's task progress so user
+  // starts fresh tomorrow. Also clear per-day FLIP / REWARD keys.
+  useEffect(() => {
+    const LAST_DATE_KEY = "manifest_last_active_date";
+    const checkMidnight = () => {
+      try {
+        const today = new Date().toLocaleDateString("en-CA");
+        const last = window.localStorage.getItem(LAST_DATE_KEY);
+        if (last && last !== today) {
+          // Date rolled over — clear all per-day progress
+          console.log(`[midnight reset] date changed ${last} -> ${today}, clearing tasks`);
+          // Clear task progress
+          window.localStorage.setItem(
+            "manifest_task_progress_v1",
+            JSON.stringify({})
+          );
+          // Clear flip counts and reward flags for old dates
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && (
+              k.startsWith("manifest_affirmation_flips_") ||
+              k.startsWith("manifest_affirmation_rewarded_")
+            )) {
+              localStorage.removeItem(k);
+            }
+          }
+          // Notify
+          window.dispatchEvent(new CustomEvent("manifest_tasks_reset", {
+            detail: { date: today },
+          }));
+        }
+        window.localStorage.setItem(LAST_DATE_KEY, today);
+      } catch (e) {
+        console.warn("[midnight reset] error:", e);
+      }
+    };
+    // Check immediately + every 60s
+    checkMidnight();
+    const interval = setInterval(checkMidnight, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ============== AFFIRMATION → SOLO DOMINION TASK BRIDGE ==============
-  // When user flips 10 cards in AffirmationHub, award 50 XP (writes
-  // totalXp + xp + level to Firestore + updates rank via recordXPGain).
+  // When user flips 10 cards in AffirmationHub, award EXACTLY 50 XP once
+  // per day. No more milestones — flat 50 XP per daily completion.
   useEffect(() => {
     const onFlip = async () => {
       try {
@@ -73,115 +116,80 @@ export default function App() {
           rewarded = 0;
           window.localStorage.setItem(REWARD_KEY, "0");
         }
-        console.log(
-          `[affirmation bridge] flips=${flips} rewarded=${rewarded} profile.totalXp=${profile?.totalXp}`
-        );
-        if (flips >= 10 && rewarded < Math.floor(flips / 10)) {
-          // Award 50 XP per milestone (every 10 flips)
-          const milestones = Math.floor(flips / 10);
-          const toAward = (milestones - rewarded) * 50;
-          if (toAward > 0) {
-            // 1) Update totalXp + xp + level in Firestore + local state
-            const currentTotalXp =
-              Number(profile?.totalXp) || Number(profile?.xp) || 0;
-            const currentXp = Number(profile?.xp) || currentTotalXp;
-            const newTotalXp = currentTotalXp + toAward;
-            const newXp = currentXp + toAward;
-            // 1 XP per level threshold (matches useRPG which uses 1000)
-            const newLevel = Math.floor(newTotalXp / 1000) + 1;
-            const oldLevel = Number(profile?.level) || 1;
-            const leveledUp = newLevel > oldLevel;
-            console.log(
-              `[affirmation bridge] awarding ${toAward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
-            );
-            if (updateUserProfile) {
-              try {
-                await updateUserProfile({
-                  totalXp: newTotalXp,
-                  xp: newXp,
-                  level: newLevel,
-                } as any);
-                console.log("[affirmation bridge] updateUserProfile OK");
-              } catch (e) {
-                console.warn("[affirmation bridge] updateUserProfile failed:", e);
-              }
-            } else {
-              console.warn("[affirmation bridge] updateUserProfile is undefined!");
+        // ============== FLAT 50 XP CAP (once per day) ==============
+        if (flips >= 10 && rewarded < 1) {
+          const toAward = 50; // flat 50 XP, no more, no less
+          // 1) Update totalXp + xp + level in Firestore + local state
+          const currentTotalXp =
+            Number(profile?.totalXp) || Number(profile?.xp) || 0;
+          const currentXp = Number(profile?.xp) || currentTotalXp;
+          const newTotalXp = currentTotalXp + toAward;
+          const newXp = currentXp + toAward;
+          const newLevel = Math.floor(newTotalXp / 1000) + 1;
+          const oldLevel = Number(profile?.level) || 1;
+          const leveledUp = newLevel > oldLevel;
+          console.log(
+            `[affirmation bridge] awarding ${toAward} XP (daily cap): totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+          );
+          if (updateUserProfile) {
+            try {
+              await updateUserProfile({
+                totalXp: newTotalXp,
+                xp: newXp,
+                level: newLevel,
+              } as any);
+              console.log("[affirmation bridge] updateUserProfile OK");
+            } catch (e) {
+              console.warn("[affirmation bridge] updateUserProfile failed:", e);
             }
-            // 1b) SAFETY NET: direct Firestore write via setDoc(merge:true).
-            // This is the same write useAppLogic.updateUserProfile does, but
-            // called from here as a backup. It also uses `increment` for
-            // atomicity so concurrent writes don't clobber each other.
-            if (user?.uid) {
-              try {
-                await setDoc(
-                  doc(db, "users", user.uid),
-                  {
-                    totalXp: increment(toAward),
-                    xp: increment(toAward),
-                    level: newLevel,
-                    lastAffirmationAward: serverTimestamp(),
-                    // Force a `updatedAt` change so onSnapshot always fires
-                    updatedAt: Date.now(),
-                  },
-                  { merge: true }
-                );
-                console.log("[affirmation bridge] direct Firestore write OK");
-              } catch (e) {
-                console.warn("[affirmation bridge] direct Firestore write failed:", e);
-              }
-            } else {
-              console.warn("[affirmation bridge] no user.uid — direct write skipped");
-            }
-            // 1c) INSTANT UI UPDATE: directly update the FirebaseProvider
-            // profile state so the UI reflects the new XP immediately,
-            // without waiting for the Firestore onSnapshot round-trip.
-            if (setFbProfile && fbProfile) {
-              try {
-                setFbProfile({
-                  ...fbProfile,
-                  totalXp: newTotalXp,
-                  xp: newXp,
-                  level: newLevel,
-                });
-                console.log("[affirmation bridge] setFbProfile OK");
-              } catch (e) {
-                console.warn("[affirmation bridge] setFbProfile failed:", e);
-              }
-            }
-            // 1d) Dispatch custom event for any other listeners
-            window.dispatchEvent(new CustomEvent("manifest_profile_xp_updated", {
-              detail: { newTotalXp, newXp, newLevel, toAward },
-            }));
-            // 1c) FORCE PROFILE REFRESH: dispatch a custom event so any
-            // component listening can re-read the profile from Firestore.
-            window.dispatchEvent(new CustomEvent("manifest_profile_xp_updated", {
-              detail: { newTotalXp, newXp, newLevel, toAward },
-            }));
-            // 2) Recompute RPG score / rank / coins via recordXPGain
-            if (recordXPGain) {
-              try {
-                await recordXPGain(toAward, newLevel, leveledUp);
-                console.log("[affirmation bridge] recordXPGain OK");
-              } catch (e) {
-                console.warn("[affirmation bridge] recordXPGain failed:", e);
-              }
-            } else {
-              console.warn("[affirmation bridge] recordXPGain is undefined!");
-            }
-            window.localStorage.setItem(REWARD_KEY, String(milestones));
-            window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
-            window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
-            // Show toast
-            window.dispatchEvent(
-              new CustomEvent("manifest_toast", {
-                detail: {
-                  msg: `+${toAward} XP · Affirmation Reading task complete`,
-                  type: "ok",
-                },
-              })
-            );
           }
+          // 1b) SAFETY NET: direct Firestore write via setDoc(merge:true).
+          if (user?.uid) {
+            try {
+              await setDoc(
+                doc(db, "users", user.uid),
+                {
+                  totalXp: increment(toAward),
+                  xp: increment(toAward),
+                  level: newLevel,
+                  lastAffirmationAward: serverTimestamp(),
+                  updatedAt: Date.now(),
+                },
+                { merge: true }
+              );
+              console.log("[affirmation bridge] direct Firestore write OK");
+            } catch (e) {
+              console.warn("[affirmation bridge] direct Firestore write failed:", e);
+            }
+          }
+          // 1c) INSTANT UI UPDATE: directly update the FirebaseProvider
+          // profile state so the UI reflects the new XP immediately.
+          if (setFbProfile && fbProfile) {
+            try {
+              setFbProfile({
+                ...fbProfile,
+                totalXp: newTotalXp,
+                xp: newXp,
+                level: newLevel,
+              });
+              console.log("[affirmation bridge] setFbProfile OK");
+            } catch (e) {
+              console.warn("[affirmation bridge] setFbProfile failed:", e);
+            }
+          }
+          // Mark as rewarded for today (cap = 1, max one 50 XP per day)
+          window.localStorage.setItem(REWARD_KEY, "1");
+          window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+          window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
+          // Show toast
+          window.dispatchEvent(
+            new CustomEvent("manifest_toast", {
+              detail: {
+                msg: `+50 XP · Affirmation Reading task complete`,
+                type: "ok",
+              },
+            })
+          );
         }
       } catch (e) {
         console.warn("[affirmation bridge] error:", e);
@@ -189,7 +197,7 @@ export default function App() {
     };
     window.addEventListener("manifest_affirmation_flip", onFlip);
     return () => window.removeEventListener("manifest_affirmation_flip", onFlip);
-  }, [recordXPGain, profile, updateUserProfile]);
+  }, [recordXPGain, profile, updateUserProfile, setFbProfile, fbProfile, user]);
 
   useEffect(() => {
     if (!fbLoading) return;
