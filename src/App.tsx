@@ -21,6 +21,8 @@ import { ProfileView } from "./components/views/ProfileView";
 import { useAppLogic } from "./hooks/useAppLogic";
 import { useRPG } from "./hooks/useRPG";
 import { useFirebase } from "./components/FirebaseProvider";
+import { db } from "./lib/firebase";
+import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
 const VisionBoard = lazy(() => import("./components/VisionBoard"));
@@ -105,6 +107,29 @@ export default function App() {
               }
             } else {
               console.warn("[affirmation bridge] updateUserProfile is undefined!");
+            }
+            // 1b) SAFETY NET: direct Firestore write via setDoc(merge:true).
+            // This is the same write useAppLogic.updateUserProfile does, but
+            // called from here as a backup. It also uses `increment` for
+            // atomicity so concurrent writes don't clobber each other.
+            if (user?.uid) {
+              try {
+                await setDoc(
+                  doc(db, "users", user.uid),
+                  {
+                    totalXp: increment(toAward),
+                    xp: increment(toAward),
+                    level: newLevel,
+                    lastAffirmationAward: serverTimestamp(),
+                  },
+                  { merge: true }
+                );
+                console.log("[affirmation bridge] direct Firestore write OK");
+              } catch (e) {
+                console.warn("[affirmation bridge] direct Firestore write failed:", e);
+              }
+            } else {
+              console.warn("[affirmation bridge] no user.uid — direct write skipped");
             }
             // 2) Recompute RPG score / rank / coins via recordXPGain
             if (recordXPGain) {
