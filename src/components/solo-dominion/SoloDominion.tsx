@@ -10,7 +10,7 @@ import { useRPG } from "../../hooks/useRPG";
 import { subscribeGlobalLeaderboard } from "../../lib/rpgFirestore";
 import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, onSnapshot, increment, serverTimestamp } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { SoloDominionHub } from "./SoloDominionHub";
@@ -141,7 +141,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   const logic = props?.profile ? props : hookLogic;
   const { profile, currentRank = "Recruit", setActiveTab, updateUserProfile } = logic as any;
   const { recordXPGain } = useRPG(profile, {});
-  const { user } = useFirebase();
+  const { user, setProfile: setFbProfile } = useFirebase();
 
   // --- AUDIO & MUSIC ENGINE ---
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(true);
@@ -1426,6 +1426,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         currentUser={user}
         currentProfile={profile}
         updateUserProfile={updateUserProfile}
+        setFbProfile={setFbProfile}
         onTaskClick={(task) => {
           // SPECIAL: "Affirmation Reading" task → go straight to AffirmationHub
           // The AffirmationHub already has a bridge that awards 50 XP for
@@ -1483,22 +1484,85 @@ export const SoloDominion: React.FC<any> = (props) => {
             // 1. Update profile XP + level
             const currentTotalXp =
               Number(profile.totalXp) || Number(profile.xp) || 0;
+            const currentXp = Number(profile.xp) || currentTotalXp;
             const newTotalXp = currentTotalXp + xpReward;
+            const newXp = currentXp + xpReward;
             const newLevel = Math.floor(newTotalXp / 1000) + 1;
-            const leveledUp = newLevel > (Number(profile.level) || 1);
-            // 2. Persist to Firestore (via useRPG.recordXPGain)
+            const oldLevel = Number(profile.level) || 1;
+            const leveledUp = newLevel > oldLevel;
+            console.log(
+              `[task complete] awarding ${xpReward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+            );
+            // 2. Persist via useAppLogic.updateUserProfile (writes to Firestore + local state)
+            if (updateUserProfile) {
+              try {
+                await updateUserProfile({
+                  totalXp: newTotalXp,
+                  xp: newXp,
+                  level: newLevel,
+                } as any);
+                console.log("[task complete] updateUserProfile OK");
+              } catch (e) {
+                console.warn("[task complete] updateUserProfile failed:", e);
+              }
+            }
+            // 3. SAFETY NET: direct Firestore write with increment (atomic)
+            if (user?.uid) {
+              try {
+                await setDoc(
+                  doc(db, "users", user.uid),
+                  {
+                    totalXp: increment(xpReward),
+                    xp: increment(xpReward),
+                    level: newLevel,
+                    lastTaskAward: serverTimestamp(),
+                    updatedAt: Date.now(),
+                  },
+                  { merge: true }
+                );
+                console.log("[task complete] direct Firestore write OK");
+              } catch (e) {
+                console.warn("[task complete] direct Firestore write failed:", e);
+              }
+            }
+            // 3b) INSTANT UI UPDATE: directly update FirebaseProvider profile
+            if (setFbProfile && profile) {
+              try {
+                setFbProfile({
+                  ...profile,
+                  totalXp: newTotalXp,
+                  xp: newXp,
+                  level: newLevel,
+                });
+                console.log("[task complete] setFbProfile OK");
+              } catch (e) {
+                console.warn("[task complete] setFbProfile failed:", e);
+              }
+            }
+            // 4. Recompute RPG score / rank / coins via recordXPGain
             if (recordXPGain) {
               try {
                 await recordXPGain(xpReward, newLevel, leveledUp);
+                console.log("[task complete] recordXPGain OK");
               } catch (e) {
-                console.warn("[dominion] recordXPGain failed:", e);
+                console.warn("[task complete] recordXPGain failed:", e);
               }
             }
-            // 3. Trigger SFX
+            // 5. Trigger SFX
             try {
               window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
+              window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
             } catch {}
-            // 4. Return to tasks list
+            // 6. Show toast
+            window.dispatchEvent(
+              new CustomEvent("manifest_toast", {
+                detail: {
+                  msg: `+${xpReward} XP · ${currentTask?.title} complete`,
+                  type: "ok",
+                },
+              })
+            );
+            // 7. Return to tasks list
             setDominionView("tasks");
           } catch (e: any) {
             console.error("[dominion] task complete error:", e);

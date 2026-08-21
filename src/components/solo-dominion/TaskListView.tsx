@@ -187,6 +187,7 @@ interface TaskListViewProps {
   currentUser?: any;
   currentProfile?: any;
   updateUserProfile?: (u: any) => Promise<void>;
+  setFbProfile?: (p: any) => void;
 }
 
 export const TaskListView: React.FC<TaskListViewProps> = ({
@@ -195,6 +196,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   currentUser,
   currentProfile,
   updateUserProfile,
+  setFbProfile,
 }) => {
   const [hovered, setHovered] = useState<TaskId | null>(null);
 
@@ -238,15 +240,24 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       const newTotalXp = currentTotalXp + xpReward;
       const newXp = currentXp + xpReward;
       const newLevel = Math.floor(newTotalXp / 1000) + 1;
-      // Update via useAppLogic
+      const oldLevel = Number(profileObj.level) || 1;
+      console.log(
+        `[proof] awarding ${xpReward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+      );
+      // 1) Update via useAppLogic
       if (updateUserProfile) {
-        await updateUserProfile({
-          totalXp: newTotalXp,
-          xp: newXp,
-          level: newLevel,
-        } as any);
+        try {
+          await updateUserProfile({
+            totalXp: newTotalXp,
+            xp: newXp,
+            level: newLevel,
+          } as any);
+          console.log("[proof] updateUserProfile OK");
+        } catch (e) {
+          console.warn("[proof] updateUserProfile failed:", e);
+        }
       }
-      // Direct Firestore write as safety net
+      // 2) SAFETY NET: direct Firestore write with increment (atomic)
       if (uid) {
         try {
           await setDoc(
@@ -260,8 +271,24 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
             },
             { merge: true }
           );
+          console.log("[proof] direct Firestore write OK");
         } catch (e) {
           console.warn("[proof] direct write failed:", e);
+        }
+      }
+      // 3) INSTANT UI UPDATE: directly update the FirebaseProvider
+      // profile state so the UI reflects the new XP immediately.
+      if (setFbProfile && profileObj) {
+        try {
+          setFbProfile({
+            ...profileObj,
+            totalXp: newTotalXp,
+            xp: newXp,
+            level: newLevel,
+          });
+          console.log("[proof] setFbProfile OK");
+        } catch (e) {
+          console.warn("[proof] setFbProfile failed:", e);
         }
       }
       // Mark task progress as complete for today
