@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Crown, Star, Zap, Check, Loader2, ArrowRight, ArrowLeft, LogOut,
-  ShieldCheck, Lock, HelpCircle, ChevronDown, MessageSquare, Globe
+  ShieldCheck, Lock, HelpCircle, ChevronDown, MessageSquare, Globe,
+  Shield, Trophy, Clock, Sparkles, CheckCircle2
 } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
 import { db } from '../lib/firebase';
@@ -109,6 +110,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showMoneyBackModal, setShowMoneyBackModal] = useState(false);
 
   const [selectedCountry, setSelectedCountry] = useState<string>(profile?.country || 'India');
 
@@ -178,7 +180,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
       ],
       popular: true,
       cta: 'Start Subscription',
-      badge: 'Most Popular',
+      badge: 'SAVE 70%',
       gateway: isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)',
     },
     ...(remainingSlots > 0 ? [{
@@ -379,7 +381,7 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
         </div>
 
         {/* Loss Aversion Paywall Alert */}
-        <div className="max-w-2xl mx-auto mb-16 p-6 rounded-2xl bg-neutral-950 border border-neutral-800 text-center relative overflow-hidden">
+        <div className="max-w-2xl mx-auto mb-12 p-6 rounded-2xl bg-neutral-950 border border-neutral-800 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
           <div className="flex items-center justify-center gap-2.5 mb-2.5">
             <Zap className="text-emerald-400 w-5 h-5 fill-emerald-400/10" />
@@ -388,6 +390,155 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
           <p className="text-sm text-neutral-400 leading-relaxed max-w-lg mx-auto">
             {paywallMessage || "You've reached a natural expansion point. Unlock your full potential to scale your desires, rituals, and journaling without limits."}
           </p>
+        </div>
+
+        {/* ============== WIN YOUR MONEY BACK CHALLENGE ============== */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative rounded-3xl overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,159,10,0.10) 0%, rgba(0,0,0,0.6) 50%, rgba(255,159,10,0.05) 100%)",
+              border: "1px solid rgba(255,159,10,0.25)",
+            }}
+          >
+            {/* Top accent line */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent" />
+            <div className="p-6 sm:p-8">
+              <div className="flex items-start gap-4">
+                <div
+                  className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: "rgba(255,159,10,0.15)",
+                    border: "1px solid rgba(255,159,10,0.3)",
+                  }}
+                >
+                  <Shield size={22} style={{ color: "#ff9f0a" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="font-extrabold text-xl sm:text-2xl tracking-tight leading-tight"
+                    style={{ color: "#ffffff", letterSpacing: "-0.02em" }}
+                  >
+                    Finish your reset — or it's free.
+                  </h3>
+                  <p
+                    className="text-[13px] sm:text-sm mt-2 leading-relaxed"
+                    style={{ color: "rgba(235,235,245,0.78)" }}
+                  >
+                    Complete <span style={{ color: "#ff9f0a", fontWeight: 700 }}>70%</span> of your 66-day plan
+                    {" → "}
+                    <span style={{ color: "#ff9f0a", fontWeight: 700 }}>100%</span> of your money back. You keep the
+                    subscription.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById("money-back-rules");
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-bold transition active:scale-95"
+                  style={{ color: "#ff9f0a" }}
+                >
+                  How it works
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ============== WIN YOUR MONEY BACK - DETAIL RULES ============== */}
+        <div id="money-back-rules" className="max-w-3xl mx-auto mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="rounded-3xl p-6 sm:p-8"
+            style={{
+              backgroundColor: "rgba(10,10,10,0.6)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              backdropFilter: "blur(16px)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "rgba(255,159,10,0.12)",
+                  border: "1px solid rgba(255,159,10,0.3)",
+                }}
+              >
+                <Trophy size={18} style={{ color: "#ff9f0a" }} />
+              </div>
+              <h3
+                className="font-extrabold text-lg tracking-tight"
+                style={{ color: "#ffffff" }}
+              >
+                Win Your Money Back
+              </h3>
+            </div>
+            <p
+              className="text-[13px] sm:text-sm leading-relaxed mb-6"
+              style={{ color: "rgba(235,235,245,0.75)" }}
+            >
+              We want to motivate you to win. If you complete the 66-day challenge,
+              you can win back 100% of your payment while keeping your subscription!
+            </p>
+
+            <div
+              className="text-[10px] font-extrabold tracking-[0.25em] uppercase mb-3"
+              style={{ color: "rgba(255,159,10,0.85)" }}
+            >
+              To qualify:
+            </div>
+
+            <ul className="space-y-3">
+              {[
+                "Do at least 70% of all your tasks in your 66 days program",
+                "Need to show proof of tasks completion, send to support@manifestos.com before 2 Nov",
+                "Your Razorpay or Dodo Payments purchase from this screen qualifies automatically",
+              ].map((rule, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <div
+                    className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5"
+                    style={{ background: "rgba(255,159,10,0.15)" }}
+                  >
+                    <Check size={11} strokeWidth={3} style={{ color: "#ff9f0a" }} />
+                  </div>
+                  <span
+                    className="text-[13px] sm:text-sm leading-relaxed"
+                    style={{ color: "rgba(235,235,245,0.82)" }}
+                  >
+                    {rule}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setShowMoneyBackModal(false)}
+              className="mt-6 w-full py-3 rounded-xl font-extrabold text-[13px] tracking-widest uppercase active:scale-95 transition"
+              style={{
+                background: "#ff9f0a",
+                color: "#000",
+                boxShadow: "0 6px 20px rgba(255,159,10,0.25)",
+              }}
+            >
+              Got it
+            </button>
+          </motion.div>
         </div>
 
         {/* Pricing Cards Grid */}
@@ -421,7 +572,15 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
                   <div className="text-lg font-bold text-white mb-1">{plan.name}</div>
                   <div className="text-xs text-neutral-500 mb-6">{plan.duration}</div>
 
-                  <div className="flex items-baseline gap-1.5">
+                  <div className="flex items-baseline gap-2">
+                    {plan.popular && plan.id === 'yearly' && (
+                      <span
+                        className="text-lg font-bold line-through"
+                        style={{ color: "rgba(255,255,255,0.35)" }}
+                      >
+                        $59.88
+                      </span>
+                    )}
                     <span className="text-5xl md:text-6xl font-black tracking-tight text-white">
                       {plan.price}
                     </span>
@@ -478,6 +637,22 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Win-Your-Money-Back challenge note */}
+        <div className="max-w-2xl mx-auto mb-8 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl"
+          style={{
+            backgroundColor: "rgba(255,159,10,0.06)",
+            border: "1px solid rgba(255,159,10,0.18)",
+          }}
+        >
+          <Shield size={14} style={{ color: "#ff9f0a" }} />
+          <span
+            className="text-[12px] sm:text-[13px] font-semibold text-center"
+            style={{ color: "rgba(235,235,245,0.85)" }}
+          >
+            Win-your-money-back challenge applies to this purchase.
+          </span>
         </div>
 
         {/* Trust Badges - Inserted right after Pricing Cards */}
