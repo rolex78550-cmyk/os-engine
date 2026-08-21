@@ -273,6 +273,7 @@ export function useAppLogic() {
         const isSame = prev.streak === normalized.streak && 
                        prev.level === normalized.level && 
                        prev.xp === normalized.xp && 
+                       prev.totalXp === normalized.totalXp &&
                        prev.alignment === normalized.alignment && 
                        prev.lastStreakDate === normalized.lastStreakDate && 
                        prev.activeDays.length === normalized.activeDays.length;

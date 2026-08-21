@@ -35,7 +35,7 @@ export default function App() {
   const logic = useAppLogic();
   const { user, fbLoading, activeTab, updateUserProfile } = logic;
   // Use the SAME profile instance from FirebaseProvider (single source of truth)
-  const { profile: fbProfile } = useFirebase();
+  const { profile: fbProfile, setProfile: setFbProfile } = useFirebase();
   const profile = fbProfile || (logic as any).profile;
   // Always call useRPG (hook order must be stable) — pass profile or fallback
   const profileForRPG = profile || ({ name: "", alignment: 0, streak: 0, belief: "" } as any);
@@ -121,6 +121,8 @@ export default function App() {
                     xp: increment(toAward),
                     level: newLevel,
                     lastAffirmationAward: serverTimestamp(),
+                    // Force a `updatedAt` change so onSnapshot always fires
+                    updatedAt: Date.now(),
                   },
                   { merge: true }
                 );
@@ -131,6 +133,31 @@ export default function App() {
             } else {
               console.warn("[affirmation bridge] no user.uid — direct write skipped");
             }
+            // 1c) INSTANT UI UPDATE: directly update the FirebaseProvider
+            // profile state so the UI reflects the new XP immediately,
+            // without waiting for the Firestore onSnapshot round-trip.
+            if (setFbProfile && fbProfile) {
+              try {
+                setFbProfile({
+                  ...fbProfile,
+                  totalXp: newTotalXp,
+                  xp: newXp,
+                  level: newLevel,
+                });
+                console.log("[affirmation bridge] setFbProfile OK");
+              } catch (e) {
+                console.warn("[affirmation bridge] setFbProfile failed:", e);
+              }
+            }
+            // 1d) Dispatch custom event for any other listeners
+            window.dispatchEvent(new CustomEvent("manifest_profile_xp_updated", {
+              detail: { newTotalXp, newXp, newLevel, toAward },
+            }));
+            // 1c) FORCE PROFILE REFRESH: dispatch a custom event so any
+            // component listening can re-read the profile from Firestore.
+            window.dispatchEvent(new CustomEvent("manifest_profile_xp_updated", {
+              detail: { newTotalXp, newXp, newLevel, toAward },
+            }));
             // 2) Recompute RPG score / rank / coins via recordXPGain
             if (recordXPGain) {
               try {

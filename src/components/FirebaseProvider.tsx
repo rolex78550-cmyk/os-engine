@@ -10,6 +10,7 @@ interface FirebaseContextType {
   user: User | null;
   loading: boolean;
   profile: ProfileState | null;
+  setProfile: (p: ProfileState | null) => void;
   isPremium: boolean;
   isOnTrial: boolean;
   hasPaidAccess: boolean;
@@ -676,6 +677,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     user: activeUser,
     loading,
     profile,
+    setProfile,
     isPremium,
     isOnTrial,
     hasPaidAccess,
