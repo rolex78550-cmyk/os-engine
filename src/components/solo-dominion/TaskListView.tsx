@@ -32,7 +32,12 @@ export interface TaskDef {
   jpLabel: string;
   description: string;
   rank: "E" | "D" | "C" | "B";
+  /** Fixed XP reward on task completion (saved to DB). Default 50. */
+  xpReward?: number;
 }
+
+/** Standard XP reward per completed task — saved to Firestore. */
+export const XP_REWARD_PER_TASK = 50;
 
 export const TASKS: TaskDef[] = [
   {
@@ -47,6 +52,7 @@ export const TASKS: TaskDef[] = [
     description:
       "Read your I AM affirmations aloud with conviction. Speak the identity into existence.",
     rank: "D",
+    xpReward: 50,
   },
   {
     id: "writing",
@@ -60,6 +66,7 @@ export const TASKS: TaskDef[] = [
     description:
       "Write your manifestation script in present tense. Feel it as already done.",
     rank: "D",
+    xpReward: 50,
   },
   {
     id: "gratitude",
@@ -73,6 +80,7 @@ export const TASKS: TaskDef[] = [
     description:
       "Write 5 things you're deeply grateful for. Specific, emotional, felt in the body.",
     rank: "D",
+    xpReward: 50,
   },
   {
     id: "script369",
@@ -86,6 +94,7 @@ export const TASKS: TaskDef[] = [
     description:
       "Write your desire 3x in morning, 6x in afternoon, 9x at night. Tesla's manifestation method.",
     rank: "C",
+    xpReward: 50,
   },
   {
     id: "pushup",
@@ -98,6 +107,7 @@ export const TASKS: TaskDef[] = [
     jpLabel: "腕立て伏せ",
     description: "Drop and give 50 reps. Quality form, full range of motion.",
     rank: "C",
+    xpReward: 50,
   },
   {
     id: "plank",
@@ -111,6 +121,7 @@ export const TASKS: TaskDef[] = [
     description:
       "Hold a straight-arm plank for 2 minutes. 5 sets. Tight core, no sagging.",
     rank: "D",
+    xpReward: 50,
   },
   {
     id: "crunch",
@@ -123,6 +134,7 @@ export const TASKS: TaskDef[] = [
     jpLabel: "腹筋",
     description: "Knock out crunches for chiseled abs. Form over quantity.",
     rank: "D",
+    xpReward: 50,
   },
   {
     id: "squat",
@@ -135,6 +147,7 @@ export const TASKS: TaskDef[] = [
     jpLabel: "スクワット",
     description: "Bodyweight squats. Thighs parallel, drive through heels.",
     rank: "C",
+    xpReward: 50,
   },
   {
     id: "sprint",
@@ -147,6 +160,7 @@ export const TASKS: TaskDef[] = [
     jpLabel: "スプリント",
     description: "All-out effort sprint. Bursts, not marathons.",
     rank: "B",
+    xpReward: 50,
   },
   {
     id: "water",
@@ -159,6 +173,7 @@ export const TASKS: TaskDef[] = [
     jpLabel: "水分補給",
     description: "Stay hydrated. 8 glasses = ~3 litres. Minimum daily target.",
     rank: "E",
+    xpReward: 50,
   },
 ];
 

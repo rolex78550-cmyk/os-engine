@@ -15,7 +15,7 @@ import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
 import { WorkoutTracker } from "./WorkoutTracker";
 import { SoloDominionHub } from "./SoloDominionHub";
 import { DominionFeatureView } from "./DominionFeatureView";
-import { TaskListView, type TaskDef } from "./TaskListView";
+import { TaskListView, type TaskDef, TASKS } from "./TaskListView";
 import { LeaderboardView } from "./LeaderboardView";
 import { TaskTrackingView, type TrackingTaskId } from "./TaskTrackingView";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
@@ -1452,10 +1452,40 @@ export const SoloDominion: React.FC<any> = (props) => {
   // ===================== TRACKING ROUTE =====================
   // (Replaces old 'main' view for task click flow — full app-style page)
   if (dominionView === "tracking") {
+    // Find the task being tracked
+    const currentTask = TASKS.find((t) => t.id === trackingTask);
+    const xpReward = currentTask?.xpReward ?? 50;
     return (
       <TaskTrackingView
         taskId={trackingTask}
         onBack={() => setDominionView("tasks")}
+        onComplete={async () => {
+          // ============== SAVE XP TO FIRESTORE (DYNAMIC) ==============
+          try {
+            // 1. Update profile XP + level
+            const currentTotalXp =
+              Number(profile.totalXp) || Number(profile.xp) || 0;
+            const newTotalXp = currentTotalXp + xpReward;
+            const newLevel = Math.floor(newTotalXp / 1000) + 1;
+            const leveledUp = newLevel > (Number(profile.level) || 1);
+            // 2. Persist to Firestore (via useRPG.recordXPGain)
+            if (recordXPGain) {
+              try {
+                await recordXPGain(xpReward, newLevel, leveledUp);
+              } catch (e) {
+                console.warn("[dominion] recordXPGain failed:", e);
+              }
+            }
+            // 3. Trigger SFX
+            try {
+              window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
+            } catch {}
+            // 4. Return to tasks list
+            setDominionView("tasks");
+          } catch (e: any) {
+            console.error("[dominion] task complete error:", e);
+          }
+        }}
       />
     );
   }
