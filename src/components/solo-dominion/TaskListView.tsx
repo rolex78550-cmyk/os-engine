@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
@@ -9,7 +9,16 @@ const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
 const ORANGE = "#ff9f0a";
 const IOS_GREEN = "#34c759";
 
-export type TaskId = "pushup" | "plank" | "squat" | "sprint" | "writing" | "water";
+export type TaskId =
+  | "pushup"
+  | "plank"
+  | "squat"
+  | "sprint"
+  | "writing"
+  | "water"
+  | "affirmation"
+  | "gratitude"
+  | "script369";
 
 export interface TaskDef {
   id: TaskId;
@@ -97,6 +106,45 @@ export const TASKS: TaskDef[] = [
     description: "Stay hydrated. 8 glasses is the minimum.",
     rank: "E",
   },
+  {
+    id: "affirmation",
+    title: "Affirmation Reading",
+    unit: "rounds",
+    xpPerUnit: 15,
+    defaultGoal: 3,
+    icon: "📖",
+    image: "/images/goal_jinwoo.jpg",
+    jpLabel: "アファメーション",
+    description:
+      "Read your I AM affirmations aloud with conviction. Speak the identity into existence.",
+    rank: "D",
+  },
+  {
+    id: "gratitude",
+    title: "Gratitude Script",
+    unit: "entries",
+    xpPerUnit: 20,
+    defaultGoal: 5,
+    icon: "🙏",
+    image: "/images/goal_jinwoo.jpg",
+    jpLabel: "感謝",
+    description:
+      "Write 5 things you're deeply grateful for. Specific, emotional, felt in the body.",
+    rank: "D",
+  },
+  {
+    id: "script369",
+    title: "369 Script",
+    unit: "rounds",
+    xpPerUnit: 25,
+    defaultGoal: 3,
+    icon: "🔁",
+    image: "/images/goal_jinwoo.jpg",
+    jpLabel: "369メソッド",
+    description:
+      "Write your desire 3x in morning, 6x in afternoon, 9x at night. Tesla's manifestation method.",
+    rank: "C",
+  },
 ];
 
 interface TaskListViewProps {
@@ -109,6 +157,24 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   onTaskClick,
 }) => {
   const [hovered, setHovered] = useState<TaskId | null>(null);
+
+  // ============== PER-TASK PROGRESS (persisted in localStorage) ==============
+  const PROGRESS_KEY = "manifest_task_progress_v1";
+  const [taskProgress, setTaskProgress] = useState<Record<TaskId, number>>(() => {
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {} as Record<TaskId, number>;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(taskProgress));
+    } catch {}
+  }, [taskProgress]);
+
+  const getTaskProgress = (id: TaskId): number => taskProgress[id] ?? 0;
 
   return (
     <div
@@ -182,8 +248,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           className="mt-2 text-[13px] leading-relaxed"
           style={{ color: TEXT_SECONDARY, maxWidth: 400 }}
         >
-          Six disciplines. Each one forges a different part of your shadow.
-          Complete to earn XP and climb the ranks.
+          Nine disciplines. Each one forges a different part of your shadow.
+          Body, mind, and spirit — complete to earn XP and climb the ranks.
         </p>
       </section>
 
@@ -192,7 +258,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
         <div className="grid grid-cols-1 gap-3">
           {TASKS.map((task) => {
             const isHovered = hovered === task.id;
-            const maxXP = task.defaultGoal * task.xpPerUnit;
+            const currentProgress = getTaskProgress(task.id);
+            const isComplete = currentProgress >= task.defaultGoal;
             return (
               <button
                 key={task.id}
@@ -227,18 +294,43 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                         "linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.7) 100%)",
                     }}
                   />
-                  <div
-                    className="absolute bottom-1.5 left-1.5 flex items-center justify-center font-extrabold text-[12px]"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      backgroundColor: ORANGE,
-                      color: "#000",
-                    }}
-                  >
-                    {task.rank}
-                  </div>
+                <div
+                  className="absolute bottom-1.5 left-1.5 flex items-center justify-center font-extrabold text-[12px]"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    backgroundColor: ORANGE,
+                    color: "#000",
+                  }}
+                >
+                  {task.rank}
+                </div>
+                {/* Segmented progress overlay on image */}
+                <div
+                  className="absolute top-1.5 right-1.5 flex items-center gap-px"
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    padding: "2px 4px",
+                    borderRadius: 4,
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 3,
+                        height: 8,
+                        borderRadius: 1,
+                        backgroundColor:
+                          i < Math.round((currentProgress / Math.max(1, task.defaultGoal)) * 7)
+                            ? ORANGE
+                            : "rgba(255,255,255,0.2)",
+                      }}
+                    />
+                  ))}
+                </div>
                 </div>
 
                 {/* Middle: JP label + title + desc + xp row */}
@@ -284,29 +376,29 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                   </div>
                 </div>
 
-                {/* Right: Total XP + arrow */}
+                {/* Right: progress + Total XP + arrow */}
                 <div className="flex flex-col items-end justify-center shrink-0 pl-1">
                   <span
                     className="text-[9px] font-bold tracking-wider uppercase"
                     style={{ color: TEXT_TERTIARY }}
                   >
-                    Max
+                    {isComplete ? "Done" : "Max"}
                   </span>
                   <span
                     className="font-extrabold leading-none tabular-nums"
                     style={{
-                      color: ORANGE,
+                      color: isComplete ? IOS_GREEN : ORANGE,
                       fontSize: 20,
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    +{maxXP}
+                    {currentProgress}/{task.defaultGoal}
                   </span>
                   <span
                     className="text-[9px] mt-0.5 font-bold tracking-wider uppercase"
                     style={{ color: TEXT_TERTIARY }}
                   >
-                    XP
+                    {task.unit}
                   </span>
                   <span
                     className="mt-2 text-[14px]"

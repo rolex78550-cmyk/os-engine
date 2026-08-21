@@ -18,7 +18,10 @@ export type TrackingTaskId =
   | "squat"
   | "sprint"
   | "writing"
-  | "water";
+  | "water"
+  | "affirmation"
+  | "gratitude"
+  | "script369";
 
 interface TaskTrackingViewProps {
   taskId: TrackingTaskId;
@@ -104,6 +107,39 @@ const TASK_META: Record<
     unit: "glasses",
     xpPerUnit: 5,
     goal: 8,
+    mode: "counter",
+  },
+  affirmation: {
+    title: "Affirmation Reading",
+    jpLabel: "アファメーション",
+    icon: "📖",
+    image: "/images/goal_jinwoo.jpg",
+    rank: "D",
+    unit: "rounds",
+    xpPerUnit: 15,
+    goal: 3,
+    mode: "counter",
+  },
+  gratitude: {
+    title: "Gratitude Script",
+    jpLabel: "感謝",
+    icon: "🙏",
+    image: "/images/goal_jinwoo.jpg",
+    rank: "D",
+    unit: "entries",
+    xpPerUnit: 20,
+    goal: 5,
+    mode: "counter",
+  },
+  script369: {
+    title: "369 Script",
+    jpLabel: "369メソッド",
+    icon: "🔁",
+    image: "/images/goal_jinwoo.jpg",
+    rank: "C",
+    unit: "rounds",
+    xpPerUnit: 25,
+    goal: 3,
     mode: "counter",
   },
 };
