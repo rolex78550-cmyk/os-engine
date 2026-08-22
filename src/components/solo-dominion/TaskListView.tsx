@@ -219,6 +219,50 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const [verifying, setVerifying] = useState(false);
   const [proofError, setProofError] = useState<string | null>(null);
 
+  // ============== PER-TASK PROGRESS (persisted in localStorage, resets at midnight) ==============
+  const PROGRESS_KEY = "manifest_task_progress_v1";
+  const [taskProgress, setTaskProgress] = useState<Record<TaskId, number>>(() => {
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {} as Record<TaskId, number>;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(taskProgress));
+    } catch {}
+  }, [taskProgress]);
+
+  // Listen for midnight reset event from App.tsx
+  useEffect(() => {
+    const onReset = () => {
+      console.log("[TaskListView] received tasks reset event — clearing progress");
+      setTaskProgress({} as Record<TaskId, number>);
+    };
+    window.addEventListener("manifest_tasks_reset", onReset as EventListener);
+    return () => window.removeEventListener("manifest_tasks_reset", onReset as EventListener);
+  }, []);
+
+  // Also check at mount + every 60s if date rolled over
+  useEffect(() => {
+    const LAST_DATE_KEY = "manifest_last_active_date_tasklist";
+    const check = () => {
+      try {
+        const today = new Date().toLocaleDateString("en-CA");
+        const last = window.localStorage.getItem(LAST_DATE_KEY);
+        if (last && last !== today) {
+          setTaskProgress({} as Record<TaskId, number>);
+        }
+        window.localStorage.setItem(LAST_DATE_KEY, today);
+      } catch {}
+    };
+    check();
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleTaskClickInternal = async (task: TaskDef) => {
     // Writing tasks go through AI Camera Proof flow
     if (task.id === "writing" || task.id === "gratitude" || task.id === "script369" || task.id === "dress") {
@@ -360,50 +404,6 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       />
     );
   }
-
-  // ============== PER-TASK PROGRESS (persisted in localStorage, resets at midnight) ==============
-  const PROGRESS_KEY = "manifest_task_progress_v1";
-  const [taskProgress, setTaskProgress] = useState<Record<TaskId, number>>(() => {
-    try {
-      const raw = localStorage.getItem(PROGRESS_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return {} as Record<TaskId, number>;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(taskProgress));
-    } catch {}
-  }, [taskProgress]);
-
-  // Listen for midnight reset event from App.tsx
-  useEffect(() => {
-    const onReset = () => {
-      console.log("[TaskListView] received tasks reset event — clearing progress");
-      setTaskProgress({} as Record<TaskId, number>);
-    };
-    window.addEventListener("manifest_tasks_reset", onReset as EventListener);
-    return () => window.removeEventListener("manifest_tasks_reset", onReset as EventListener);
-  }, []);
-
-  // Also check at mount + every 60s if date rolled over
-  useEffect(() => {
-    const LAST_DATE_KEY = "manifest_last_active_date_tasklist";
-    const check = () => {
-      try {
-        const today = new Date().toLocaleDateString("en-CA");
-        const last = window.localStorage.getItem(LAST_DATE_KEY);
-        if (last && last !== today) {
-          setTaskProgress({} as Record<TaskId, number>);
-        }
-        window.localStorage.setItem(LAST_DATE_KEY, today);
-      } catch {}
-    };
-    check();
-    const interval = setInterval(check, 60_000);
-    return () => clearInterval(interval);
-  }, []);
 
   const getTaskProgress = (id: TaskId): number => taskProgress[id] ?? 0;
 
