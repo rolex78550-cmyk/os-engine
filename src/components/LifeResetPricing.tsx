@@ -31,7 +31,7 @@ interface LifeResetPricingProps {
   // these explicit INR amounts. User sees SAME effective price everywhere.
   //
   // Monthly: $4.99 / ₹415
-  // Yearly:  $39.99 (saves 33%) / ₹1,999 (was ₹3,320 — now affordable)
+  // Yearly:  $49 (saves 18% vs $4.99 × 12 = $59.88) / ₹1,999
   const PLAN_PRICING = {
     monthly: {
       id: "monthly" as PlanType,
@@ -45,13 +45,13 @@ interface LifeResetPricingProps {
     yearly: {
       id: "yearly" as PlanType,
       name: "Yearly",
-      priceUSD: 39.99,             // flat /year
-      monthlyUSD: 3.33,            // 39.99 / 12
+      priceUSD: 49,                // flat /year (changed from $39.99)
+      monthlyUSD: 4.08,            // 49 / 12
       originalMonthlyUSD: 4.99,    // crossed out monthly equiv
-      priceINR: 1999,              // ▼ was ₹3,320 (now affordable for Indian users)
+      priceINR: 1999,
       monthlyINR: 166.58,          // 1999 / 12
       originalMonthlyINR: 415,
-      savingsLabel: "SAVE 33%",
+      savingsLabel: "SAVE 18%",
       cta: "Start Yearly",
     },
   };

@@ -8,7 +8,7 @@ import { openDodoCheckout } from '../services/dodoService';
 // MUST match PLAN_PRICING in subscription.ts — single source of truth.
 export const GLOBAL_USD_PRICING = {
   monthly: { price: 4.99, durationDays: 30, name: 'Hunter Monthly', currency: 'USD', symbol: '$' },
-  yearly:  { price: 39.99, durationDays: 365, name: 'Yearly Alignment', currency: 'USD', symbol: '$' },
+  yearly:  { price: 49, durationDays: 365, name: 'Yearly Alignment', currency: 'USD', symbol: '$' },
   lifetime: { price: 99.99, durationDays: Infinity, name: 'Founder Lifetime', currency: 'USD', symbol: '$' }
 } as const;
 

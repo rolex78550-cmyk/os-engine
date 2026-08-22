@@ -980,7 +980,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   letterSpacing: "-0.02em",
                 }}
               >
-                $39.99
+                $49
               </div>
               <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
                 /year · billed annually

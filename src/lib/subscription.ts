@@ -11,7 +11,7 @@ export const TRIAL_DURATION_DAYS = 1;
 // Both flows MUST show the same effective value to the user.
 export const PLAN_PRICING = {
   monthly: { price: 4.99, currency: 'USD', durationDays: 30, name: 'Hunter Monthly' },
-  yearly: { price: 39.99, currency: 'USD', durationDays: 365, name: 'Yearly Alignment' },
+  yearly: { price: 49, currency: 'USD', durationDays: 365, name: 'Yearly Alignment' },
   lifetime: { price: 99.99, currency: 'USD', durationDays: Infinity, name: 'Founder Lifetime' }
 } as const;
 
