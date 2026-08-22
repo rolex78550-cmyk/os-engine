@@ -5,12 +5,25 @@ import { SubscriptionData, PaymentRecord, PlanType, SubscriptionStatus } from '.
 const FOUNDER_LIFETIME_LIMIT = 100;
 export const TRIAL_DURATION_DAYS = 1;
 
-// Global pricing — same for every user worldwide (USD).
-// Razorpay will charge in INR locally; Dodo will charge in USD.
+// Global pricing — same for every user worldwide (USD base).
+// Razorpay will charge in INR locally (per-INR prices below);
+// Dodo will charge in USD directly.
+// Both flows MUST show the same effective value to the user.
 export const PLAN_PRICING = {
   monthly: { price: 4.99, currency: 'USD', durationDays: 30, name: 'Hunter Monthly' },
   yearly: { price: 39.99, currency: 'USD', durationDays: 365, name: 'Yearly Alignment' },
   lifetime: { price: 99.99, currency: 'USD', durationDays: Infinity, name: 'Founder Lifetime' }
+} as const;
+
+// INR prices — explicit (NOT derived from USD × FX), so the user always
+// sees the SAME ₹ value on the subscription page, in Razorpay checkout,
+// and on the Dodo fallback receipt.
+// Yearly is intentionally priced lower than USD × 83 to make the
+// 12-month plan feel like a real saving for Indian users.
+export const PLAN_PRICING_INR = {
+  monthly: { price: 415, currency: 'INR', durationDays: 30, name: 'Hunter Monthly' },
+  yearly:  { price: 1999, currency: 'INR', durationDays: 365, name: 'Yearly Alignment' },
+  lifetime: { price: 4999, currency: 'INR', durationDays: Infinity, name: 'Founder Lifetime' }
 } as const;
 
 /** Default currency code used in payments. */

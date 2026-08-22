@@ -26,27 +26,30 @@ interface LifeResetPricingProps {
   profile?: any;
 }
 
-  // =================== USD PRICES (global) ===================
-  // Monthly: $4.99/mo
-  // Yearly:  $39.99/year (saves 33% vs $4.99 × 12 = $59.88)
+  // =================== UNIFIED PRICING (same as subscription.ts master) ===================
+  // Single source of truth: Dodo charges USD directly, Razorpay charges
+  // these explicit INR amounts. User sees SAME effective price everywhere.
+  //
+  // Monthly: $4.99 / ₹415
+  // Yearly:  $39.99 (saves 33%) / ₹1,999 (was ₹3,320 — now affordable)
   const PLAN_PRICING = {
     monthly: {
       id: "monthly" as PlanType,
       name: "Monthly",
       priceUSD: 4.99,
       priceINR: 415,
-      originalINR: 415,
+      originalPriceINR: 415,
       savingsLabel: "",
       cta: "Start Monthly",
     },
     yearly: {
       id: "yearly" as PlanType,
       name: "Yearly",
-      priceUSD: 39.99,           // flat /year
-      monthlyUSD: 3.33,          // 39.99 / 12
-      originalMonthlyUSD: 4.99,  // crossed out monthly equiv
-      priceINR: 3320,            // 39.99 × 83
-      monthlyINR: 276.66,        // 3320 / 12
+      priceUSD: 39.99,             // flat /year
+      monthlyUSD: 3.33,            // 39.99 / 12
+      originalMonthlyUSD: 4.99,    // crossed out monthly equiv
+      priceINR: 1999,              // ▼ was ₹3,320 (now affordable for Indian users)
+      monthlyINR: 166.58,          // 1999 / 12
       originalMonthlyINR: 415,
       savingsLabel: "SAVE 33%",
       cta: "Start Yearly",

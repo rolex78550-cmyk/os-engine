@@ -1,7 +1,7 @@
 import { auth, db } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PlanType } from '../types';
-import { PLAN_PRICING, canPurchaseLifetime, buildSubscriptionPayload } from './subscription';
+import { PLAN_PRICING, PLAN_PRICING_INR, canPurchaseLifetime, buildSubscriptionPayload } from './subscription';
 import { notifyAdmin } from './notify';
 import { initiateDodoSubscription } from './dodoPayments';
 
@@ -99,11 +99,11 @@ export async function initiateSubscription(
     }
   }
 
-  const plan = PLAN_PRICING[planType];
-  // Razorpay charges in INR. Convert from USD (using fixed rate of ₹83/$1).
-  // Server-side /api/razorpay/order can override this with live FX rate.
-  const USD_TO_INR = 83;
-  const amountInRupees = Math.round(plan.price * USD_TO_INR);
+  const plan = PLAN_PRICING_INR[planType];
+  // Razorpay charges in INR. Use the explicit INR price (not USD × FX)
+  // so the user always sees the same ₹ value on the subscription page
+  // and in the Razorpay checkout.
+  const amountInRupees = plan.price;
 
   // Order creation — resolved before modal opens, so errors are handled here.
   let order: any;
@@ -133,7 +133,7 @@ export async function initiateSubscription(
     amount: order.amount,
     currency: order.currency,
     name: "Menifest OS",
-    description: `${plan.name} Plan ($${plan.price} USD ≈ ₹${amountInRupees})`,
+    description: `${plan.name} Plan — ₹${amountInRupees}`,
     order_id: order.id,
     handler: async function (response: any) {
       // ── PAYMENT CONFIRMED BY RAZORPAY ──
