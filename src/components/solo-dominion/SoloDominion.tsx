@@ -1287,15 +1287,67 @@ export const SoloDominion: React.FC<any> = (props) => {
     return "side";
   };
 
-  // Build the quest list shown in the QuestBoard. We merge:
-  //  1) The user's existing missions (from Firestore) — preserved for back-compat
-  //  2) Default quests that don't exist in their list — gentle onboarding
-  const legacyQuests: Mission[] = (missions || []).map((m, i) => ({
-    ...m,
-    questType: deriveQuestType(m, i),
-    rank: (m.xp <= 25 ? "E" : m.xp <= 60 ? "D" : m.xp <= 130 ? "C" : m.xp <= 320 ? "B" : "A") as QuestRank,
-    category: deriveCategoryFromMission(m),
-  }));
+  // ============== SOURCE OF TRUTH: TASKS (10 items, all 50 XP) ==============
+  // Every user sees the same 10 daily tasks with consistent 50 XP reward.
+  // 369 Method is special: requires 3 rounds (morning 3, afternoon 6, evening 9)
+  // All other tasks = 1 round = 50 XP
+  // Completion status comes from localStorage (manifest_task_progress_v1)
+  const todayDate = new Date().toLocaleDateString("en-CA");
+  const todayProgressKey = `manifest_task_progress_${todayDate}`;
+  const todaysProgress: Record<string, number> = (() => {
+    try {
+      const raw = window.localStorage.getItem(todayProgressKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  })();
+
+  // Read the master per-task progress for total count
+  const masterProgress: Record<string, number> = (() => {
+    try {
+      const raw = window.localStorage.getItem("manifest_task_progress_v1");
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  })();
+
+  // Category mapping for display
+  const TASK_CATEGORY_MAP: Record<string, Mission["category"]> = {
+    affirmation: "mindset",
+    writing: "creative",
+    gratitude: "mindset",
+    script369: "creative",
+    pushup: "fitness",
+    plank: "fitness",
+    crunch: "fitness",
+    squat: "fitness",
+    sprint: "fitness",
+    water: "lifestyle",
+  };
+
+  // Build unified quests list from TASKS (always 10, always 50 XP each)
+  const legacyQuests: Mission[] = TASKS.map((task, i) => {
+    const progress = todaysProgress[task.id] ?? 0;
+    const totalProgress = masterProgress[task.id] ?? 0;
+    const completed = progress >= task.defaultGoal || totalProgress >= task.defaultGoal;
+    const unit = task.unit === "rounds" ? "rounds" : task.unit;
+    return {
+      id: task.id,
+      title: task.title,
+      desc: task.description,
+      description: task.description,
+      progress: `${Math.min(progress, task.defaultGoal)}/${task.defaultGoal} ${unit}`,
+      currentVal: Math.min(progress, task.defaultGoal),
+      targetVal: task.defaultGoal,
+      unit,
+      xp: 50, // ALWAYS 50 XP per task
+      icon: task.icon,
+      color: "#ff9f0a",
+      completed,
+      category: TASK_CATEGORY_MAP[task.id] ?? "lifestyle",
+      questType: "side" as QuestQuestType,
+      rank: "D" as QuestRank,
+      bossImage: task.image,
+    } as Mission;
+  });
 
   // Default onboarding quests — ALWAYS merge new sensor-tracked workout
   // defaults into the user's catalogue (deduplicated by ID). This ensures
@@ -1319,7 +1371,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     DEFAULT_TARGETS,
   );
 
-  const quests: Mission[] = [...onboardingQuests, ...legacyQuests];
+  // quests = ONLY the 10 TASKS (all 50 XP each). Skip onboarding defaults
+  // (those are legacy sensor-tracked quests kept for back-compat).
+  const quests: Mission[] = legacyQuests;
 
   // Boss battles — always from the catalog, but mark completed if user already
   // completed an equivalent local mission.
