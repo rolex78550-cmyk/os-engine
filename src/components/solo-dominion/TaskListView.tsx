@@ -21,6 +21,7 @@ export type TaskId =
   | "writing"
   | "crunch"
   | "water"
+  | "dress"
   | "affirmation"
   | "gratitude"
   | "script369";
@@ -179,6 +180,19 @@ export const TASKS: TaskDef[] = [
     rank: "E",
     xpReward: 50,
   },
+  {
+    id: "dress",
+    title: "Dress Like Your Future Self",
+    unit: "outfit",
+    xpPerUnit: 50,
+    defaultGoal: 1,
+    icon: "👔",
+    image: "/images/anime_shadow_knight_1785176768012.jpg",
+    jpLabel: "なりきり",
+    description: "Wear what your FUTURE self would wear today. Post a photo proof — AI verifies it's authentic, not a screenshot.",
+    rank: "C",
+    xpReward: 50,
+  },
 ];
 
 interface TaskListViewProps {
@@ -207,7 +221,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 
   const handleTaskClickInternal = async (task: TaskDef) => {
     // Writing tasks go through AI Camera Proof flow
-    if (task.id === "writing" || task.id === "gratitude" || task.id === "script369") {
+    if (task.id === "writing" || task.id === "gratitude" || task.id === "script369" || task.id === "dress") {
       setProofError(null);
       setProofTask(task.id as ProofTaskId);
       return;
@@ -326,6 +340,26 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setVerifying(false);
     }
   };
+
+  // ============== AI PROOF MODE — full page (no modal) ==============
+  // When proofTask is set, return ONLY the camera proof page
+  if (proofTask) {
+    return (
+      <TaskProofCamera
+        taskId={proofTask}
+        taskTitle={TASKS.find((t) => t.id === proofTask)?.title || proofTask}
+        taskDescription={
+          TASKS.find((t) => t.id === proofTask)?.description ||
+          "Submit photo proof of today's practice"
+        }
+        onVerified={handleProofVerified}
+        onClose={() => {
+          setProofTask(null);
+          setProofError(null);
+        }}
+      />
+    );
+  }
 
   // ============== PER-TASK PROGRESS (persisted in localStorage, resets at midnight) ==============
   const PROGRESS_KEY = "manifest_task_progress_v1";
@@ -504,7 +538,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                   {task.rank}
                 </div>
                 {/* AI Proof badge for writing tasks */}
-                {(task.id === "writing" || task.id === "gratitude" || task.id === "script369") && (
+                {(task.id === "writing" || task.id === "gratitude" || task.id === "script369" || task.id === "dress") && (
                   <div
                     className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-md"
                     style={{
@@ -627,23 +661,6 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           })}
         </div>
       </section>
-
-      {/* ============== AI CAMERA PROOF MODAL ============== */}
-      {proofTask && (
-        <TaskProofCamera
-          taskId={proofTask}
-          taskTitle={TASKS.find((t) => t.id === proofTask)?.title || proofTask}
-          taskDescription={
-            TASKS.find((t) => t.id === proofTask)?.description ||
-            "Submit photo proof of today's practice"
-          }
-          onVerified={handleProofVerified}
-          onClose={() => {
-            setProofTask(null);
-            setProofError(null);
-          }}
-        />
-      )}
 
       {/* ============== TOAST ============== */}
       {(proofError || verifying) && (

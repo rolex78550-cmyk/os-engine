@@ -1321,6 +1321,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     squat: "fitness",
     sprint: "fitness",
     water: "lifestyle",
+    dress: "lifestyle",
   };
 
   // Build unified quests list from TASKS (always 10, always 50 XP each)
@@ -1497,7 +1498,7 @@ export const SoloDominion: React.FC<any> = (props) => {
             }
             return;
           }
-          setTrackingTask(task.id);
+          setTrackingTask(task.id as any);
           setDominionView("tracking");
         }}
       />

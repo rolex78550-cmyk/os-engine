@@ -18,7 +18,7 @@ const ORANGE_DARK = "#ff7a00";
 const IOS_RED = "#ff453a";
 const IOS_GREEN = "#34c759";
 
-export type ProofTaskId = "writing" | "gratitude" | "script369";
+export type ProofTaskId = "writing" | "gratitude" | "script369" | "dress";
 
 interface TaskProofCameraProps {
   taskId: ProofTaskId;
@@ -122,6 +122,38 @@ SCORING:
 - 60-89: Today + repetition pattern but less clear structure
 - 30-59: Date ambiguous or pattern not clear
 - 0-29: Old photo, blank, or no 369 evidence
+
+Return ONLY JSON:
+{
+  "verified": boolean (true if score >= 60),
+  "verificationScore": number (0-100),
+  "verificationFeedback": "1-2 sharp sentences"
+}`,
+  },
+  dress: {
+    label: "Dress Like Your Future Self",
+    rules: [
+      "Wear what your FUTURE self would wear today",
+      "Full body mirror selfie (face + outfit visible)",
+      "Today's DATE in the photo (mirror, phone screen, or background)",
+      "Outfit must be intentional — not a screenshot, not a stock photo",
+    ],
+    prompt: `You are a STRICT Identity Coach auditing a "Dress Like Your Future Self" proof.
+The user claims to have dressed like their ideal future self today.
+The task is: "Dress Like Your Future Self — wear what your future self would wear, post a photo proof."
+
+WHAT TO CHECK (in this order):
+1. IMAGE TYPE: Real mirror selfie or full-body photo? (Reject if it's a stock photo, a saved picture from internet, a screenshot of an outfit, an old photo, or just a face closeup without outfit visible)
+2. DATE: TODAY'S DATE must be visible somewhere — phone screen lock, mirror date stamp, in background, or in app screenshot. REJECT if clearly a previous day.
+3. OUTFIT VISIBILITY: Can you see the full outfit / clothing? (Reject if only face visible)
+4. INTENT: Does the outfit look like a deliberate choice (formal, athletic, business, artistic)? Or is it just random casual wear with no intention?
+5. FRESHNESS: The photo must appear to be taken TODAY (recent image, today's light, current background). Reject if reused or from a previous day.
+
+SCORING:
+- 90-100: Today + clear outfit + intentional styling + date visible
+- 60-89: Today + outfit visible but lacks intentional styling
+- 30-59: Date ambiguous OR outfit not clearly visible
+- 0-29: Old photo, stock image, screenshot, or face-only
 
 Return ONLY JSON:
 {
@@ -363,22 +395,13 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-        style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
-        onClick={onClose}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.3 }}
+        className="w-full min-h-screen flex flex-col"
+        style={{ backgroundColor: SURFACE }}
       >
-        <motion.div
-          initial={{ y: 40, opacity: 0, scale: 0.96 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 40, opacity: 0, scale: 0.96 }}
-          transition={{ ease: [0.22, 1, 0.36, 1] }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[480px] rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"
-          style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}
-        >
           {/* ============== HEADER ============== */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-5 py-4"
@@ -403,20 +426,20 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
+              className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90"
               style={{
-                backgroundColor: "rgba(255,255,255,0.06)",
+                backgroundColor: "rgba(255,255,255,0.08)",
                 border: `1px solid ${HAIRLINE}`,
                 color: TEXT_PRIMARY,
               }}
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
 
           {/* ============== CAPTURE MODE ============== */}
           {mode === "capture" && (
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
               {/* Camera viewport */}
               <div
                 className="relative w-full rounded-2xl overflow-hidden"
@@ -571,7 +594,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
 
           {/* ============== PREVIEW MODE ============== */}
           {mode === "preview" && capturedImage && (
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
               <div
                 className="w-full rounded-2xl overflow-hidden"
                 style={{
@@ -675,7 +698,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
 
           {/* ============== RESULT MODE ============== */}
           {mode === "result" && verdict && (
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
               <div
                 className="rounded-2xl p-5 text-center"
                 style={{
@@ -779,7 +802,6 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
               )}
             </div>
           )}
-        </motion.div>
       </motion.div>
     </AnimatePresence>
   );
