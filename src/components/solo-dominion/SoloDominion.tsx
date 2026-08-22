@@ -271,6 +271,26 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // ============== LIVE PROFILE SUBSCRIPTION ==============
+  // Subscribes directly to Firestore so the hub always shows the
+  // real XP / streak / level (not the stale parent prop).
+  const [liveProfile, setLiveProfile] = useState<any | null>(null);
+  useEffect(() => {
+    if (!user?.uid) {
+      setLiveProfile(null);
+      return;
+    }
+    const ref = doc(db, "users", user.uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setLiveProfile(snap.data());
+      }
+    });
+    return () => unsub();
+  }, [user?.uid]);
+  // Use live data when available, fall back to props
+  const profileData = liveProfile || (logic as any).profile || {};
+
   // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
   type DominionView = "hub" | "tasks" | "leaderboard" | "tracking";
   const [dominionView, setDominionView] = useState<DominionView>("hub");
@@ -665,9 +685,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // User Stats & XP
-  const level = profile?.level || 1;
-  const currentXP = profile?.xp || 242;
+  // User Stats & XP — always read from liveProfile for fresh data
+  const level = Number(profileData?.level) || 1;
+  const currentXP = Number(profileData?.xp) || 0;
   const xpNeeded = level * 500;
   const xpPercentage = Math.min(100, Math.round((currentXP % 500) / 500 * 100));
 
@@ -1441,13 +1461,13 @@ export const SoloDominion: React.FC<any> = (props) => {
   // ===================== HUB ROUTER GUARD =====================
   // If we're on the hub view, render the simple home screen and skip the rest.
   if (dominionView === "hub") {
-    // ============== REAL STATS FROM PROFILE ==============
-    const totalXp = Number(profile.totalXp) || Number(profile.xp) || 0;
-    const level = Number(profile.level) || 1;
+    // ============== REAL STATS FROM LIVE PROFILE ==============
+    const totalXp = Number(profileData?.totalXp) || Number(profileData?.xp) || 0;
+    const level = Number(profileData?.level) || 1;
     const xpPerLevel = 1000;
     const currentLevelXP = totalXp % xpPerLevel;
-    const streak = Number(profile.streak) || 0;
-    const statBlock = (profile as any)?.stats || {};
+    const streak = Number(profileData?.streak) || 0;
+    const statBlock = (profileData as any)?.stats || {};
 
     return (
       <SoloDominionHub
