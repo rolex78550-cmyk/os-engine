@@ -412,7 +412,7 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
               }}
             >
               {isIndia
-                ? `₹${PLAN_PRICING.yearly.monthlyINR}`
+                ? `₹${PLAN_PRICING.yearly.priceINR}`
                 : `$${PLAN_PRICING.yearly.priceUSD}`}
             </div>
             <div
