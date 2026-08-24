@@ -1,10 +1,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── USERS ──────────────────────────────────────────────────────────
+    // Each user can only write their OWN profile + subcollections.
+    // Any authenticated user can read (needed for leaderboard lookups).
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+
+      match /{doc=**} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── LEADERBOARD ────────────────────────────────────────────────────
+    // Public read (ranking), but a player can only write their OWN entry —
+    // prevents cheating the "most XP = highest rank" system.
+    match /leaderboard/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── COMMUNITY POSTS ────────────────────────────────────────────────
+    match /community_posts/{postId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // ── PAYMENTS / SESSIONS ────────────────────────────────────────────
+    // Payment records + user session analytics (written by client SDK).
+    match /payments/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    match /user_sessions/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // ── DEFAULT DENY ───────────────────────────────────────────────────
+    // Anything not explicitly allowed is blocked (write) and auth-gated (read).
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
-
-

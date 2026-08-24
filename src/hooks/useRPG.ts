@@ -278,8 +278,13 @@ export function useRPG(profile: ProfileState, stats: RPGSourceStats = {}): RPGHo
       if (!uid || !profile || !derived) return;
       try {
         // 1) Recompute score from the NEW profile state.
+        // `profile.totalXp` is the pre-increment snapshot, so add the actual
+        // XP just gained to compute the true post-action score (rank/coins no
+        // longer lag one action behind).
+        const newTotalXp =
+          (Number(profile.totalXp) || 0) + Math.max(0, xpGained);
         const newScore = computePlayerScore({
-          totalXp: (Number(profile.totalXp) || 0),
+          totalXp: newTotalXp,
           level: newLevel ?? Number(profile.level) ?? 1,
           streak: Number(profile.streak) || 0,
           consistency: 0,

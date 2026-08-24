@@ -919,7 +919,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   const [leaderboardFilter, setLeaderboardFilter] = useState<"all" | "weekly" | "guild">("all");
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   useEffect(() => {
-    const unsub = subscribeGlobalLeaderboard(5, (entries: any[]) => {
+    const unsub = subscribeGlobalLeaderboard(100, (entries: any[]) => {
       if (entries?.length) {
         setLeaders(entries.map((e, i) => ({
           rank: i + 1,
@@ -1204,17 +1204,14 @@ export const SoloDominion: React.FC<any> = (props) => {
         batchPromises.push(setDoc(eventDocRef, eventData, { merge: true }));
       }
       
-      const newLevel = Math.max(profile?.level || 1, Math.min(25, Math.ceil(targetStreakDays / 2)));
-      const totalXp = Math.max(profile?.totalXp || 0, targetStreakDays * 250);
-      
+      // NOTE: XP / totalXp / level are intentionally NOT written here.
+      // This sync only records streak events + streak counts; it must never
+      // overwrite or fabricate real XP/level (protects 60-day accumulation).
       const updateData: any = {
         streak: targetStreakDays,
         longestStreak: Math.max(profile?.longestStreak || 0, targetStreakDays),
         activeDays: newActiveDays,
         streakFreezes: 3,
-        xp: (profile?.xp || 100),
-        totalXp: totalXp,
-        level: newLevel,
       };
       
       batchPromises.push(setDoc(userRef, updateData, { merge: true }));

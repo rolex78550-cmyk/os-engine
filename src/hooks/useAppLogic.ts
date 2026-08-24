@@ -862,8 +862,6 @@ export function useAppLogic() {
         ...onboardingData,
         ...aiSystem,
         onboarded: true,
-        level: 1,
-        xp: 0,
         universeRank: aiSystem.identityArchetype || "Aspiration Seeker",
         alignment: 65,
         belief: 70,
@@ -905,20 +903,26 @@ export function useAppLogic() {
       setQuests(initialQuests);
       questsInitializedRef.current = true;
 
-      // Initialize FABLE 5 RPG stats on first onboarding
-      const initialStats = { ...DEFAULT_STATS };
-      await setDoc(doc(db, "users", user.uid), {
-        stats: initialStats,
-        coins: 50,
-        rank: "Civilian",
-        level: 1,
-        xp: 0,
-        totalXp: 0,
-      }, { merge: true });
+      // Initialize FABLE 5 RPG stats ONLY on true first-run. Never overwrite
+      // existing XP/level/rank/coins — protects 60-day accumulation from being
+      // wiped if onboarding re-runs (race condition / new device / cache clear).
+      const existingTotalXp = Number((fbProfile as any)?.totalXp) || 0;
+      const existingLevel = Number((fbProfile as any)?.level) || 0;
+      if (!existingTotalXp && !existingLevel) {
+        const initialStats = { ...DEFAULT_STATS };
+        await setDoc(doc(db, "users", user.uid), {
+          stats: initialStats,
+          coins: 50,
+          rank: "Civilian",
+          level: 1,
+          xp: 0,
+          totalXp: 0,
+        }, { merge: true });
 
-      setUserStats(initialStats);
-      setCoins(50);
-      setCurrentRank("Civilian");
+        setUserStats(initialStats);
+        setCoins(50);
+        setCurrentRank("Civilian");
+      }
 
       // Create long-term goal as first Desire
       if (onboardingData.longTermGoal) {
