@@ -81,15 +81,15 @@ export const SoloDominionHub: React.FC<HubProps> = ({
         className="relative w-full"
         style={{ minHeight: "min(560px, 65vh)" }}
       >
-        {/* Jinwoo background image — gold shadow monarch pose */}
+        {/* Custom home background image */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "url(/images/sd_jin_hero.jpg)",
+            backgroundImage: "url(/images/sd_home_bg.jpg)",
             backgroundSize: "cover",
             backgroundPosition: "center 30%",
             backgroundRepeat: "no-repeat",
-            opacity: 0.55,
+            opacity: 0.85,
           }}
         />
         {/* Dark gradient overlay (heavier on edges, lighter in center for visibility) */}
@@ -301,7 +301,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
                     border: `1px solid rgba(255,159,10,0.3)`,
                   }}
                 >
-                  6
+                  11
                 </span>
                 <span
                   className="text-[20px] mt-2"

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Camera, RotateCw, CheckCircle2, XCircle, Loader2, Sparkles,
-  Image as ImageIcon, AlertTriangle, Upload
+  Image as ImageIcon, AlertTriangle, Upload, Eye
 } from "lucide-react";
 import { verifyGoalProof, type ProofVerdict } from "../../lib/goalApi";
 
@@ -682,17 +682,102 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
 
           {/* ============== VERIFYING MODE ============== */}
           {mode === "verifying" && (
-            <div className="p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 size={36} className="animate-spin" style={{ color: ORANGE }} />
-              <p
-                className="mt-4 text-[14px] font-bold"
-                style={{ color: TEXT_PRIMARY }}
-              >
-                AI is reviewing your proof...
-              </p>
-              <p className="mt-1 text-[11px]" style={{ color: TEXT_TERTIARY }}>
-                Checking date, content & freshness
-              </p>
+            <div className="relative min-h-[60dvh] flex flex-col items-center justify-center text-center overflow-hidden">
+              {/* Anime shadow-monarch background */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: "url(/images/anime_shadow_monarch_dark.jpg)",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  opacity: 0.35,
+                }}
+              />
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.9) 100%)",
+                }}
+              />
+              {/* Scanning line animation */}
+              <div
+                className="absolute left-0 right-0 h-px pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255,159,10,0.9), transparent)",
+                  animation: "sdScan 1.6s ease-in-out infinite",
+                }}
+              />
+              <style>{`
+                @keyframes sdScan {
+                  0% { top: 10%; opacity: 0; }
+                  50% { opacity: 1; }
+                  100% { top: 90%; opacity: 0; }
+                }
+              `}</style>
+
+              <div className="relative z-10 flex flex-col items-center px-6">
+                {/* Pulsing AI eye */}
+                <div
+                  className="relative w-20 h-20 rounded-full flex items-center justify-center"
+                  style={{
+                    border: `1px solid rgba(255,159,10,0.4)`,
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      border: `2px solid rgba(255,159,10,0.5)`,
+                      animation: "sdPulse 1.4s ease-out infinite",
+                    }}
+                  />
+                  <Eye size={30} style={{ color: ORANGE }} />
+                </div>
+                <style>{`
+                  @keyframes sdPulse {
+                    0% { transform: scale(0.8); opacity: 1; }
+                    100% { transform: scale(1.6); opacity: 0; }
+                  }
+                `}</style>
+
+                <p
+                  className="mt-5 text-[16px] font-extrabold tracking-tight"
+                  style={{ color: TEXT_PRIMARY }}
+                >
+                  The Oracle is judging your proof
+                </p>
+                <p
+                  className="mt-1.5 text-[12px] leading-relaxed max-w-[260px]"
+                  style={{ color: TEXT_SECONDARY }}
+                >
+                  Scanning date, content &amp; freshness of your submission…
+                </p>
+
+                {/* Progress ticks */}
+                <div className="mt-5 flex items-center gap-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="inline-block rounded-full"
+                      style={{
+                        width: 6,
+                        height: 6,
+                        backgroundColor: ORANGE,
+                        animation: `sdTick 1s ease-in-out ${i * 0.2}s infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <style>{`
+                  @keyframes sdTick {
+                    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+                    50% { opacity: 1; transform: scale(1.2); }
+                  }
+                `}</style>
+              </div>
             </div>
           )}
 
@@ -700,7 +785,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
           {mode === "result" && verdict && (
             <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
               <div
-                className="rounded-2xl p-5 text-center"
+                className="relative rounded-2xl p-5 text-center overflow-hidden"
                 style={{
                   backgroundColor: verdict.verified
                     ? "rgba(52,199,89,0.08)"
@@ -710,20 +795,43 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                   }`,
                 }}
               >
+                {/* Anime backdrop behind verdict */}
                 <div
-                  className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3"
+                  className="absolute inset-0 pointer-events-none"
                   style={{
-                    backgroundColor: verdict.verified
-                      ? "rgba(52,199,89,0.15)"
-                      : "rgba(255,69,58,0.15)",
+                    backgroundImage: verdict.verified
+                      ? "url(/images/anime_dark_hero_purple.jpg)"
+                      : "url(/images/anime_red_warrior_1785177142520.jpg)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: 0.18,
                   }}
-                >
-                  {verdict.verified ? (
-                    <CheckCircle2 size={32} style={{ color: IOS_GREEN }} />
-                  ) : (
-                    <XCircle size={32} style={{ color: IOS_RED }} />
-                  )}
-                </div>
+                />
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.7) 100%)",
+                  }}
+                />
+                <div className="relative z-10">
+                  <div
+                    className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3"
+                    style={{
+                      backgroundColor: verdict.verified
+                        ? "rgba(52,199,89,0.15)"
+                        : "rgba(255,69,58,0.15)",
+                      boxShadow: verdict.verified
+                        ? "0 0 30px rgba(52,199,89,0.4)"
+                        : "0 0 30px rgba(255,69,58,0.4)",
+                    }}
+                  >
+                    {verdict.verified ? (
+                      <CheckCircle2 size={32} style={{ color: IOS_GREEN }} />
+                    ) : (
+                      <XCircle size={32} style={{ color: IOS_RED }} />
+                    )}
+                  </div>
                 <p
                   className="text-xl font-extrabold tracking-tight"
                   style={{ color: TEXT_PRIMARY }}
@@ -756,6 +864,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                     AI reviewed · {verdict.modelUsed || "Gemini"}
                   </p>
                 )}
+                </div>
               </div>
 
               {verdict.verified ? (
