@@ -22,6 +22,36 @@ interface JournalViewProps {
 type JournalTab = "scripting" | "369" | "gratitude" | "all";
 type Timeframe = "week" | "month" | "all";
 
+/**
+ * Calls the real AI journal-analysis endpoint. Returns the analysis object,
+ * or null if the endpoint fails (caller falls back gracefully).
+ */
+const analyzeJournalWithAI = async (
+  text: string,
+  type: string
+): Promise<JournalEntry["analysis"] | null> => {
+  try {
+    const res = await fetch("/api/manifestation/journal-analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ journalText: text, scriptType: type }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const score = Number(data.coherenceScore);
+    return {
+      coherenceScore: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : 0,
+      primaryFrequency: data.primaryFrequency || "",
+      coherenceAnalysis: data.coherenceAnalysis || "",
+      recalibrationText: data.recalibrationText || "",
+      insight: data.coherenceAnalysis || data.recalibrationText || "",
+    };
+  } catch (err) {
+    console.warn("[journal] AI analysis failed, skipping:", err);
+    return null;
+  }
+};
+
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -202,6 +232,10 @@ export const JournalView: React.FC<JournalViewProps> = ({
       return;
     }
 
+    // Real AI analysis — no more fake random coherence scores.
+    notify("✨ Analyzing your entry with AI…");
+    const analysis = await analyzeJournalWithAI(contentText || title, type);
+
     const payload = {
       type,
       title,
@@ -209,11 +243,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       content: contentText,
       images: attachedImages,
       createdTime: new Date().toISOString(),
-      analysis: {
-        coherenceScore: Math.floor(Math.random() * 15) + 85,
-        primaryFrequency: type === "369" ? "Vortex 369 Hz" : type === "gratitude" ? "Gratitude 528 Hz" : "Alpha 432 Hz",
-        insight: "Your neural pathways are recalibrating to match your intention. Stay rooted in present awareness."
-      }
+      analysis: analysis || undefined,
     };
 
     try {
@@ -230,7 +260,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       setGratitude2("");
       setGratitude3("");
       setEditorCarouselIdx(0);
-      notify("✨ Entry materialized into database!");
+      notify(analysis ? "✨ Entry analyzed & materialized into database!" : "✨ Entry materialized into database!");
     } catch (err) {
       // error handled in useAppLogic
     }
@@ -247,40 +277,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
     })
     .sort((a, b) => new Date(b.createdTime || 0).getTime() - new Date(a.createdTime || 0).getTime());
 
-  // Fallback demo entries if user has none yet
-  const displayEntries: JournalEntry[] = filteredEntries.length > 0 ? filteredEntries : [
-    {
-      id: "demo1",
-      title: "My Abundant Reality",
-      text: "I wake up energized and grateful. I work on my highest vision with sharp focus. Opportunities and wealth naturally flow toward my frequency every single day.",
-      content: "I wake up energized and grateful. I work on my highest vision with sharp focus. Opportunities and wealth naturally flow toward my frequency every single day.",
-      createdTime: new Date().toISOString(),
-      type: "scripting",
-      analysis: {
-        coherenceScore: 94,
-        primaryFrequency: "Alpha 432 Hz",
-        coherenceAnalysis: "High alignment",
-        recalibrationText: "Maintain momentum",
-        insight: "Your subconscious mind accepts present-tense statements as immediate truth."
-      }
-    },
-    {
-      id: "demo2",
-      title: "369 Wealth Code",
-      text: "☀️ MORNING INTENTION (3x):\nI am magnetic to boundless financial abundance.\n\n⚡ AFTERNOON AMPLIFICATION (6x):\nMoney flows to me effortlessly in unexpected ways.\n\n🌙 EVENING LOCK-IN (9x):\nI am grateful for my infinite prosperity.",
-      content: "I am magnetic to boundless financial abundance.",
-      createdTime: new Date(Date.now() - 86400000).toISOString(),
-      type: "369"
-    },
-    {
-      id: "demo3",
-      title: "Daily Gratitude Reflection",
-      text: "✨ Present Blessing: I am grateful for my body, mind, and the technology to build my dreams.\n🌱 Strength in Challenge: Every obstacle is fuel for my awakening.\n🔥 Today's Win: Completed my core daily discipline streak.",
-      content: "I am truly thankful for my health and relentless determination.",
-      createdTime: new Date(Date.now() - 172800000).toISOString(),
-      type: "gratitude"
-    }
-  ];
+  // Real user entries only — no fabricated demo content.
+  const displayEntries: JournalEntry[] = filteredEntries;
 
   // Dynamic Statistics Computation
   const now = new Date();
@@ -353,7 +351,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   // Export Journal
   const exportJournalEntries = () => {
-    const exportData = journalEntries.length > 0 ? journalEntries : displayEntries;
+    const exportData = journalEntries;
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -467,7 +465,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
             </button>
           </div>
           <Journal3DView 
-            entries={journalEntries.length > 0 ? journalEntries : displayEntries}
+            entries={displayEntries}
             onSubmit={async (p) => {
               await submitRichJournal({
                 type: p.type,
@@ -1003,7 +1001,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
               {displayEntries.length === 0 && (
                 <div className="text-center py-12 bg-zinc-950 border border-white/10 rounded-3xl text-white/50">
                   <BookOpen size={28} className="mx-auto mb-2 text-white/30" />
-                  <p className="text-sm font-semibold">No journal entries found matching your search.</p>
+                  <p className="text-sm font-semibold">No journal entries yet.</p>
                   <p className="text-xs text-white/40 mt-1">Start a new entry above to script your reality.</p>
                 </div>
               )}
