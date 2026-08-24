@@ -116,14 +116,14 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
   return (
     <section
       ref={containerRef}
-      className={`py-20 px-4 sm:px-6 ${className}`}
+      className={`py-8 px-4 sm:px-6 ${className}`}
       style={{ borderTop: `1px solid ${HAIRLINE}` }}
     >
       <div className="max-w-5xl mx-auto">
         {/* ============== HEADER ============== */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
+        <div className="text-center max-w-3xl mx-auto mb-5">
           <div
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-[0.25em] uppercase mb-3"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-extrabold tracking-[0.25em] uppercase mb-2"
             style={{
               backgroundColor: "rgba(255,159,10,0.10)",
               border: "1px solid rgba(255,159,10,0.30)",
@@ -133,7 +133,7 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
             ✨ Inside the app
           </div>
           <h2
-            className="text-3xl sm:text-4xl font-bold tracking-tight"
+            className="text-2xl sm:text-3xl font-bold tracking-tight"
             style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
           >
             {title.split(" ").slice(0, -2).join(" ")}{" "}
@@ -141,14 +141,14 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
               {title.split(" ").slice(-2).join(" ")}
             </span>
           </h2>
-          <p className="text-sm mt-3" style={{ color: TEXT_SECONDARY }}>
+          <p className="text-[12px] sm:text-sm mt-2" style={{ color: TEXT_SECONDARY }}>
             {subtitle}
           </p>
         </div>
 
         {/* ============== CAROUSEL STAGE ============== */}
         <div
-          className="relative max-w-[280px] sm:max-w-[320px] mx-auto select-none"
+          className="relative max-w-[200px] sm:max-w-[230px] mx-auto select-none"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
@@ -240,7 +240,7 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
         </div>
 
         {/* ============== LABEL + DESCRIPTION ============== */}
-        <div className="text-center mt-6">
+        <div className="text-center mt-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={`label-${index}`}
@@ -250,14 +250,14 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
               transition={{ duration: 0.3 }}
             >
               <h3
-                className="text-xl sm:text-2xl font-extrabold tracking-tight"
+                className="text-lg sm:text-xl font-extrabold tracking-tight"
                 style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
               >
                 {current.label}
               </h3>
               {current.description && (
                 <p
-                  className="text-[12px] sm:text-[13px] mt-1.5 max-w-md mx-auto leading-relaxed"
+                  className="text-[11px] sm:text-[12px] mt-1 max-w-md mx-auto leading-relaxed"
                   style={{ color: TEXT_SECONDARY }}
                 >
                   {current.description}
@@ -269,7 +269,7 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
 
         {/* ============== PROGRESS BAR ============== */}
         <div
-          className="mt-5 mx-auto max-w-[280px] sm:max-w-[320px] h-1 rounded-full overflow-hidden"
+          className="mt-3 mx-auto max-w-[200px] sm:max-w-[230px] h-1 rounded-full overflow-hidden"
           style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
         >
           <motion.div
@@ -285,7 +285,7 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
         </div>
 
         {/* ============== DOTS ============== */}
-        <div className="mt-4 flex items-center justify-center gap-1.5">
+        <div className="mt-3 flex items-center justify-center gap-1.5">
           {items.map((_, i) => (
             <button
               key={i}
@@ -305,7 +305,7 @@ export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
 
         {/* ============== STEP COUNTER ============== */}
         <div
-          className="text-center mt-3 text-[10px] font-extrabold tracking-widest uppercase"
+          className="text-center mt-2 text-[10px] font-extrabold tracking-widest uppercase"
           style={{ color: TEXT_TERTIARY }}
         >
           {index + 1} / {items.length}
