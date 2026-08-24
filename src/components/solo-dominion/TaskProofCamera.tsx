@@ -250,12 +250,21 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    // Downscale to a proof-friendly size (max 900px long edge) + compress.
+    // Full camera resolution base64 easily exceeds the API body limit
+    // (HTTP 413) and slows Gemini. 900px is more than enough for AI review.
+    const MAX_DIM = 900;
+    const scale = Math.min(1, MAX_DIM / Math.max(video.videoWidth, video.videoHeight));
+    const w = Math.round(video.videoWidth * scale);
+    const h = Math.round(video.videoHeight * scale);
+    canvas.width = w;
+    canvas.height = h;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
     setCapturedImage(dataUrl);
     // Convert dataURL to File
     canvas.toBlob((blob) => {
@@ -264,22 +273,54 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
         setCapturedFile(file);
         setMode("preview");
       }
-    }, "image/jpeg", 0.85);
+    }, "image/jpeg", 0.62);
   }, []);
 
   // ----- FILE UPLOAD FALLBACK -----
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 6 * 1024 * 1024) {
-      setError("Image too large (max 6MB).");
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Image too large (max 8MB).");
       return;
     }
-    setCapturedFile(file);
+    // Compress uploaded image too (downscale + re-encode) so the proof
+    // payload stays small enough for the API (avoids HTTP 413).
     const reader = new FileReader();
     reader.onload = () => {
-      setCapturedImage(reader.result as string);
-      setMode("preview");
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 900;
+        const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setCapturedFile(file);
+          setCapturedImage(reader.result as string);
+          setMode("preview");
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL("image/jpeg", 0.62);
+        canvas.toBlob((blob) => {
+          const compressedFile = blob
+            ? new File([blob], `proof-${Date.now()}.jpg`, { type: "image/jpeg" })
+            : file;
+          setCapturedFile(compressedFile);
+          setCapturedImage(compressed);
+          setMode("preview");
+        }, "image/jpeg", 0.62);
+      };
+      img.onerror = () => {
+        setCapturedFile(file);
+        setCapturedImage(reader.result as string);
+        setMode("preview");
+      };
+      img.src = reader.result as string;
     };
     reader.readAsDataURL(file);
   };

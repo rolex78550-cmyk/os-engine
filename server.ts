@@ -19,6 +19,9 @@ const app = express();
 // `verify` hook to stash it on `req.rawBody` before parsing.
 app.use(
   express.json({
+    // Proof verification sends base64 photo images inline. Default 100kb
+    // limit causes HTTP 413 (Payload Too Large) on real camera photos.
+    limit: "15mb",
     verify: (req: any, _res, buf) => {
       req.rawBody = buf && buf.length ? buf.toString("utf8") : "";
     },

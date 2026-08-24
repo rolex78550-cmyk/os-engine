@@ -34,6 +34,96 @@ export interface RepState {
   lastRepMs: number | null;
   rejected: number;
   metadata: Record<string, any>;
+  /** Anti-cheat quality analysis (optional — added by computeRepQuality). */
+  quality?: RepQuality;
+}
+
+/** Anti-cheat quality score for a rep session. */
+export interface RepQuality {
+  /** 0-100: how "genuine" the rep pattern looks. */
+  score: number;
+  /** Human-readable verdict. */
+  label: "genuine" | "suspicious" | "likely_fake";
+  /** Coefficient of variation of recent rep paces (%), lower = more consistent. */
+  paceCV: number;
+  /** Rejection ratio (0-1): rejected reps / total attempts. */
+  rejectionRatio: number;
+  reasons: string[];
+}
+
+/**
+ * Analyzes a rep session for signs of fake/shaken input.
+ *
+ * Real reps produce a rhythmic, consistent pace (CV ~15-40%).
+ * Fake "phone shaking" produces either:
+ *   - very high pace variance (random jitter), or
+ *   - suspiciously uniform / mechanical timing (CV near 0 with no rejects).
+ * A high rejection ratio also signals sloppy or faked movement.
+ */
+export function computeRepQuality(
+  count: number,
+  rejected: number,
+  paces: number[]
+): RepQuality {
+  const attempts = count + rejected;
+  const rejectionRatio = attempts > 0 ? rejected / attempts : 0;
+  const reasons: string[] = [];
+
+  let paceCV = 0;
+  if (paces.length >= 3) {
+    const mean = paces.reduce((a, b) => a + b, 0) / paces.length;
+    const variance =
+      paces.reduce((a, b) => a + (b - mean) ** 2, 0) / paces.length;
+    const std = Math.sqrt(variance);
+    paceCV = mean > 0 ? Math.round((std / mean) * 100) : 0;
+  }
+
+  // Too few reps to judge → neutral genuine.
+  if (count < 3) {
+    return {
+      score: 60,
+      label: "genuine",
+      paceCV,
+      rejectionRatio: Math.round(rejectionRatio * 100) / 100,
+      reasons: ["Too few reps to fully assess form."],
+    };
+  }
+
+  // High rejection ratio = sloppy / faked.
+  if (rejectionRatio > 0.4) {
+    reasons.push(`${Math.round(rejectionRatio * 100)}% of attempts were rejected (too fast / no movement).`);
+  }
+
+  // Pace consistency signals.
+  if (paces.length >= 4) {
+    if (paceCV > 70) {
+      reasons.push("Rep pace is highly erratic — pattern resembles shaking, not controlled reps.");
+    } else if (paceCV < 6 && rejectionRatio === 0) {
+      reasons.push("Rep pace is suspiciously uniform — possible mechanical/automated motion.");
+    }
+  }
+
+  let score = 100;
+  if (rejectionRatio > 0.4) score -= Math.round(rejectionRatio * 60);
+  if (paces.length >= 4) {
+    if (paceCV > 70) score -= 45;
+    else if (paceCV > 45) score -= 15;
+    if (paceCV < 6 && rejectionRatio === 0) score -= 30;
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let label: RepQuality["label"] = "genuine";
+  if (score < 45 || rejectionRatio > 0.5) label = "likely_fake";
+  else if (score < 70) label = "suspicious";
+
+  return {
+    score,
+    label,
+    paceCV,
+    rejectionRatio: Math.round(rejectionRatio * 100) / 100,
+    reasons,
+  };
 }
 
 // =============================================================
@@ -219,6 +309,7 @@ export class PushupDetector {
       lastRepMs: this.lastRepMs,
       rejected: this.rejected,
       metadata: { calibrated: this.calibrated, baselineZ: this.baselineZ },
+      quality: computeRepQuality(this.count, this.rejected, this.recentPaces),
     };
   }
 
@@ -339,6 +430,7 @@ export class SquatDetector {
       lastRepMs: this.lastRepMs,
       rejected: this.rejected,
       metadata: {},
+      quality: computeRepQuality(this.count, this.rejected, this.recentPaces),
     };
   }
 

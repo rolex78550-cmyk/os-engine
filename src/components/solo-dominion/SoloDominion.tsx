@@ -526,6 +526,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     try {
       // 1) Upload selfie to Firestore (if used)
       let selfieUrl: string | undefined;
+      let selfieForApi: string | undefined;
       if (proofSelfieBase64 && proofTypeUsed === "selfie") {
         const compressed = await compressImageForFirestore(proofSelfieBase64, 800, 0.7);
         const selfieId = `proof_selfie_${proofMission.id}_${user.uid}_${Date.now()}`;
@@ -537,6 +538,9 @@ export const SoloDominion: React.FC<any> = (props) => {
           createdAt: new Date().toISOString(),
         });
         selfieUrl = compressed;
+        // Send the COMPRESSED selfie to the AI API (uncompressed base64
+        // triggers HTTP 413 on large camera photos).
+        selfieForApi = compressed;
       }
 
       // 2) Upload video to Firebase Storage (if used)
@@ -581,7 +585,7 @@ export const SoloDominion: React.FC<any> = (props) => {
           missionDesc: proofMission.desc,
           missionCategory: proofMission.category || "general",
           proofType: proofTypeUsed,
-          selfieBase64: proofTypeUsed === "selfie" ? proofSelfieBase64 : undefined,
+          selfieBase64: proofTypeUsed === "selfie" ? selfieForApi : undefined,
           videoUrl: proofTypeUsed === "video_oath" ? videoUrl : undefined,
           videoBase64: proofTypeUsed === "video_oath" && videoBase64Inline ? videoBase64Inline : undefined,
           textOath: proofTypeUsed === "text_oath" ? proofTextOath : undefined,
@@ -951,6 +955,16 @@ export const SoloDominion: React.FC<any> = (props) => {
       return;
     }
 
+    // Anti-cheat: reject clearly fake / shaken input (erratic pace, high
+    // rejection ratio). Suspicious-but-plausible still passes with a note.
+    const q = state.quality;
+    if (q && q.label === "likely_fake") {
+      showToast(
+        `❌ Movement pattern looks faked (${q.paceCV}% pace variance). Slow down and perform real ${state.type} reps.`
+      );
+      return;
+    }
+
     // Mark mission complete with motion proof data
     const proof: MissionProof = {
       selfieBase64: undefined,
@@ -960,8 +974,12 @@ export const SoloDominion: React.FC<any> = (props) => {
       textOath: undefined,
       proofTypeUsed: "video_oath",
       verified: true,
-      verificationScore: Math.min(100, Math.round((state.count / (mission.targetVal || 100)) * 100)),
-      verificationFeedback: `${state.type} completed: ${state.count} ${isTimeBased ? "seconds" : "reps"}. Form verified via motion sensor.`,
+      verificationScore: q ? q.score : Math.min(100, Math.round((state.count / (mission.targetVal || 100)) * 100)),
+      verificationFeedback: `${state.type} completed: ${state.count} ${isTimeBased ? "seconds" : "reps"}. ${
+        q
+          ? `Motion quality ${q.score}/100 (${q.label}).`
+          : "Form verified via motion sensor."
+      }`,
       submittedAt: new Date().toISOString(),
     };
 
