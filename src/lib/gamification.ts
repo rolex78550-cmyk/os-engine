@@ -300,21 +300,11 @@ export function addXp(
   level: number,
   amount: number
 ): { xp: number; totalXp: number; level: number; leveledUp: boolean; rank: string } {
-  let newXp = xp + amount;
-  let newLevel = level;
-  let newTotalXp = totalXp + amount;
-  let leveledUp = false;
-
-  while (true) {
-    const xpNeeded = newLevel * 100;
-    if (newXp >= xpNeeded) {
-      newXp -= xpNeeded;
-      newLevel += 1;
-      leveledUp = true;
-    } else {
-      break;
-    }
-  }
+  // Unified level curve: level = floor(totalXp / 1000) + 1 (single source of truth).
+  const newXp = xp + amount;
+  const newTotalXp = totalXp + amount;
+  const newLevel = Math.floor(newTotalXp / 1000) + 1;
+  const leveledUp = newLevel > level;
 
   const rank = getLevelTitle(newLevel).name;
   return { xp: newXp, totalXp: newTotalXp, level: newLevel, leveledUp, rank };

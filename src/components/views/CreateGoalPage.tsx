@@ -20,7 +20,6 @@ export interface GoalFormData {
   title: string;
   description: string;
   rank: "E" | "D" | "C" | "B" | "A";
-  xp: number;
   category: string;
   icon: string;
   deadline: string;
@@ -31,7 +30,6 @@ const DEFAULT_FORM: GoalFormData = {
   title: "",
   description: "",
   rank: "C",
-  xp: 200,
   category: "Lifestyle",
   icon: "🎯",
   deadline: "",
@@ -336,29 +334,8 @@ export const CreateGoalPage: React.FC<CreateGoalPageProps> = ({
           </div>
         </FormField>
 
-        {/* XP + Deadline row */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <FormField label="XP Reward">
-            <input
-              type="number"
-              value={form.xp}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  xp: Math.max(50, Number(e.target.value) || 0),
-                })
-              }
-              min={50}
-              step={50}
-              className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-              style={{
-                backgroundColor: "#000",
-                border: `1px solid ${HAIRLINE}`,
-                color: TEXT_PRIMARY,
-                fontFamily: "inherit",
-              }}
-            />
-          </FormField>
+        {/* Deadline */}
+        <div className="mb-4">
           <FormField label="Deadline">
             <input
               type="text"
@@ -418,13 +395,8 @@ export const CreateGoalPage: React.FC<CreateGoalPageProps> = ({
           >
             Preview
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-2 gap-2 text-center">
             <PreviewStat label="Rank" value={form.rank} color={ORANGE} />
-            <PreviewStat
-              label="XP"
-              value={form.xp.toString()}
-              color={ORANGE}
-            />
             <PreviewStat
               label="Icon"
               value={form.icon}

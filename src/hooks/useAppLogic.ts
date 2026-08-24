@@ -511,10 +511,10 @@ export function useAppLogic() {
     const newCoins = rewards.coins;
     const newXp = rewards.xp;
 
-    // Update local state instantly (dopamine)
+    // Update local state instantly (dopamine) — functional update, no stale closure
     setUserStats(newStats);
     setCoins(newCoins);
-    setProfile(prev => ({ ...prev, xp: newXp, totalXp: (prev.totalXp || 0) + quest.xpValue }));
+    setProfile(prev => ({ ...prev, xp: (prev.xp || 0) + quest.xpValue, totalXp: (prev.totalXp || 0) + quest.xpValue }));
 
     // Calculate new rank
     const newRank = calculateRank(newXp, newStats);
@@ -522,15 +522,16 @@ export function useAppLogic() {
       setCurrentRank(newRank);
     }
 
-    // Save to Firestore (fast merge)
+    // Save to Firestore — SINGLE atomic increment (race-safe, no double count).
+    // onSnapshot (FirebaseProvider) re-renders the UI with the true value.
     try {
       await setDoc(doc(db, "users", user.uid), {
         stats: newStats,
         coins: newCoins,
-        xp: newXp,
-        totalXp: (profile.totalXp || 0) + quest.xpValue,
+        xp: increment(quest.xpValue),
+        totalXp: increment(quest.xpValue),
         rank: newRank,
-        level: Math.floor(newXp / 80) + 1,
+        level: Math.floor(((profile.totalXp || 0) + quest.xpValue) / 1000) + 1,
       }, { merge: true });
     } catch (e) {
       console.warn("Quest reward save skipped (non-blocking)");

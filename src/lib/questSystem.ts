@@ -381,5 +381,6 @@ export function getNextTier(level: number): CharacterTier | null {
 
 /** XP needed to reach the next level from a given level. */
 export function xpForNextLevel(level: number): number {
-  return level * 500;
+  // Unified flat curve: 1000 XP per level (matches level = floor(totalXp/1000)+1).
+  return 1000;
 }

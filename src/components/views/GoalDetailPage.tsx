@@ -36,7 +36,6 @@ interface GoalDetailData {
   description?: string;
   category?: string;
   rank?: string;
-  xp?: number;
   progress?: number;
   icon?: string;
   jpLabel?: string;
@@ -345,7 +344,6 @@ export const GoalDetailPage: React.FC<GoalDetailPageProps> = ({
           {/* Meta row */}
           <div className="flex items-center gap-3 flex-wrap justify-center">
             {goal.category && <MetaPill label="Category" value={goal.category} />}
-            {goal.xp && <MetaPill label="XP" value={goal.xp.toString()} color={ORANGE} />}
             {goal.deadline && <MetaPill label="Due" value={goal.deadline} />}
           </div>
         </div>

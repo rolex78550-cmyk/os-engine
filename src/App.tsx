@@ -12,7 +12,6 @@ import { ManifestOnboarding } from "./components/ManifestOnboarding";
 
 // Views
 import { AffirmationHub } from "./components/views/AffirmationHub";
-import { GoalsView } from "./components/views/GoalsView";
 import { GoalsHub } from "./components/views/GoalsHub";
 import { JournalView } from "./components/views/JournalView";
 import { ProfileView } from "./components/views/ProfileView";
@@ -119,31 +118,17 @@ export default function App() {
         // ============== FLAT 50 XP CAP (once per day) ==============
         if (flips >= 10 && rewarded < 1) {
           const toAward = 50; // flat 50 XP, no more, no less
-          // 1) Update totalXp + xp + level in Firestore + local state
           const currentTotalXp =
             Number(profile?.totalXp) || Number(profile?.xp) || 0;
-          const currentXp = Number(profile?.xp) || currentTotalXp;
           const newTotalXp = currentTotalXp + toAward;
-          const newXp = currentXp + toAward;
           const newLevel = Math.floor(newTotalXp / 1000) + 1;
           const oldLevel = Number(profile?.level) || 1;
           const leveledUp = newLevel > oldLevel;
           console.log(
             `[affirmation bridge] awarding ${toAward} XP (daily cap): totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
           );
-          if (updateUserProfile) {
-            try {
-              await updateUserProfile({
-                totalXp: newTotalXp,
-                xp: newXp,
-                level: newLevel,
-              } as any);
-              console.log("[affirmation bridge] updateUserProfile OK");
-            } catch (e) {
-              console.warn("[affirmation bridge] updateUserProfile failed:", e);
-            }
-          }
-          // 1b) SAFETY NET: direct Firestore write via setDoc(merge:true).
+          // Single atomic increment — race-safe, no double count. onSnapshot
+          // (FirebaseProvider) re-renders the UI with the true value.
           if (user?.uid) {
             try {
               await setDoc(
@@ -157,24 +142,18 @@ export default function App() {
                 },
                 { merge: true }
               );
-              console.log("[affirmation bridge] direct Firestore write OK");
+              console.log("[affirmation bridge] atomic XP write OK");
             } catch (e) {
               console.warn("[affirmation bridge] direct Firestore write failed:", e);
             }
           }
-          // 1c) INSTANT UI UPDATE: directly update the FirebaseProvider
-          // profile state so the UI reflects the new XP immediately.
-          if (setFbProfile && fbProfile) {
+          // Recompute RPG score / rank / coins so rank + coins stay in sync.
+          if (recordXPGain) {
             try {
-              setFbProfile({
-                ...fbProfile,
-                totalXp: newTotalXp,
-                xp: newXp,
-                level: newLevel,
-              });
-              console.log("[affirmation bridge] setFbProfile OK");
+              await recordXPGain(toAward, newLevel, leveledUp);
+              console.log("[affirmation bridge] recordXPGain OK");
             } catch (e) {
-              console.warn("[affirmation bridge] setFbProfile failed:", e);
+              console.warn("[affirmation bridge] recordXPGain failed:", e);
             }
           }
           // Mark as rewarded for today (cap = 1, max one 50 XP per day)

@@ -626,11 +626,11 @@ export const SoloDominion: React.FC<any> = (props) => {
         const ref = doc(db, "users", user.uid, "solo_missions", today);
         await setDoc(ref, { missions: updated, date: today }, { merge: true });
 
-        // Award XP and boss damage
+        // Award XP and boss damage — atomic increment (no stale-closure double count)
         const xpGain = proofMission.xp;
         await setDoc(doc(db, "users", user.uid), {
-          xp: (profile.xp || 0) + xpGain,
-          totalXp: (profile.totalXp || 0) + xpGain,
+          xp: increment(xpGain),
+          totalXp: increment(xpGain),
         }, { merge: true });
         if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
         attackBoss(100);
@@ -687,9 +687,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // User Stats & XP — always read from liveProfile for fresh data
   const level = Number(profileData?.level) || 1;
-  const currentXP = Number(profileData?.xp) || 0;
-  const xpNeeded = level * 500;
-  const xpPercentage = Math.min(100, Math.round((currentXP % 500) / 500 * 100));
+  const totalXP = Number(profileData?.totalXp) || Number(profileData?.xp) || 0;
+  const xpNeeded = 1000;
+  const xpPercentage = Math.min(100, Math.round(((totalXP % 1000) / 1000) * 100));
 
   // --- WARRIOR CHARACTER EVOLUTION STAGES ---
   const getWarriorStage = (lvl: number) => {
@@ -805,8 +805,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       
       const xpGain = 250;
       await setDoc(doc(db, "users", user.uid), {
-        xp: (profile?.xp || 0) + xpGain,
-        totalXp: (profile?.totalXp || 0) + xpGain,
+        xp: increment(xpGain),
+        totalXp: increment(xpGain),
       }, { merge: true });
       if (recordXPGain) await recordXPGain(xpGain, profile?.level || 1, false);
     }
@@ -984,8 +984,8 @@ export const SoloDominion: React.FC<any> = (props) => {
     // Award XP
     const xpGain = mission.xp;
     await setDoc(doc(db, "users", user.uid), {
-      xp: (profile.xp || 0) + xpGain,
-      totalXp: (profile.totalXp || 0) + xpGain,
+      xp: increment(xpGain),
+      totalXp: increment(xpGain),
     }, { merge: true });
     if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
     attackBoss(100);
@@ -1039,8 +1039,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       if (isNowComplete) {
         const xpGain = mission.xp;
         await setDoc(doc(db, "users", user.uid), {
-          xp: (profile.xp || 0) + xpGain,
-          totalXp: (profile.totalXp || 0) + xpGain,
+          xp: increment(xpGain),
+          totalXp: increment(xpGain),
         }, { merge: true });
         showToast(`🎉 Mission Completed! +${xpGain} XP`);
       } else {
@@ -1103,8 +1103,8 @@ export const SoloDominion: React.FC<any> = (props) => {
       await setDoc(doc(db, "users", user.uid, "solo_streaks", "main"), { streaks: updated }, { merge: true });
       const bonus = Math.floor(updated[idx].xp * (pctDelta / 100));
       await setDoc(doc(db, "users", user.uid), {
-        xp: (profile.xp || 0) + bonus,
-        totalXp: (profile.totalXp || 0) + bonus,
+        xp: increment(bonus),
+        totalXp: increment(bonus),
       }, { merge: true });
 
       showToast(`🔥 Streak Advanced to ${newPct}%! (+${bonus} XP)`);
@@ -1238,20 +1238,24 @@ export const SoloDominion: React.FC<any> = (props) => {
       const rewardXP = 100;
       await setDoc(doc(db, "users", user.uid, "solo_claims", today), { claimed: true, date: today }, { merge: true });
       await setDoc(doc(db, "users", user.uid), {
-        xp: (profile.xp || 0) + rewardXP,
-        totalXp: (profile.totalXp || 0) + rewardXP,
+        xp: increment(rewardXP),
+        totalXp: increment(rewardXP),
       }, { merge: true });
 
       showToast(`👑 Daily Conquest Reward Claimed! +100 XP`);
     } catch (e) {}
   };
 
+  // Real leaderboard from Firestore only — no fabricated "Zenith Monarch" demo data.
+  // When empty (first users / no peers yet), show the real user's own true entry.
   const leaderboardPreview = leaders.length > 0 ? leaders : [
-    { rank: 1, name: "Zenith Monarch", level: "36 • Monarch", xp: 2125299, isYou: false },
-    { rank: 2, name: `${user?.displayName || "as artist"} (YOU)`, level: `${level} • Hunter`, xp: profile?.xp || 1255518, isYou: true },
-    { rank: 3, name: "Shadow Slayer", level: "22 • Hunter", xp: 985114, isYou: false },
-    { rank: 4, name: "Valkyrie Prime", level: "19 • Knight", xp: 742100, isYou: false },
-    { rank: 5, name: "Astra Master", level: "15 • Scout", xp: 512000, isYou: false },
+    {
+      rank: 1,
+      name: user?.displayName || profile?.name || "You",
+      level: `${level} • Hunter`,
+      xp: Number(profile?.totalXp) || Number(profile?.xp) || 0,
+      isYou: true,
+    },
   ];
 
   // Filter leaderboard by tab — for full leaderboard modal
@@ -1554,67 +1558,34 @@ export const SoloDominion: React.FC<any> = (props) => {
         taskId={trackingTask}
         onBack={() => setDominionView("tasks")}
         onComplete={async () => {
-          // ============== SAVE XP TO FIRESTORE (DYNAMIC) ==============
+          // ============== SAVE XP TO FIRESTORE (SINGLE ATOMIC WRITE) ==============
           try {
-            // 1. Update profile XP + level
             const currentTotalXp =
               Number(profile.totalXp) || Number(profile.xp) || 0;
-            const currentXp = Number(profile.xp) || currentTotalXp;
             const newTotalXp = currentTotalXp + xpReward;
-            const newXp = currentXp + xpReward;
             const newLevel = Math.floor(newTotalXp / 1000) + 1;
             const oldLevel = Number(profile.level) || 1;
             const leveledUp = newLevel > oldLevel;
             console.log(
               `[task complete] awarding ${xpReward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
             );
-            // 2. Persist via useAppLogic.updateUserProfile (writes to Firestore + local state)
-            if (updateUserProfile) {
-              try {
-                await updateUserProfile({
-                  totalXp: newTotalXp,
-                  xp: newXp,
-                  level: newLevel,
-                } as any);
-                console.log("[task complete] updateUserProfile OK");
-              } catch (e) {
-                console.warn("[task complete] updateUserProfile failed:", e);
-              }
-            }
-            // 3. SAFETY NET: direct Firestore write with increment (atomic)
+            // Single atomic increment — race-safe, no double count. onSnapshot
+            // (FirebaseProvider) re-renders the UI with the true value.
             if (user?.uid) {
-              try {
-                await setDoc(
-                  doc(db, "users", user.uid),
-                  {
-                    totalXp: increment(xpReward),
-                    xp: increment(xpReward),
-                    level: newLevel,
-                    lastTaskAward: serverTimestamp(),
-                    updatedAt: Date.now(),
-                  },
-                  { merge: true }
-                );
-                console.log("[task complete] direct Firestore write OK");
-              } catch (e) {
-                console.warn("[task complete] direct Firestore write failed:", e);
-              }
-            }
-            // 3b) INSTANT UI UPDATE: directly update FirebaseProvider profile
-            if (setFbProfile && profile) {
-              try {
-                setFbProfile({
-                  ...profile,
-                  totalXp: newTotalXp,
-                  xp: newXp,
+              await setDoc(
+                doc(db, "users", user.uid),
+                {
+                  totalXp: increment(xpReward),
+                  xp: increment(xpReward),
                   level: newLevel,
-                });
-                console.log("[task complete] setFbProfile OK");
-              } catch (e) {
-                console.warn("[task complete] setFbProfile failed:", e);
-              }
+                  lastTaskAward: serverTimestamp(),
+                  updatedAt: Date.now(),
+                },
+                { merge: true }
+              );
+              console.log("[task complete] atomic XP write OK");
             }
-            // 4. Recompute RPG score / rank / coins via recordXPGain
+            // Recompute RPG score / rank / coins
             if (recordXPGain) {
               try {
                 await recordXPGain(xpReward, newLevel, leveledUp);
@@ -1623,7 +1594,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 console.warn("[task complete] recordXPGain failed:", e);
               }
             }
-            // 5. Trigger SFX
+            // Trigger SFX
             try {
               window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
               window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
@@ -1886,7 +1857,7 @@ export const SoloDominion: React.FC<any> = (props) => {
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-2.5 text-[10px]" style={{ color: TEXT_SECONDARY }}>
-                <span className="tabular-nums">{currentXP} / {xpNeeded} XP total</span>
+                <span className="tabular-nums">{totalXP} / {xpNeeded} XP total</span>
                 <span>Quests · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{todayCompletedCount}</span> / {quests.length}</span>
                 <span>Daily · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{dailyXpEarned}</span> XP</span>
               </div>

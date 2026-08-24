@@ -23,7 +23,6 @@ export interface GoalItem {
   title: string;
   description: string;
   rank: "E" | "D" | "C" | "B" | "A";
-  xp: number;
   progress: number;
   image: string;
   jpLabel: string;
@@ -40,7 +39,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "Dream House",
     description: "Save and build the home of your dreams. 3-year plan with monthly milestones.",
     rank: "B",
-    xp: 300,
     progress: 60,
     image: "/images/goal_house.jpg",
     jpLabel: "理想の家",
@@ -55,7 +53,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "6 Pack in 6 Months",
     description: "Build your dream body. Daily workouts + strict nutrition tracking.",
     rank: "C",
-    xp: 250,
     progress: 45,
     image: "/images/goal_jinwoo.jpg",
     jpLabel: "肉体改造",
@@ -70,7 +67,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "Launch a SaaS",
     description: "Build and ship your software product. MVP, beta, public launch in 90 days.",
     rank: "A",
-    xp: 500,
     progress: 25,
     image: "/images/goal_jinwoo.jpg",
     jpLabel: "起業",
@@ -85,7 +81,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "Financial Freedom",
     description: "Build wealth through smart investments. Index funds + side income streams.",
     rank: "A",
-    xp: 450,
     progress: 50,
     image: "/images/goal_house.jpg",
     jpLabel: "経済的自由",
@@ -100,7 +95,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "Read 50 Books",
     description: "Read 50 high-value books this year. One book every 7 days, no skipping.",
     rank: "C",
-    xp: 200,
     progress: 70,
     image: "/images/goal_jinwoo.jpg",
     jpLabel: "読書",
@@ -115,7 +109,6 @@ const FALLBACK_GOALS: GoalItem[] = [
     title: "Learn Japanese",
     description: "Master conversational Japanese. Daily Anki + weekly tutor sessions.",
     rank: "B",
-    xp: 350,
     progress: 30,
     image: "/images/goal_house.jpg",
     jpLabel: "日本語",
@@ -190,7 +183,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     title: string;
     description: string;
     rank: "E" | "D" | "C" | "B" | "A";
-    xp: number;
     category: string;
     icon: string;
     deadline: string;
@@ -199,7 +191,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
     title: "",
     description: "",
     rank: "C",
-    xp: 200,
     category: "Lifestyle",
     icon: "🎯",
     deadline: "",
@@ -242,7 +233,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
       title: goal.title,
       description: goal.description,
       rank: goal.rank,
-      xp: goal.xp,
       progress: goal.progress,
       category: goal.category || "Lifestyle",
       icon: goal.icon,
@@ -276,7 +266,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
         formData.description.trim() ||
         `Achieve your ${formData.category.toLowerCase()} goal.`,
       rank: formData.rank,
-      xp: formData.xp,
       progress: formData.progress,
       image: FALLBACK_GOALS[Math.floor(Math.random() * FALLBACK_GOALS.length)]
         .image,
@@ -321,7 +310,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
 
   // Stats
   const activeCount = goals.length;
-  const totalXp = goals.reduce((sum, g) => sum + Math.round((g.xp * g.progress) / 100), 0);
   const avgProgress = goals.length > 0
     ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / goals.length)
     : 0;
@@ -446,7 +434,7 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
             style={{ color: TEXT_SECONDARY, maxWidth: "400px" }}
           >
             Forge your <span style={{ color: TEXT_PRIMARY, fontWeight: 600 }}>future identity</span>.
-            Set goals, complete milestones, claim XP, ascend the ranks.
+            Set goals and complete milestones to turn desire into reality.
           </p>
 
           {/* Create New Goal button — RED, right under heading */}
@@ -468,12 +456,11 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
       {/* ===================== STATS STRIP ===================== */}
       <section className="px-5 pt-2 pb-4">
         <div
-          className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl"
+          className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl"
           style={{ backgroundColor: HAIRLINE, border: `1px solid ${HAIRLINE}` }}
         >
           {[
             { label: "Active", val: activeCount.toString(), icon: "◆", color: ORANGE },
-            { label: "Earned", val: totalXp.toLocaleString(), icon: "XP", color: IOS_GREEN },
             { label: "Progress", val: `${avgProgress}%`, icon: "▲", color: ORANGE },
           ].map((s) => (
             <div
@@ -523,7 +510,6 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
         <div className="space-y-3">
           {goals.map((goal) => {
             const isHovered = hovered === goal.id;
-            const earnedXp = Math.round((goal.xp * goal.progress) / 100);
             const filledBars = Math.round((goal.progress / 100) * 28);
 
             return (
@@ -627,30 +613,8 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
                   </div>
                 </div>
 
-                {/* Right: XP earned + arrow */}
+                {/* Right: arrow */}
                 <div className="flex flex-col items-end justify-center shrink-0 pl-1">
-                  <span
-                    className="text-[9px] font-bold tracking-wider uppercase"
-                    style={{ color: TEXT_TERTIARY }}
-                  >
-                    Earned
-                  </span>
-                  <span
-                    className="font-extrabold leading-none tabular-nums"
-                    style={{
-                      color: ORANGE,
-                      fontSize: 20,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    +{earnedXp}
-                  </span>
-                  <span
-                    className="text-[9px] mt-0.5 font-bold tracking-wider uppercase"
-                    style={{ color: TEXT_TERTIARY }}
-                  >
-                    /{goal.xp} XP
-                  </span>
                   <span
                     className="mt-1.5 text-[14px]"
                     style={{ color: TEXT_TERTIARY }}
@@ -814,44 +778,7 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
                 )}
             </div>
 
-            {/* XP + actions */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div
-                className="rounded-xl p-3"
-                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
-              >
-                <div
-                  className="text-[9px] font-bold uppercase tracking-widest"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  XP Earned
-                </div>
-                <div
-                  className="text-[18px] font-extrabold tabular-nums mt-0.5"
-                  style={{ color: ORANGE, letterSpacing: "-0.02em" }}
-                >
-                  +{Math.round((selectedGoal.xp * selectedGoal.progress) / 100)}
-                </div>
-              </div>
-              <div
-                className="rounded-xl p-3"
-                style={{ backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${HAIRLINE}` }}
-              >
-                <div
-                  className="text-[9px] font-bold uppercase tracking-widest"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Total XP
-                </div>
-                <div
-                  className="text-[18px] font-extrabold tabular-nums mt-0.5"
-                  style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}
-                >
-                  {selectedGoal.xp}
-                </div>
-              </div>
-            </div>
-
+            {/* Actions */}
             <div className="flex gap-2">
               <button
                 onClick={() => {
