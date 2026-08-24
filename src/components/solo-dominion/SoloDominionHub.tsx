@@ -74,7 +74,7 @@ export const SoloDominionHub: React.FC<HubProps> = ({
   return (
     <div
       className="relative w-full overflow-hidden"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== HERO SECTION ===================== */}
       <section

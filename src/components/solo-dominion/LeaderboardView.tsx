@@ -151,7 +151,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== TOP BAR ===================== */}
       <div

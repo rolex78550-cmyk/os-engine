@@ -399,7 +399,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.3 }}
-        className="w-full min-h-screen flex flex-col"
+        className="w-full min-h-dvh flex flex-col"
         style={{ backgroundColor: SURFACE }}
       >
           {/* ============== HEADER ============== */}

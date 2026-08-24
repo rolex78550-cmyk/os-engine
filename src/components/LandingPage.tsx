@@ -142,7 +142,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
 
   return (
     <div
-      className="min-h-screen text-white overflow-x-hidden antialiased"
+      className="min-h-dvh text-white overflow-x-hidden antialiased"
       style={{ backgroundColor: "#000", fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif" }}
     >
 

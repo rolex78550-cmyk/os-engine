@@ -35,7 +35,7 @@ export const DominionFeatureView: React.FC<FeatureViewProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== HERO HEADER ===================== */}
       <section className="relative w-full" style={{ minHeight: 200 }}>

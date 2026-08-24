@@ -331,7 +331,7 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
 
   return (
     <div
-      className="min-h-screen relative font-sans flex flex-col"
+      className="min-h-dvh relative font-sans flex flex-col"
       style={{ backgroundColor: "#000", color: TEXT_PRIMARY }}
     >
       {/* =================== FULL OPACITY BG IMAGE (JINWOO warrior sunset) =================== */}
@@ -390,7 +390,6 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
       {/* =================== MAIN: TAP-TO-CHANGE CARD =================== */}
       <div
         className="relative z-10 flex-1 flex items-center justify-center px-4 py-2"
-        style={{ minHeight: "calc(100vh - 200px)" }}
       >
         <div
           className="w-full max-w-[420px] cursor-pointer"
@@ -406,7 +405,8 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
               className="relative w-full overflow-hidden"
               style={{
                 aspectRatio: "9 / 14",
-                minHeight: 540,
+                maxHeight: "min(58dvh, 540px)",
+                width: "100%",
                 backgroundColor: "#0a0a0a",
                 borderRadius: 24,
                 border: `1px solid ${HAIRLINE_STRONG}`,

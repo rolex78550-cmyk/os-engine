@@ -326,7 +326,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh", color: TEXT_PRIMARY }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh", color: TEXT_PRIMARY }}
     >
       {/* ===================== ANIME BACKGROUND ===================== */}
       <div

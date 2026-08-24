@@ -383,7 +383,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== TOP BAR ===================== */}
       <div

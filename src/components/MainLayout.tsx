@@ -80,7 +80,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   // Show subscribe CTA for ANY user who hasn't paid (trial, expired, free, brand new)
   const showSubscribeCTA = !hasPaidAccess;
   return (
-    <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-28 md:pb-6 font-sans antialiased">
+    <div className="relative min-h-dvh bg-black text-white selection:bg-white/20 pb-28 md:pb-6 font-sans antialiased">
       <ParticleBackground />
       <UniversePortalAnimation event={universePortalEvent} onComplete={() => setUniversePortalEvent(null)} />
 
@@ -110,7 +110,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      <div className={`relative max-w-[1550px] mx-auto px-2 sm:px-3.5 lg:px-4 pb-20 lg:pb-6 z-[40] ${activeTab === "dashboard" || activeTab === "streaks" ? "pt-1.5 sm:pt-3" : "pt-2.5 sm:pt-4"}`}>
+      <div className={`relative max-w-[1550px] mx-auto px-4 sm:px-3.5 lg:px-4 pb-20 lg:pb-6 z-[40] ${activeTab === "dashboard" || activeTab === "streaks" ? "pt-1.5 sm:pt-3" : "pt-2.5 sm:pt-4"}`}>
         <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-5 items-start">
           
           {/* LEFT SIDEBAR — EXACT match to reference image */}
@@ -248,6 +248,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 backgroundColor: "rgba(10,11,16,0.72)",
                 backdropFilter: "saturate(180%) blur(24px)",
                 WebkitBackdropFilter: "saturate(180%) blur(24px)",
+                paddingTop: "max(0.625rem, env(safe-area-inset-top))",
               }}
             >
               {/* App Brand Header — iOS clean style */}
@@ -439,16 +440,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <nav
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[120] flex items-center justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
         style={{
-          backgroundColor: "#ffffff",
-          borderTop: "1px solid rgba(0,0,0,0.08)",
-          boxShadow:
-            "0 -8px 24px rgba(0,0,0,0.06), 0 -1px 0 rgba(0,0,0,0.04)",
+          backgroundColor: "rgba(10,10,12,0.85)",
+          backdropFilter: "saturate(180%) blur(20px)",
+          WebkitBackdropFilter: "saturate(180%) blur(20px)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 -8px 24px rgba(0,0,0,0.5)",
         }}
       >
         {[
           { id: "dashboard", label: "Affirm", icon: Sparkles },
           { id: "goals", label: "Goals", icon: Target },
-          { id: "streaks", label: "Solo", icon: Flame },
+          { id: "streaks", label: "Dominion", icon: Flame },
           { id: "journal", label: "Journal", icon: BookOpen },
           { id: "profile", label: "Profile", icon: User },
         ].map((item) => {
@@ -481,19 +483,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                   strokeWidth={isActive ? 2.4 : 1.8}
                   className="transition-all duration-300"
                   style={{
-                    color: isActive ? "#ff9f0a" : "#0a0a0a",
+                    color: isActive ? "#ff9f0a" : "rgba(255,255,255,0.55)",
                     transform: isActive ? "scale(1.06)" : "scale(1)",
                   }}
                 />
                 <span
-                  className="text-[10px] leading-none transition-colors duration-300 tracking-tight"
+                  className="text-[11px] leading-none transition-colors duration-300 tracking-tight"
                   style={{
-                    color: isActive ? "#ff9f0a" : "rgba(10,10,10,0.55)",
+                    color: isActive ? "#ff9f0a" : "rgba(255,255,255,0.55)",
                     fontWeight: isActive ? 700 : 500,
                     letterSpacing: "-0.005em",
                   }}
                 >
-                  {item.id === "streaks" ? "Solo" : item.label}
+                  {item.label}
                 </span>
               </div>
             </button>

@@ -243,7 +243,7 @@ export const PushupMotionTracker: React.FC<PushupMotionTrackerProps> = ({
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
       }}
     >
-      <div className="w-full flex flex-col min-h-screen">
+      <div className="w-full flex flex-col min-h-dvh">
 
         {/* HEADER */}
         <div

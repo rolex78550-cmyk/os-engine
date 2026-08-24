@@ -181,7 +181,7 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
     return (
       <div
         className="relative w-full"
-        style={{ backgroundColor: "#000", minHeight: "100vh" }}
+        style={{ backgroundColor: "#000", minHeight: "100dvh" }}
       >
         {/* Top bar with back */}
         <div
@@ -620,7 +620,7 @@ const TrackingShell: React.FC<{
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* Subtle hero image at top */}
       <div

@@ -392,7 +392,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   };
 
   return (
-    <div className="text-white min-h-screen">
+    <div className="text-white min-h-dvh">
       
       {/* PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

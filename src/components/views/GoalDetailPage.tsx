@@ -222,7 +222,7 @@ export const GoalDetailPage: React.FC<GoalDetailPageProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== HERO SECTION ===================== */}
       <section className="relative w-full" style={{ minHeight: 360 }}>

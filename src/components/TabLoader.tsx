@@ -4,7 +4,7 @@ import React from 'react';
 // Shows a clear message + force continue button
 export function TabLoader() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6">
+    <div className="flex flex-col items-center justify-center min-h-dvh bg-black text-white p-6">
       <div className="w-8 h-8 border-2 border-white/20 border-t-amber-400 rounded-full animate-spin mb-6" />
       
       <div className="text-white/70 text-sm font-mono tracking-[3px] uppercase mb-2">

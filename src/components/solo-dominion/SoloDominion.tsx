@@ -1985,7 +1985,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         >
           <div
             className="rounded-3xl w-full max-w-md shadow-2xl my-auto sd-modal-card flex flex-col"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(720px, calc(100vh - 32px))" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(720px, calc(100dvh - 32px))" }}
           >
             <div className="sticky top-0 z-10 rounded-t-3xl px-4 sm:px-5 py-3 flex items-center gap-3 shrink-0 border-b" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
               <div
@@ -2328,7 +2328,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         >
           <div
             className="bg-white text-black w-full sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col my-auto sd-modal-card"
-            style={{ border: "1px solid #000", maxHeight: "min(720px, calc(100vh - 32px))" }}
+            style={{ border: "1px solid #000", maxHeight: "min(720px, calc(100dvh - 32px))" }}
           >
             <div
               className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b flex items-start gap-3 shrink-0"
@@ -2559,7 +2559,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
           <div
             className="rounded-3xl w-full max-w-lg p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))", overflowY: "auto" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100dvh - 32px))", overflowY: "auto" }}
           >
             <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
               <div className="flex items-center gap-2">
@@ -2612,7 +2612,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         >
           <div
             className="rounded-3xl w-full max-w-lg shadow-2xl relative my-auto sd-modal-card flex flex-col"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100dvh - 32px))" }}
           >
             <div className="sticky top-0 z-10 rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
               <div className="flex-1 min-w-0">
@@ -2675,7 +2675,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         >
           <div
             className="rounded-3xl w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(640px, calc(100dvh - 32px))" }}
           >
             <div className="sticky top-0 z-10 rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ backgroundColor: SURFACE, borderColor: HAIRLINE }}>
               <div className="flex-1 min-w-0">
@@ -2739,7 +2739,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         <div className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
           <div
             className="rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl my-auto sd-modal-card"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(520px, calc(100vh - 32px))", overflowY: "auto" }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, maxHeight: "min(520px, calc(100dvh - 32px))", overflowY: "auto" }}
           >
             <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: HAIRLINE }}>
               <div className="flex items-center gap-2">
@@ -2801,7 +2801,7 @@ export const SoloDominion: React.FC<any> = (props) => {
         <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }}>
           <div
             className="bg-[#0A0612] border-2 rounded-3xl w-full max-w-md shadow-2xl relative my-auto sd-modal-card flex flex-col"
-            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "min(640px, calc(100vh - 32px))" }}
+            style={{ borderColor: selectedCard.borderGlow, boxShadow: `0 0 40px ${selectedCard.borderGlow}`, maxHeight: "min(640px, calc(100dvh - 32px))" }}
           >
             {/* STICKY HEADER */}
             <div className="sticky top-0 z-10 bg-[#0A0612] rounded-t-3xl border-b px-4 sm:px-5 py-3 flex items-start gap-3 shrink-0" style={{ borderColor: selectedCard.borderGlow }}>

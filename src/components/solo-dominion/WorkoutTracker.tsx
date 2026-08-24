@@ -260,7 +260,7 @@ export const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
       }}
     >
-      <div className="w-full flex flex-col min-h-screen">
+      <div className="w-full flex flex-col min-h-dvh">
 
         {/* HEADER */}
         <div

@@ -363,12 +363,12 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
   return (
     <div
       className="relative w-full"
-      style={{ backgroundColor: "#000", minHeight: "100vh" }}
+      style={{ backgroundColor: "#000", minHeight: "100dvh" }}
     >
       {/* ===================== HERO SECTION ===================== */}
       <section
         className="relative w-full"
-        style={{ minHeight: "min(420px, 55vh)" }}
+        style={{ minHeight: "min(320px, 42dvh)" }}
       >
         {/* Jinwoo background image */}
         <div
@@ -630,14 +630,14 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
                       e.stopPropagation();
                       handleEditClick(goal);
                     }}
-                    className="p-1 rounded active:scale-90"
+                    className="p-2.5 rounded active:scale-90"
                     style={{
                       backgroundColor: "rgba(0,0,0,0.5)",
                       color: TEXT_SECONDARY,
                     }}
                     aria-label="Edit goal"
                   >
-                    <Edit3 size={11} />
+                    <Edit3 size={15} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -646,14 +646,14 @@ export const GoalsHub: React.FC<GoalsHubProps> = ({
                         handleDeleteGoal(goal);
                       }
                     }}
-                    className="p-1 rounded active:scale-90"
+                    className="p-2.5 rounded active:scale-90"
                     style={{
                       backgroundColor: "rgba(0,0,0,0.5)",
                       color: IOS_RED,
                     }}
                     aria-label="Delete goal"
                   >
-                    <Trash2 size={11} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
