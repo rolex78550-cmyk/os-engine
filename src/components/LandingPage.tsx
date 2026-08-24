@@ -74,7 +74,7 @@ const FAQS = [
   },
   {
     q: "Why is there no free trial?",
-    a: "True commitment requires skin in the game. By starting at ₹99/month, you signal to your subconscious mind that you are serious about changing your reality."
+    a: "True commitment requires skin in the game. By starting at ₹415/month, you signal to your subconscious mind that you are serious about changing your reality."
   },
   {
     q: "Can I cancel anytime?",
@@ -164,13 +164,16 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               <X size={20} />
             </button>
             <div className="text-center">
-              {/* Simple square logo, no gradient */}
-              <div
-                className="mx-auto w-14 h-14 mb-5 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${HAIRLINE}` }}
-              >
-                <span className="text-xl font-bold" style={{ color: TEXT_PRIMARY }}>M</span>
-              </div>
+              {/* App logo */}
+              <img
+                src="/images/logo.jpg"
+                alt="Menifest OS"
+                className="mx-auto w-14 h-14 mb-5 rounded-full object-cover"
+                style={{
+                  boxShadow: "0 0 20px rgba(255,159,10,0.4)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}
+              />
               <h2 className="text-3xl font-bold tracking-tight mb-2" style={{ color: TEXT_PRIMARY }}>
                 Enter Menifest OS
               </h2>
@@ -265,7 +268,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               )}
 
               <p className="mt-4 text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>
-                NO FREE TRIAL · STARTS AT ₹99/MONTH
+                NO FREE TRIAL · STARTS AT ₹415/MONTH
               </p>
             </div>
           </div>
@@ -317,7 +320,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               <p><strong style={{ color: TEXT_PRIMARY }}>1. Acceptance of Terms</strong><br />By accessing or using Menifest OS, you agree to be bound by these Terms of Service.</p>
               <p><strong style={{ color: TEXT_PRIMARY }}>2. Description of Service</strong><br />Menifest OS is a manifestation and personal development RPG that combines AI verification with a leveling system.</p>
               <p><strong style={{ color: TEXT_PRIMARY }}>3. User Responsibilities</strong><br />You must provide accurate information and authentic proof for daily quests.</p>
-              <p><strong style={{ color: TEXT_PRIMARY }}>4. Subscription & Billing</strong><br />Plans start at ₹99/month. No free trial is offered.</p>
+              <p><strong style={{ color: TEXT_PRIMARY }}>4. Subscription & Billing</strong><br />Plans start at ₹415/month. No free trial is offered.</p>
             </div>
             <button
               onClick={() => setShowTerms(false)}
@@ -366,12 +369,15 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <a href="#hero" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-            <div
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: TEXT_PRIMARY }}
-            >
-              <span className="font-bold text-sm sm:text-base" style={{ color: "#000" }}>M</span>
-            </div>
+            <img
+              src="/images/logo.jpg"
+              alt="Menifest OS"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shrink-0"
+              style={{
+                boxShadow: "0 0 16px rgba(255,159,10,0.4)",
+                border: "1px solid rgba(255,255,255,0.25)",
+              }}
+            />
             <span className="font-bold text-lg sm:text-xl tracking-tight" style={{ color: TEXT_PRIMARY }}>
               Menifest OS
             </span>
@@ -932,7 +938,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   letterSpacing: "-0.02em",
                 }}
               >
-                $4.99
+                ₹415
               </div>
               <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
                 /mo
@@ -970,7 +976,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                 Yearly
               </div>
               <div className="text-[12px] line-through tabular-nums" style={{ color: "rgba(0,0,0,0.40)" }}>
-                $4.99/mo
+                ₹415/mo
               </div>
               <div
                 className="font-extrabold tracking-tight tabular-nums"
@@ -980,10 +986,10 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   letterSpacing: "-0.02em",
                 }}
               >
-                $49
+                ₹1,999
               </div>
               <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
-                /year · billed annually
+                /mo · billed annually
               </div>
             </button>
           </div>
@@ -1136,54 +1142,21 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
         </div>
       </section>
 
-      {/* ═══════════ FINAL CTA ═══════════ */}
-      <section className="py-20 px-4 sm:px-6 relative overflow-hidden" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wider uppercase"
-            style={{ backgroundColor: "rgba(255,159,10,0.08)", color: ORANGE, border: "1px solid rgba(255,159,10,0.2)" }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: ORANGE }}
-            />
-            Founder's pricing · ends soon
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.05]" style={{ color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>
-            Your next chapter starts<br />
-            <span style={{ color: ORANGE }}>the moment you decide.</span>
-          </h2>
-          <p className="text-base sm:text-lg max-w-2xl mx-auto" style={{ color: TEXT_SECONDARY }}>
-            Every day you wait is a day your future self doesn't get to live. Start today — for less than a coffee a day.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => setShowAuth(true)}
-              className="px-10 py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
-              style={{ backgroundColor: ORANGE, color: "#000" }}
-            >
-              <span>Claim your spot — ₹99/mo</span>
-              <Zap size={18} style={{ color: "#000" }} />
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs pt-2" style={{ color: TEXT_SECONDARY }}>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> 30-day refund</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> Cancel anytime</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> No hidden fees</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} style={{ color: "#34c759" }} /> Secure checkout</span>
-          </div>
-        </div>
-      </section>
-
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="pt-12 pb-8 text-xs" style={{ backgroundColor: "#030303", borderTop: `1px solid ${HAIRLINE}`, color: TEXT_SECONDARY }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             <div className="col-span-2">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: TEXT_PRIMARY }}>
-                  <span className="text-xs font-bold" style={{ color: "#000" }}>M</span>
-                </div>
+                <img
+                  src="/images/logo.jpg"
+                  alt="Menifest OS"
+                  className="w-7 h-7 rounded-full object-cover"
+                  style={{
+                    boxShadow: "0 0 12px rgba(255,159,10,0.35)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                />
                 <span className="font-bold text-base" style={{ color: TEXT_PRIMARY }}>Menifest OS</span>
               </div>
               <p className="text-xs leading-relaxed max-w-sm" style={{ color: TEXT_TERTIARY }}>

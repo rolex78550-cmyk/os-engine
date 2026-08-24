@@ -195,7 +195,7 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
           style={{ color: "#fff" }}
         >
           <img
-            src="/images/manifest_logo_warrior.jpg"
+            src="/images/logo.jpg"
             alt="Manifest OS"
             className="h-9 w-9 rounded-full object-cover"
             style={{

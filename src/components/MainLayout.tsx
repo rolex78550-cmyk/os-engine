@@ -253,9 +253,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             >
               {/* App Brand Header — iOS clean style */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-[10px] bg-white/[0.06] flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-[13px] tracking-tighter">M</span>
-                </div>
+                <img
+                  src="/images/logo.jpg"
+                  alt="Menifest OS"
+                  className="w-8 h-8 rounded-full object-cover shrink-0"
+                  style={{
+                    boxShadow: "0 0 14px rgba(255,159,10,0.35)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                />
                 <div className="min-w-0">
                   <h2 className="text-[15px] font-bold text-white tracking-tight truncate">
                     Menifest OS
