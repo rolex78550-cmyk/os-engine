@@ -274,13 +274,11 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             belief: 70,
             emotion: 70,
             action: 70,
-            level: 1,
-            xp: 0,
-            totalXp: 0,
-            streak: 0,
-            longestStreak: 0,
-            streakFreezes: 2,
-            activeDays: [],
+            // NOTE: level / xp / totalXp / streak / activeDays are NOT written
+            // here. Writing them (even with merge:true) reset the user's
+            // lifetime progression to 0 on EVERY auth event. The document
+            // must only be CREATED on first signup; progression fields are
+            // owned by the task/XP systems.
             subscriptionStatus: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
             currentPlan: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
             createdAt: new Date().toISOString(),
@@ -288,19 +286,15 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
           };
 
           try {
-            await setDoc(userDocRef, baseProfile, { merge: true });
-            console.log('[FABLE5 CLAUDE] ✅ PERMANENT BOOTSTRAP: User doc created/merged');
+            // Only create the doc if it does not already exist — never
+            // overwrite an existing user's data.
+            const existing = await getDoc(userDocRef);
+            if (!existing.exists()) {
+              await setDoc(userDocRef, baseProfile, { merge: true });
+              console.log('[FABLE5 CLAUDE] ✅ PERMANENT BOOTSTRAP: User doc created');
+            }
           } catch (err: any) {
             console.warn('[FABLE5 CLAUDE] Bootstrap write warning (will retry):', err?.message);
-            // Auto-retry once more
-            setTimeout(async () => {
-              try {
-                await setDoc(userDocRef, baseProfile, { merge: true });
-                console.log('[FABLE5 CLAUDE] ✅ BOOTSTRAP RETRY SUCCESS');
-              } catch (e2) {
-                console.warn('[FABLE5 CLAUDE] Final bootstrap attempt failed:', (e2 as any)?.message);
-              }
-            }, 650);
           }
         };
 
@@ -466,21 +460,21 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
               belief: 70,
               emotion: 70,
               action: 70,
-              level: 1,
-              xp: 0,
-              totalXp: 0,
-              streak: 0,
-              longestStreak: 0,
-              streakFreezes: 2,
-              activeDays: [],
+              // NOTE: level / xp / totalXp / streak are NOT written here —
+              // writing them reset lifetime progression to 0 on every auth.
               subscriptionStatus: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
               currentPlan: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
               createdAt: new Date().toISOString(),
               lastLogin: new Date().toISOString(),
             };
 
-            await setDoc(userDocRef, defaultProfile, { merge: true });
-            console.log(`[FABLE5 PERMANENT] ✅ User document BOOTSTRAPPED (attempt ${attempt})`);
+            // Only create the doc if it does not already exist — never
+            // overwrite an existing user's XP / level / streak.
+            const existing = await getDoc(userDocRef);
+            if (!existing.exists()) {
+              await setDoc(userDocRef, defaultProfile, { merge: true });
+              console.log(`[FABLE5 PERMANENT] ✅ User document BOOTSTRAPPED (attempt ${attempt})`);
+            }
           } catch (e: any) {
             console.warn(`[FABLE5 PERMANENT] Bootstrap failed (attempt ${attempt}):`, e?.message);
             // Retry up to 3 times
