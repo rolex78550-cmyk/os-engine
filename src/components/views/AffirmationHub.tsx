@@ -737,11 +737,11 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
       className="min-h-dvh relative font-sans flex flex-col"
       style={{ backgroundColor: "#000", color: TEXT_PRIMARY }}
     >
-      {/* =================== FULL OPACITY BG IMAGE (JINWOO warrior sunset) =================== */}
+      {/* =================== FULL OPACITY BG IMAGE (Sung Jin-Woo) =================== */}
       <div
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage: "url(/images/affirmation_jinwoo_bg.jpg)",
+          backgroundImage: "url(/images/affirmation_bg.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
