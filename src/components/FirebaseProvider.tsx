@@ -317,6 +317,14 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
                   level: Number(data.level) || 1,
                   xp: Number(data.xp) || 0,
                   totalXp: Number(data.totalXp) || 0,
+                  // Lifetime XP (never resets, drives level). Legacy docs
+                  // without it fall back to totalXp — see src/lib/xpSeason.ts.
+                  lifetimeXp: data.lifetimeXp != null
+                    ? Number(data.lifetimeXp) || 0
+                    : (Number(data.totalXp) || Number(data.xp) || 0),
+                  xpCycleStart: typeof data.xpCycleStart === 'string'
+                    ? data.xpCycleStart
+                    : data.xpCycleStart?.toDate?.()?.toISOString() || undefined,
                   streak: Number(data.streak) || 0,
                   longestStreak: Number(data.longestStreak) || Number(data.streak) || 0,
                   streakFreezes: Number(data.streakFreezes) || 2,

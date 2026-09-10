@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { collection, doc, onSnapshot, query, setDoc, orderBy, serverTimestamp, Timestamp, getDocs, limit, where, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useFirebase } from "../components/FirebaseProvider";
+import { resolveLifetimeXp, XP_PER_LEVEL } from "../lib/xpSeason";
 import type {
   AchievementBadge,
   CommunityPost,
@@ -221,7 +222,8 @@ export function useGamification({
   const memo_percentile = useMemo(() => {
     const streakScore = Math.min(50, memo_streakEvaluation.streak * 1.5);
     const consistencyScore = Math.min(40, memo_consistency * 0.4);
-    const xpScore = Math.min(10, (profile.totalXp || 0) / 1000);
+    // Up to 10 points: one full level's worth of lifetime XP maxes this out.
+    const xpScore = Math.min(10, (resolveLifetimeXp(profile) / XP_PER_LEVEL) * 10);
     const totalScore = streakScore + consistencyScore + xpScore;
     return Math.max(1, Math.min(99, Math.round(100 - totalScore)));
   }, [memo_streakEvaluation.streak, memo_consistency, profile.totalXp]);
@@ -280,8 +282,17 @@ export function useGamification({
       }
 
       if (onProfileUpdate) {
-        const result = addXp(profile.xp || 0, profile.totalXp || 0, profile.level || 1, xp);
-        onProfileUpdate({ xp: result.xp, totalXp: result.totalXp, level: result.level, universeRank: result.rank });
+        // Level is driven by LIFETIME XP (never resets); totalXp/xp are the
+        // current 30-day cycle and are advanced separately.
+        const lifetimeBefore = resolveLifetimeXp(profile);
+        const result = addXp(profile.xp || 0, lifetimeBefore, profile.level || 1, xp);
+        onProfileUpdate({
+          xp: (profile.xp || 0) + xp,
+          totalXp: (profile.totalXp || 0) + xp,
+          lifetimeXp: result.totalXp,
+          level: result.level,
+          universeRank: result.rank,
+        } as any);
         if (result.leveledUp) onNotify?.(`Level ${result.level} achieved!`);
       }
       return streakWillExtend;

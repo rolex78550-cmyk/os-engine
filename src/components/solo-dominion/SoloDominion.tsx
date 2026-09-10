@@ -20,6 +20,11 @@ import { LeaderboardView } from "./LeaderboardView";
 import { TaskTrackingView, type TrackingTaskId } from "./TaskTrackingView";
 import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
+  XP_PER_LEVEL, XP_PER_TASK, SEASON_DAYS,
+  levelFromXp, xpInLevel, levelProgressPct,
+  resolveLifetimeXp, resolveCycleXp, daysLeftInCycle,
+} from "../../lib/xpSeason";
+import {
   DEFAULT_QUESTS, BOSS_QUESTS, CHARACTER_TIERS,
   CATEGORY_ICON, CATEGORY_LABEL, RANK_COLOR, RANK_LABEL,
   getCurrentTier, getNextTier, xpForNextLevel,
@@ -290,6 +295,26 @@ export const SoloDominion: React.FC<any> = (props) => {
   }, [user?.uid]);
   // Use live data when available, fall back to props
   const profileData = liveProfile || (logic as any).profile || {};
+
+  /**
+   * Firestore patch for awarding XP. Increments BOTH counters atomically:
+   *   totalXp / xp  → current 30-day cycle (resets — leaderboard)
+   *   lifetimeXp    → never resets — drives level
+   * Level is recomputed from lifetime XP so a cycle reset never drops it.
+   * Legacy docs without `lifetimeXp` get it seeded from their current XP.
+   */
+  const buildXpAwardPatch = (xpGain: number, extra: Record<string, any> = {}) => {
+    const lifetimeNow = resolveLifetimeXp(profileData);
+    const newLifetime = lifetimeNow + xpGain;
+    return {
+      xp: increment(xpGain),
+      totalXp: increment(xpGain),
+      lifetimeXp: profileData?.lifetimeXp != null ? increment(xpGain) : newLifetime,
+      level: levelFromXp(newLifetime),
+      updatedAt: Date.now(),
+      ...extra,
+    };
+  };
 
   // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
   type DominionView = "hub" | "tasks" | "leaderboard" | "tracking";
@@ -632,11 +657,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
         // Award XP and boss damage — atomic increment (no stale-closure double count)
         const xpGain = proofMission.xp;
-        await setDoc(doc(db, "users", user.uid), {
-          xp: increment(xpGain),
-          totalXp: increment(xpGain),
-        }, { merge: true });
-        if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
+        const patch = buildXpAwardPatch(xpGain);
+        await setDoc(doc(db, "users", user.uid), patch, { merge: true });
+        if (recordXPGain) await recordXPGain(xpGain, patch.level, patch.level > (profile.level || 1));
         attackBoss(100);
         showToast(`⚔️ Mission Verified! +${xpGain} XP! Universe acknowledges your proof.`);
       }
@@ -690,10 +713,14 @@ export const SoloDominion: React.FC<any> = (props) => {
   }, []);
 
   // User Stats & XP — always read from liveProfile for fresh data
+  // totalXP   = XP earned in the current 30-day cycle (resets, drives leaderboard)
+  // lifetimeXP = XP across all cycles (never resets, drives level)
   const level = Number(profileData?.level) || 1;
-  const totalXP = Number(profileData?.totalXp) || Number(profileData?.xp) || 0;
-  const xpNeeded = 1000;
-  const xpPercentage = Math.min(100, Math.round(((totalXP % 1000) / 1000) * 100));
+  const totalXP = resolveCycleXp(profileData);
+  const lifetimeXP = resolveLifetimeXp(profileData);
+  const xpNeeded = XP_PER_LEVEL;
+  const xpPercentage = levelProgressPct(lifetimeXP);
+  const cycleDaysLeft = daysLeftInCycle(profileData?.xpCycleStart);
 
   // --- WARRIOR CHARACTER EVOLUTION STAGES ---
   const getWarriorStage = (lvl: number) => {
@@ -808,11 +835,9 @@ export const SoloDominion: React.FC<any> = (props) => {
       showToast("⚔️ PROCRASTINATION DEMON DEFEATED! +250 XP CLAIMED!");
       
       const xpGain = 250;
-      await setDoc(doc(db, "users", user.uid), {
-        xp: increment(xpGain),
-        totalXp: increment(xpGain),
-      }, { merge: true });
-      if (recordXPGain) await recordXPGain(xpGain, profile?.level || 1, false);
+      const patch = buildXpAwardPatch(xpGain);
+      await setDoc(doc(db, "users", user.uid), patch, { merge: true });
+      if (recordXPGain) await recordXPGain(xpGain, patch.level, patch.level > (profile?.level || 1));
     }
 
     try {
@@ -1001,11 +1026,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
     // Award XP
     const xpGain = mission.xp;
-    await setDoc(doc(db, "users", user.uid), {
-      xp: increment(xpGain),
-      totalXp: increment(xpGain),
-    }, { merge: true });
-    if (recordXPGain) await recordXPGain(xpGain, profile.level || 1, false);
+    const patch = buildXpAwardPatch(xpGain);
+    await setDoc(doc(db, "users", user.uid), patch, { merge: true });
+    if (recordXPGain) await recordXPGain(xpGain, patch.level, patch.level > (profile.level || 1));
     attackBoss(100);
     if ("vibrate" in navigator) navigator.vibrate([100, 50, 200]);
     showToast(`⚔️ ${state.count} ${state.type} verified! +${xpGain} XP!`);
@@ -1056,10 +1079,7 @@ export const SoloDominion: React.FC<any> = (props) => {
 
       if (isNowComplete) {
         const xpGain = mission.xp;
-        await setDoc(doc(db, "users", user.uid), {
-          xp: increment(xpGain),
-          totalXp: increment(xpGain),
-        }, { merge: true });
+        await setDoc(doc(db, "users", user.uid), buildXpAwardPatch(xpGain), { merge: true });
         showToast(`🎉 Mission Completed! +${xpGain} XP`);
       } else {
         showToast(`⚡ Mission Progress Updated: ${newVal}/${target}`);
@@ -1120,10 +1140,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     try {
       await setDoc(doc(db, "users", user.uid, "solo_streaks", "main"), { streaks: updated }, { merge: true });
       const bonus = Math.floor(updated[idx].xp * (pctDelta / 100));
-      await setDoc(doc(db, "users", user.uid), {
-        xp: increment(bonus),
-        totalXp: increment(bonus),
-      }, { merge: true });
+      if (bonus > 0) {
+        await setDoc(doc(db, "users", user.uid), buildXpAwardPatch(bonus), { merge: true });
+      }
 
       showToast(`🔥 Streak Advanced to ${newPct}%! (+${bonus} XP)`);
     } catch (e) {}
@@ -1252,10 +1271,7 @@ export const SoloDominion: React.FC<any> = (props) => {
     try {
       const rewardXP = 100;
       await setDoc(doc(db, "users", user.uid, "solo_claims", today), { claimed: true, date: today }, { merge: true });
-      await setDoc(doc(db, "users", user.uid), {
-        xp: increment(rewardXP),
-        totalXp: increment(rewardXP),
-      }, { merge: true });
+      await setDoc(doc(db, "users", user.uid), buildXpAwardPatch(rewardXP), { merge: true });
 
       showToast(`👑 Daily Conquest Reward Claimed! +100 XP`);
     } catch (e) {}
@@ -1481,10 +1497,12 @@ export const SoloDominion: React.FC<any> = (props) => {
   // If we're on the hub view, render the simple home screen and skip the rest.
   if (dominionView === "hub") {
     // ============== REAL STATS FROM LIVE PROFILE ==============
-    const totalXp = Number(profileData?.totalXp) || Number(profileData?.xp) || 0;
+    // totalXp = this cycle's XP (resets every 30 days). Level bar uses lifetime XP.
+    const totalXp = resolveCycleXp(profileData);
+    const lifetimeXp = resolveLifetimeXp(profileData);
     const level = Number(profileData?.level) || 1;
-    const xpPerLevel = 1000;
-    const currentLevelXP = totalXp % xpPerLevel;
+    const xpPerLevel = XP_PER_LEVEL;
+    const currentLevelXP = xpInLevel(lifetimeXp);
     const streak = Number(profileData?.streak) || 0;
     const statBlock = (profileData as any)?.stats || {};
 
@@ -1546,8 +1564,9 @@ export const SoloDominion: React.FC<any> = (props) => {
 
   // ===================== LEADERBOARD ROUTE =====================
   if (dominionView === "leaderboard") {
-    const totalXp = Number(profile.totalXp) || Number(profile.xp) || 0;
-    const level = Number(profile.level) || 1;
+    const totalXp = resolveCycleXp(profileData);
+    const lifetimeXp = resolveLifetimeXp(profileData);
+    const level = Number(profileData.level) || 1;
     return (
       <LeaderboardView
         onBack={() => setDominionView("hub")}
@@ -1556,6 +1575,7 @@ export const SoloDominion: React.FC<any> = (props) => {
           name: playerName,
           level,
           xp: totalXp,
+          lifetimeXp,
           rankTitle: (RANK_LABEL as any)?.[Math.min(level, 4)] || "Seeker",
         }}
       />
@@ -1567,7 +1587,7 @@ export const SoloDominion: React.FC<any> = (props) => {
   if (dominionView === "tracking") {
     // Find the task being tracked
     const currentTask = TASKS.find((t) => t.id === trackingTask);
-    const xpReward = currentTask?.xpReward ?? 50;
+    const xpReward = currentTask?.xpReward ?? XP_PER_TASK;
     return (
       <TaskTrackingView
         taskId={trackingTask}
@@ -1575,27 +1595,23 @@ export const SoloDominion: React.FC<any> = (props) => {
         onComplete={async () => {
           // ============== SAVE XP TO FIRESTORE (SINGLE ATOMIC WRITE) ==============
           try {
-            const currentTotalXp =
-              Number(profile.totalXp) || Number(profile.xp) || 0;
+            // Cycle XP (30-day, resets) + lifetime XP (drives level, never resets)
+            const currentTotalXp = resolveCycleXp(profileData);
+            const currentLifetimeXp = resolveLifetimeXp(profileData);
             const newTotalXp = currentTotalXp + xpReward;
-            const newLevel = Math.floor(newTotalXp / 1000) + 1;
-            const oldLevel = Number(profile.level) || 1;
+            const newLifetimeXp = currentLifetimeXp + xpReward;
+            const newLevel = levelFromXp(newLifetimeXp);
+            const oldLevel = Number(profileData.level) || 1;
             const leveledUp = newLevel > oldLevel;
             console.log(
-              `[task complete] awarding ${xpReward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+              `[task complete] awarding ${xpReward} XP: cycleXp ${currentTotalXp} -> ${newTotalXp}, lifetimeXp ${currentLifetimeXp} -> ${newLifetimeXp}, level ${oldLevel} -> ${newLevel}`
             );
             // Single atomic increment — race-safe, no double count. onSnapshot
             // (FirebaseProvider) re-renders the UI with the true value.
             if (user?.uid) {
               await setDoc(
                 doc(db, "users", user.uid),
-                {
-                  totalXp: increment(xpReward),
-                  xp: increment(xpReward),
-                  level: newLevel,
-                  lastTaskAward: serverTimestamp(),
-                  updatedAt: Date.now(),
-                },
+                buildXpAwardPatch(xpReward, { lastTaskAward: serverTimestamp() }),
                 { merge: true }
               );
               console.log("[task complete] atomic XP write OK");
@@ -1872,9 +1888,13 @@ export const SoloDominion: React.FC<any> = (props) => {
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-2.5 text-[10px]" style={{ color: TEXT_SECONDARY }}>
-                <span className="tabular-nums">{totalXP} / {xpNeeded} XP total</span>
+                <span className="tabular-nums">{xpInLevel(lifetimeXP).toLocaleString()} / {xpNeeded.toLocaleString()} XP to Lv.{level + 1}</span>
                 <span>Quests · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{todayCompletedCount}</span> / {quests.length}</span>
                 <span>Daily · <span className="font-bold tabular-nums" style={{ color: TEXT_PRIMARY }}>{dailyXpEarned}</span> XP</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 text-[10px]" style={{ color: TEXT_TERTIARY }}>
+                <span className="tabular-nums">Season XP · <span className="font-bold" style={{ color: ORANGE }}>{totalXP.toLocaleString()}</span></span>
+                <span className="tabular-nums">Resets in {cycleDaysLeft}d · {SEASON_DAYS}-day cycle</span>
               </div>
             </div>
           </div>

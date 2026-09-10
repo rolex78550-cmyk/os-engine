@@ -14,6 +14,8 @@
  *  - XP thresholds and helpers
  */
 
+import { XP_PER_LEVEL } from "./xpSeason";
+
 export type QuestRank = "E" | "D" | "C" | "B" | "A";
 
 export type QuestCategory =
@@ -381,6 +383,8 @@ export function getNextTier(level: number): CharacterTier | null {
 
 /** XP needed to reach the next level from a given level. */
 export function xpForNextLevel(level: number): number {
-  // Unified flat curve: 1000 XP per level (matches level = floor(totalXp/1000)+1).
-  return 1000;
+  // Unified flat curve: XP_PER_LEVEL (16,500) per level — one perfect
+  // 30-day cycle (11 tasks × 50 XP × 30 days) = exactly one level-up.
+  // Matches level = floor(lifetimeXp / XP_PER_LEVEL) + 1 in src/lib/xpSeason.ts.
+  return XP_PER_LEVEL;
 }

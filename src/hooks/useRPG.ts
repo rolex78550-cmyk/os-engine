@@ -33,6 +33,7 @@ import {
   rollSeasonIfNeeded,
 } from "../rpg/engine";
 import { RANK_TIERS, getCurrentSeasonId } from "../rpg/constants";
+import { resolveLifetimeXp } from "../lib/xpSeason";
 import type {
   RPGPlayerState,
   RPGDerivedState,
@@ -168,7 +169,9 @@ export function useRPG(profile: ProfileState, stats: RPGSourceStats = {}): RPGHo
         // Build the migration patch from the user's current profile.
         const migration = migrateUserToRPG({
           uid,
-          totalXp: Number(profile.totalXp) || 0,
+          // Rank / score are built on LIFETIME XP so the 30-day season
+          // reset (totalXp → 0) never demotes a player.
+          totalXp: resolveLifetimeXp(profile),
           level: Number(profile.level) || 1,
           streak: Number(profile.streak) || 0,
           consistency: 0, // computed elsewhere; 0 is safe for first pass
@@ -188,7 +191,7 @@ export function useRPG(profile: ProfileState, stats: RPGSourceStats = {}): RPGHo
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, profile?.totalXp, profile?.level, profile?.streak, initialized]);
+  }, [uid, profile?.totalXp, (profile as any)?.lifetimeXp, profile?.level, profile?.streak, initialized]);
 
   // ── Derived state (pure recomputation on every profile/rpg change) ──
   const derived = useMemo<RPGDerivedState | null>(() => {
@@ -205,7 +208,7 @@ export function useRPG(profile: ProfileState, stats: RPGSourceStats = {}): RPGHo
         }
       : undefined;
     return deriveRPGState({
-      totalXp: Number(profile.totalXp) || 0,
+      totalXp: resolveLifetimeXp(profile),
       level: Number(profile.level) || 1,
       streak: Number(profile.streak) || 0,
       consistency: 0,
@@ -278,11 +281,12 @@ export function useRPG(profile: ProfileState, stats: RPGSourceStats = {}): RPGHo
       if (!uid || !profile || !derived) return;
       try {
         // 1) Recompute score from the NEW profile state.
-        // `profile.totalXp` is the pre-increment snapshot, so add the actual
-        // XP just gained to compute the true post-action score (rank/coins no
-        // longer lag one action behind).
+        // The profile is the pre-increment snapshot, so add the actual XP
+        // just gained to compute the true post-action score (rank/coins no
+        // longer lag one action behind). Uses LIFETIME XP: the 30-day season
+        // reset zeroes totalXp but must never drop rank / score.
         const newTotalXp =
-          (Number(profile.totalXp) || 0) + Math.max(0, xpGained);
+          resolveLifetimeXp(profile) + Math.max(0, xpGained);
         const newScore = computePlayerScore({
           totalXp: newTotalXp,
           level: newLevel ?? Number(profile.level) ?? 1,

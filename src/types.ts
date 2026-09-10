@@ -251,8 +251,18 @@ export interface ProfileState {
   action: number;
   coherenceHistory: number[];
   level: number;
+  /** XP in the current 30-day season (mirror of totalXp, legacy). Resets. */
   xp: number;
+  /** XP in the current 30-day season. Resets to 0 when the cycle ends. Leaderboard ranks on this. */
   totalXp: number;
+  /** XP across ALL seasons. Never resets. Drives `level` (16,500 XP / level). */
+  lifetimeXp?: number;
+  /** ISO date the current 30-day XP season started (rolling, per user). */
+  xpCycleStart?: string;
+  /** ISO date of the most recent season reset. */
+  lastXpReset?: string;
+  /** How many 30-day seasons this user has completed. */
+  xpSeasonsCompleted?: number;
   universeRank: string;
   subscriptionStatus?: string;
   currentPlan?: string;

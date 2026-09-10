@@ -10,6 +10,7 @@ import type {
   StreakEventType,
   XpTransaction,
 } from "../types";
+import { levelFromXp } from "./xpSeason";
 
 export const MILESTONES: MilestoneReward[] = [
   { days: 7, rarity: "Common", reward: "+1 Streak Freeze", title: "First Flame", icon: "🔥", freezesGranted: 1 },
@@ -300,10 +301,12 @@ export function addXp(
   level: number,
   amount: number
 ): { xp: number; totalXp: number; level: number; leveledUp: boolean; rank: string } {
-  // Unified level curve: level = floor(totalXp / 1000) + 1 (single source of truth).
+  // Unified level curve: level = floor(lifetimeXp / XP_PER_LEVEL) + 1
+  // (XP_PER_LEVEL = 16,500 — see src/lib/xpSeason.ts, single source of truth).
+  // NOTE: `totalXp` here is the caller's lifetime figure.
   const newXp = xp + amount;
   const newTotalXp = totalXp + amount;
-  const newLevel = Math.floor(newTotalXp / 1000) + 1;
+  const newLevel = levelFromXp(newTotalXp);
   const leveledUp = newLevel > level;
 
   const rank = getLevelTitle(newLevel).name;

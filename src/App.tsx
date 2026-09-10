@@ -22,6 +22,8 @@ import { useRPG } from "./hooks/useRPG";
 import { useFirebase } from "./components/FirebaseProvider";
 import { db } from "./lib/firebase";
 import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
+import { XP_PER_TASK, levelFromXp, resolveLifetimeXp, resolveCycleXp } from "./lib/xpSeason";
+import { useXpSeasonReset } from "./hooks/useXpSeasonReset";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
 const VisionBoard = lazy(() => import("./components/VisionBoard"));
@@ -39,6 +41,11 @@ export default function App() {
   // Always call useRPG (hook order must be stable) — pass profile or fallback
   const profileForRPG = profile || ({ name: "", alignment: 0, streak: 0, belief: "" } as any);
   const { recordXPGain } = useRPG(profileForRPG, {});
+
+  // ============== 30-DAY XP SEASON RESET ==============
+  // Rolling per-user cycle: 30 days after xpCycleStart, this cycle's XP
+  // (totalXp / xp) resets to 0 and is archived. Lifetime XP + level stay.
+  useXpSeasonReset(user?.uid, profile);
 
   // FABLE 5 MODEL: Hard safety net
   const [forceRender, setForceRender] = useState(false);
@@ -100,11 +107,12 @@ export default function App() {
         const flips = raw ? Number(raw) : 0;
         const rewardedRaw = window.localStorage.getItem(REWARD_KEY);
         let rewarded = rewardedRaw ? Number(rewardedRaw) : 0;
-        // SELF-HEAL: if we previously marked "rewarded" but totalXp is still
+        // SELF-HEAL: if we previously marked "rewarded" but XP is still
         // missing/zero, the old code failed to persist — reset and re-award.
-        const currentTotalXpForCheck =
-          Number(profile?.totalXp) || Number(profile?.xp) || 0;
-        const expectedXpFromRewards = rewarded * 50;
+        // Checked against LIFETIME XP (not cycle XP) so the 30-day season
+        // reset (totalXp → 0) can never trigger a bogus re-award.
+        const currentTotalXpForCheck = resolveLifetimeXp(profile);
+        const expectedXpFromRewards = rewarded * XP_PER_TASK;
         if (
           rewarded > 0 &&
           currentTotalXpForCheck < expectedXpFromRewards
@@ -117,15 +125,17 @@ export default function App() {
         }
         // ============== FLAT 50 XP CAP (once per day) ==============
         if (flips >= 10 && rewarded < 1) {
-          const toAward = 50; // flat 50 XP, no more, no less
-          const currentTotalXp =
-            Number(profile?.totalXp) || Number(profile?.xp) || 0;
+          const toAward = XP_PER_TASK; // flat 50 XP, no more, no less
+          // Cycle XP (30-day, resets) vs lifetime XP (drives level, never resets)
+          const currentTotalXp = resolveCycleXp(profile);
+          const currentLifetimeXp = resolveLifetimeXp(profile);
           const newTotalXp = currentTotalXp + toAward;
-          const newLevel = Math.floor(newTotalXp / 1000) + 1;
+          const newLifetimeXp = currentLifetimeXp + toAward;
+          const newLevel = levelFromXp(newLifetimeXp);
           const oldLevel = Number(profile?.level) || 1;
           const leveledUp = newLevel > oldLevel;
           console.log(
-            `[affirmation bridge] awarding ${toAward} XP (daily cap): totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+            `[affirmation bridge] awarding ${toAward} XP (daily cap): cycleXp ${currentTotalXp} -> ${newTotalXp}, lifetimeXp ${currentLifetimeXp} -> ${newLifetimeXp}, level ${oldLevel} -> ${newLevel}`
           );
           // Single atomic increment — race-safe, no double count. onSnapshot
           // (FirebaseProvider) re-renders the UI with the true value.
@@ -136,6 +146,7 @@ export default function App() {
                 {
                   totalXp: increment(toAward),
                   xp: increment(toAward),
+                  lifetimeXp: profile?.lifetimeXp != null ? increment(toAward) : newLifetimeXp,
                   level: newLevel,
                   lastAffirmationAward: serverTimestamp(),
                   updatedAt: Date.now(),

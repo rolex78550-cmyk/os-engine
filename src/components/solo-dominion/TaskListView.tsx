@@ -3,6 +3,7 @@ import { TaskProofCamera, type ProofTaskId } from "./TaskProofCamera";
 import { db } from "../../lib/firebase";
 import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 import { Sparkles, Camera } from "lucide-react";
+import { XP_PER_TASK, levelFromXp, resolveLifetimeXp, resolveCycleXp } from "../../lib/xpSeason";
 
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
@@ -42,7 +43,7 @@ export interface TaskDef {
 }
 
 /** Standard XP reward per completed task — saved to Firestore. */
-export const XP_REWARD_PER_TASK = 50;
+export const XP_REWARD_PER_TASK = XP_PER_TASK;
 
 export const TASKS: TaskDef[] = [
   {
@@ -291,16 +292,17 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
     try {
       const uid = (currentUser as any)?.uid;
       const taskDef = TASKS.find((t) => t.id === proofTask);
-      const xpReward = taskDef?.xpReward ?? 50;
+      const xpReward = taskDef?.xpReward ?? XP_PER_TASK;
       const profileObj = (currentProfile as any) || {};
-      const currentTotalXp = Number(profileObj.totalXp) || Number(profileObj.xp) || 0;
-      const currentXp = Number(profileObj.xp) || currentTotalXp;
+      // Cycle XP (resets every 30 days) vs lifetime XP (drives level, never resets)
+      const currentTotalXp = resolveCycleXp(profileObj);
+      const currentLifetimeXp = resolveLifetimeXp(profileObj);
       const newTotalXp = currentTotalXp + xpReward;
-      const newXp = currentXp + xpReward;
-      const newLevel = Math.floor(newTotalXp / 1000) + 1;
+      const newLifetimeXp = currentLifetimeXp + xpReward;
+      const newLevel = levelFromXp(newLifetimeXp);
       const oldLevel = Number(profileObj.level) || 1;
       console.log(
-        `[proof] awarding ${xpReward} XP: totalXp ${currentTotalXp} -> ${newTotalXp}, level ${oldLevel} -> ${newLevel}`
+        `[proof] awarding ${xpReward} XP: cycleXp ${currentTotalXp} -> ${newTotalXp}, lifetimeXp ${currentLifetimeXp} -> ${newLifetimeXp}, level ${oldLevel} -> ${newLevel}`
       );
       // Single atomic increment — race-safe, no double count. onSnapshot
       // (FirebaseProvider) re-renders the UI with the true value.
@@ -311,6 +313,9 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
             {
               totalXp: increment(xpReward),
               xp: increment(xpReward),
+              // Legacy docs have no lifetimeXp yet → seed it with the
+              // computed value instead of incrementing from 0.
+              lifetimeXp: profileObj.lifetimeXp != null ? increment(xpReward) : newLifetimeXp,
               level: newLevel,
               [`lastProof_${proofTask}`]: serverTimestamp(),
               updatedAt: Date.now(),

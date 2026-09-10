@@ -4,6 +4,7 @@ import { startUserSession, logPageVisit } from "../lib/activity";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { useGamification } from "./useGamification";
 import { getTodayStr } from "../lib/gamification";
+import { levelFromXp, resolveLifetimeXp } from "../lib/xpSeason";
 import { useDynamicEnergyHistory } from "./useDynamicEnergyHistory";
 import { doc, setDoc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, deleteDoc, increment, where, getDocs, getDoc, serverTimestamp } from "firebase/firestore";
 import { 
@@ -514,7 +515,15 @@ export function useAppLogic() {
     // Update local state instantly (dopamine) — functional update, no stale closure
     setUserStats(newStats);
     setCoins(newCoins);
-    setProfile(prev => ({ ...prev, xp: (prev.xp || 0) + quest.xpValue, totalXp: (prev.totalXp || 0) + quest.xpValue }));
+    const questLifetimeXp = resolveLifetimeXp(profile) + quest.xpValue;
+    const questNewLevel = levelFromXp(questLifetimeXp);
+    setProfile(prev => ({
+      ...prev,
+      xp: (prev.xp || 0) + quest.xpValue,
+      totalXp: (prev.totalXp || 0) + quest.xpValue,
+      lifetimeXp: questLifetimeXp,
+      level: questNewLevel,
+    } as any));
 
     // Calculate new rank
     const newRank = calculateRank(newXp, newStats);
@@ -530,8 +539,10 @@ export function useAppLogic() {
         coins: newCoins,
         xp: increment(quest.xpValue),
         totalXp: increment(quest.xpValue),
+        // Lifetime XP never resets and drives level (see src/lib/xpSeason.ts)
+        lifetimeXp: (profile as any).lifetimeXp != null ? increment(quest.xpValue) : questLifetimeXp,
         rank: newRank,
-        level: Math.floor(((profile.totalXp || 0) + quest.xpValue) / 1000) + 1,
+        level: questNewLevel,
       }, { merge: true });
     } catch (e) {
       console.warn("Quest reward save skipped (non-blocking)");

@@ -8,6 +8,10 @@ import admin from "firebase-admin";
 import dotenv from "dotenv";
 
 import fs from "fs";
+import {
+  XP_PER_TASK, XP_PER_LEVEL, SEASON_DAYS,
+  planCycleReset, buildResetPatch, resolveLifetimeXp, seasonDocId,
+} from "./src/lib/xpSeason";
 
 dotenv.config();
 
@@ -1546,6 +1550,83 @@ app.get("/api/subscription/expire-check", async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ============================================================
+// XP SEASON ROLLOVER (rolling 30-day cycle, per user)
+// ============================================================
+// Mirrors the client-side hook (src/hooks/useXpSeasonReset.ts) using the
+// SAME pure rule (planCycleReset in src/lib/xpSeason.ts), so users who
+// don't open the app still get reset on time. Idempotent — safe to run
+// hourly/daily from a cron (Vercel Cron, GitHub Action, cron-job.org…).
+//
+//   GET/POST /api/xp/season-rollover
+//   Authorization: Bearer <CRON_SECRET>   (or an admin Firebase ID token)
+//   ?dryRun=1  → report what WOULD reset without writing
+//
+// Per expired user:
+//   • archive {cycleStart, cycleEnd, xpEarned, levelAtEnd} →
+//     users/{uid}/xp_seasons/{YYYY-MM-DD}
+//   • totalXp = xp = 0, keep lifetimeXp + level, advance xpCycleStart
+async function xpSeasonRolloverHandler(req: any, res: any) {
+  try {
+    const bearer = (req.headers.authorization || "").startsWith("Bearer ")
+      ? req.headers.authorization.slice(7)
+      : "";
+    const cronOk = !!process.env.CRON_SECRET && bearer === process.env.CRON_SECRET;
+    const adminOk = !cronOk && (await verifyAdminToken(req));
+    if (!cronOk && !adminOk) return res.status(401).json({ error: "Admin/cron required" });
+
+    const dryRun = req.query?.dryRun === "1" || req.body?.dryRun === true;
+    const now = new Date();
+    const db = getDb();
+
+    // Only docs that have a cycle stamped can expire. (Docs without one get
+    // stamped by the client on first load.) Bound the read to expired ones.
+    const cutoffIso = new Date(now.getTime() - SEASON_DAYS * 86_400_000).toISOString();
+    const snap = await db.collection("users").where("xpCycleStart", "<=", cutoffIso).get();
+
+    let reset = 0;
+    let skipped = 0;
+    const details: any[] = [];
+
+    for (const userDoc of snap.docs) {
+      const data = userDoc.data() || {};
+      const plan = planCycleReset(data, now);
+      if (!plan.shouldReset || !plan.archive) { skipped++; continue; }
+
+      details.push({ uid: userDoc.id, xpEarned: plan.archive.xpEarned, newCycleStart: plan.newCycleStart });
+      if (dryRun) { reset++; continue; }
+
+      const archiveRef = userDoc.ref.collection("xp_seasons").doc(seasonDocId(plan.archive.cycleStart));
+      await db.runTransaction(async (tx) => {
+        const fresh = (await tx.get(userDoc.ref)).data() || {};
+        const freshPlan = planCycleReset(fresh, now);
+        if (!freshPlan.shouldReset || !freshPlan.archive) return; // client already did it
+        tx.set(archiveRef, {
+          ...freshPlan.archive,
+          lifetimeXpAtEnd: resolveLifetimeXp(fresh),
+          archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+          source: "cron",
+        }, { merge: true });
+        tx.set(userDoc.ref, buildResetPatch(fresh, freshPlan), { merge: true });
+      });
+      reset++;
+    }
+
+    console.log(`[xp season] rollover: scanned=${snap.size} reset=${reset} skipped=${skipped} dryRun=${dryRun}`);
+    return res.json({ success: true, dryRun, scanned: snap.size, reset, skipped, xpPerLevel: XP_PER_LEVEL, seasonDays: SEASON_DAYS, details: details.slice(0, 200) });
+  } catch (error: any) {
+    console.error("[xp season] rollover failed:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+app.get("/api/xp/season-rollover", xpSeasonRolloverHandler);
+app.post("/api/xp/season-rollover", xpSeasonRolloverHandler);
+
+// Public config — lets any client/tooling read the current XP rules.
+app.get("/api/xp/config", (_req, res) => {
+  res.json({ xpPerTask: XP_PER_TASK, xpPerLevel: XP_PER_LEVEL, seasonDays: SEASON_DAYS, tasksPerDay: 11, xpPerPerfectDay: 11 * XP_PER_TASK, xpPerPerfectSeason: 11 * XP_PER_TASK * SEASON_DAYS });
 });
 
 // API Route: Verify Razorpay Payment

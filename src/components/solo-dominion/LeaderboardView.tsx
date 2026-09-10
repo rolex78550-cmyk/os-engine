@@ -38,7 +38,10 @@ interface LeaderboardViewProps {
     uid: string;
     name: string;
     level: number;
+    /** This season's XP (totalXp) */
     xp: number;
+    /** All-time XP (never resets) */
+    lifetimeXp?: number;
     rankTitle: string;
   };
 }
@@ -57,6 +60,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   currentUserStats,
 }) => {
   const { user } = useFirebase();
+  // "all"    → This Season: ranks on totalXp (resets every 30 days per user)
+  // "weekly"  → This Week:   ranks on weeklyXp
+  // "guild"   → Lifetime:    ranks on lifetimeXp (never resets)
   const [tab, setTab] = useState<"all" | "weekly" | "guild">("all");
   const [hoveredRank, setHoveredRank] = useState<number | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -83,10 +89,10 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           limit(100)
         );
       } else {
-        // Guild tab — use totalXp (Firestore doesn't have guilds yet)
+        // Lifetime tab — all-time XP that never resets
         q = query(
           collection(db, "users"),
-          orderBy("totalXp", "desc"),
+          orderBy("lifetimeXp", "desc"),
           limit(100)
         );
       }
@@ -101,7 +107,13 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       (snap) => {
         const data: LeaderboardEntry[] = snap.docs.map((d, i) => {
           const v = d.data() as any;
-          const totalXP = Number(v.totalXp) || Number(v.xp) || 0;
+          // Season tab shows this cycle's XP; Lifetime tab shows all-time XP.
+          const totalXP =
+            tab === "guild"
+              ? Number(v.lifetimeXp) || Number(v.totalXp) || Number(v.xp) || 0
+              : tab === "weekly"
+              ? Number(v.weeklyXp) || 0
+              : Number(v.totalXp) || Number(v.xp) || 0;
           const level = Number(v.level) || 1;
           return {
             rank: i + 1,
@@ -122,8 +134,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             rank: data.length + 1,
             name: currentUserStats.name || "You",
             level: currentUserStats.level,
-            xp: currentUserStats.xp,
-            totalXP: currentUserStats.xp,
+            xp: tab === "guild" ? (currentUserStats.lifetimeXp ?? currentUserStats.xp) : currentUserStats.xp,
+            totalXP: tab === "guild" ? (currentUserStats.lifetimeXp ?? currentUserStats.xp) : currentUserStats.xp,
             rankTitle:
               currentUserStats.rankTitle ||
               deriveRankTitle(currentUserStats.level),
@@ -146,7 +158,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   }, [tab, user?.uid, currentUserStats?.uid]);
 
   const tabLabel = (t: "all" | "weekly" | "guild") =>
-    t === "all" ? "All Time" : t === "weekly" ? "This Week" : "Guild";
+    t === "all" ? "This Season" : t === "weekly" ? "This Week" : "Lifetime";
 
   return (
     <div
@@ -428,7 +440,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                       className="text-[9px] font-bold tracking-wider uppercase"
                       style={{ color: TEXT_TERTIARY }}
                     >
-                      Total XP
+                      {tab === "guild" ? "Lifetime XP" : tab === "weekly" ? "Week XP" : "Season XP"}
                     </div>
                   </div>
                 </div>

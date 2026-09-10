@@ -17,6 +17,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { resolveImageUrl } from "../../lib/imageHelper";
+import {
+  XP_PER_LEVEL, SEASON_DAYS,
+  levelFromXp, xpInLevel as xpInLevelOf, levelProgressPct,
+  resolveLifetimeXp, resolveCycleXp, daysLeftInCycle,
+} from "../../lib/xpSeason";
 
 // Design tokens (iOS 17 + Solo Leveling ARISE — NO NEON)
 const TEXT_PRIMARY = "#ffffff";
@@ -121,10 +126,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   // ============== DERIVED VALUES ==============
   const userName = profile.name || user?.displayName || "Seeker";
   const level = Number(profile.level) || 1;
-  const totalXp = Number(profile.totalXp) || Number(profile.xp) || 0;
-  const xpInLevel = totalXp % 1000;
-  const xpForNextLevel = 1000;
-  const xpPct = Math.round((xpInLevel / xpForNextLevel) * 100);
+  // seasonXp  = this 30-day cycle's XP (resets)  |  totalXp = lifetime (drives level)
+  const seasonXp = resolveCycleXp(profile);
+  const totalXp = resolveLifetimeXp(profile);
+  const xpInLevel = xpInLevelOf(totalXp);
+  const xpForNextLevel = XP_PER_LEVEL;
+  const xpPct = levelProgressPct(totalXp);
+  const seasonDaysLeft = daysLeftInCycle((profile as any).xpCycleStart);
   const streak = Number(profile.streak) || 0;
   const bio = profile.bio || "Hunting shadows. Building empires. One rep at a time.";
   const avatar = resolveImageUrl(profile.avatarUrl) || FALLBACK_AVATAR;
@@ -275,13 +283,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const addDemoXP = async (delta: number) => {
     if (updateUserProfile) {
       try {
-        const newTotal = totalXp + delta;
-        const newLevel = Math.floor(newTotal / 1000) + 1;
+        const newLifetime = totalXp + delta;
+        const newSeason = seasonXp + delta;
+        const newLevel = levelFromXp(newLifetime);
         await updateUserProfile({
-          totalXp: newTotal,
-          xp: newTotal,
+          totalXp: newSeason,
+          xp: newSeason,
+          lifetimeXp: newLifetime,
           level: newLevel,
-        });
+        } as any);
         showToast(`+${delta} XP added`, "ok");
       } catch (e) {
         showToast("Failed to add XP", "err");
@@ -311,9 +321,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           await updateUserProfile({
             totalXp: 0,
             xp: 0,
+            lifetimeXp: 0,
             level: 1,
             streak: 0,
-          });
+            xpCycleStart: new Date().toISOString(),
+          } as any);
           showToast("Profile reset", "ok");
         } catch {
           showToast("Reset failed", "err");
@@ -540,13 +552,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   letterSpacing: "-0.03em",
                 }}
               >
-                {xpInLevel}
+                {seasonXp.toLocaleString()}
               </div>
               <div
                 className="text-[11px] font-semibold mt-1"
                 style={{ color: TEXT_SECONDARY }}
               >
-                XP earned
+                Season XP
+              </div>
+              <div
+                className="text-[10px] mt-0.5 tabular-nums"
+                style={{ color: TEXT_TERTIARY }}
+              >
+                resets in {seasonDaysLeft}d · {SEASON_DAYS}-day cycle
               </div>
             </div>
 
@@ -572,9 +590,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               style={{ color: TEXT_SECONDARY }}
             >
               <span style={{ color: ORANGE, fontWeight: 700 }}>
-                {Math.max(0, xpForNextLevel - xpInLevel)} XP
+                {Math.max(0, xpForNextLevel - xpInLevel).toLocaleString()} XP
               </span>{" "}
               to Lvl {level + 1}
+              <span style={{ color: TEXT_TERTIARY }}>
+                {" "}· {xpInLevel.toLocaleString()} / {xpForNextLevel.toLocaleString()}
+              </span>
             </div>
           </div>
 
