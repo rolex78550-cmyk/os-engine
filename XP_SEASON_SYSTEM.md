@@ -29,7 +29,7 @@ Legacy docs (no `lifetimeXp` / `xpCycleStart`) are migrated automatically on fir
 
 - `src/lib/xpSeason.ts` — **single source of truth**: constants, level math, `planCycleReset()`, `buildResetPatch()`. Pure functions, shared by client + server.
 - `src/hooks/useXpSeasonReset.ts` — client-side: mounted in `App.tsx`; checks on load + every minute, resets inside a Firestore transaction (no double reset across tabs).
-- `server.ts` → `GET|POST /api/xp/season-rollover` — server-side cron for users who don't open the app. Auth: `Authorization: Bearer <CRON_SECRET>` (or admin ID token). `?dryRun=1` to preview. Scheduled every 6h in `vercel.json`.
+- `server.ts` → `GET|POST /api/xp/season-rollover` — server-side cron for users who don't open the app. Auth: `Authorization: Bearer <CRON_SECRET>` (or admin ID token). `?dryRun=1` to preview. Scheduled once daily (`30 18 * * *` UTC = 00:00 IST) in `vercel.json` — Vercel Hobby plan allows max 1 run/day; on Pro you can tighten it to e.g. `0 */6 * * *`.
 - `server.ts` → `GET /api/xp/config` — public JSON of the current rules.
 
 ## Every XP award now writes both counters
@@ -40,7 +40,7 @@ Touched award sites: `TaskListView` (AI proof), `SoloDominion` (task tracking, m
 ## Deploy checklist
 
 1. Set `CRON_SECRET` in Vercel env (Vercel Cron sends it automatically as the Bearer token).
-2. Deploy — `vercel.json` already contains the cron: `0 */6 * * *` → `/api/xp/season-rollover`.
+2. Deploy — `vercel.json` already contains the cron: `30 18 * * *` (daily, 00:00 IST) → `/api/xp/season-rollover`. Hobby plan = max once per day; more frequent expressions make the whole deployment fail.
 3. Optional sanity check: `curl -H "Authorization: Bearer $CRON_SECRET" "https://<host>/api/xp/season-rollover?dryRun=1"`.
 
 No composite Firestore indexes are needed (single-field `orderBy("lifetimeXp")` and `where("xpCycleStart","<=")` use automatic indexes).
