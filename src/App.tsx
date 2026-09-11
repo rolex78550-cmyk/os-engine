@@ -20,9 +20,8 @@ import { ProfileView } from "./components/views/ProfileView";
 import { useAppLogic } from "./hooks/useAppLogic";
 import { useRPG } from "./hooks/useRPG";
 import { useFirebase } from "./components/FirebaseProvider";
-import { db } from "./lib/firebase";
-import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
-import { XP_PER_TASK, levelFromXp, resolveLifetimeXp, resolveCycleXp } from "./lib/xpSeason";
+import { XP_PER_TASK, resolveLifetimeXp } from "./lib/xpSeason";
+import { claimTask } from "./lib/taskClaimApi";
 import { useXpSeasonReset } from "./hooks/useXpSeasonReset";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
@@ -123,63 +122,35 @@ export default function App() {
           rewarded = 0;
           window.localStorage.setItem(REWARD_KEY, "0");
         }
-        // ============== FLAT 50 XP CAP (once per day) ==============
-        if (flips >= 10 && rewarded < 1) {
-          const toAward = XP_PER_TASK; // flat 50 XP, no more, no less
-          // Cycle XP (30-day, resets) vs lifetime XP (drives level, never resets)
-          const currentTotalXp = resolveCycleXp(profile);
-          const currentLifetimeXp = resolveLifetimeXp(profile);
-          const newTotalXp = currentTotalXp + toAward;
-          const newLifetimeXp = currentLifetimeXp + toAward;
-          const newLevel = levelFromXp(newLifetimeXp);
-          const oldLevel = Number(profile?.level) || 1;
-          const leveledUp = newLevel > oldLevel;
-          console.log(
-            `[affirmation bridge] awarding ${toAward} XP (daily cap): cycleXp ${currentTotalXp} -> ${newTotalXp}, lifetimeXp ${currentLifetimeXp} -> ${newLifetimeXp}, level ${oldLevel} -> ${newLevel}`
-          );
-          // Single atomic increment — race-safe, no double count. onSnapshot
-          // (FirebaseProvider) re-renders the UI with the true value.
-          if (user?.uid) {
-            try {
-              await setDoc(
-                doc(db, "users", user.uid),
-                {
-                  totalXp: increment(toAward),
-                  xp: increment(toAward),
-                  lifetimeXp: profile?.lifetimeXp != null ? increment(toAward) : newLifetimeXp,
-                  level: newLevel,
-                  lastAffirmationAward: serverTimestamp(),
-                  updatedAt: Date.now(),
-                },
-                { merge: true }
-              );
-              console.log("[affirmation bridge] atomic XP write OK");
-            } catch (e) {
-              console.warn("[affirmation bridge] direct Firestore write failed:", e);
+        // ============== 10 READS → SERVER CLAIM (once per day) ==============
+        // XP is awarded by POST /api/tasks/claim (server-side, once/day per
+        // task). The client never writes XP directly anymore.
+        if (flips >= 10 && rewarded < 1 && user?.uid) {
+          const r = await claimTask("affirmation");
+          if (r.verified) {
+            console.log(`[affirmation bridge] server awarded ${r.xpAwarded} XP · level ${r.newLevel}`);
+            if (recordXPGain) {
+              try {
+                await recordXPGain(r.xpAwarded ?? XP_PER_TASK, r.newLevel, !!r.leveledUp);
+              } catch (e) {
+                console.warn("[affirmation bridge] recordXPGain failed:", e);
+              }
             }
+            window.localStorage.setItem(REWARD_KEY, "1");
+            window.dispatchEvent(new CustomEvent("manifest_task_claimed", { detail: { taskId: "affirmation" } }));
+            window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+            window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
+            window.dispatchEvent(
+              new CustomEvent("manifest_toast", {
+                detail: { msg: `+${r.xpAwarded ?? XP_PER_TASK} XP · Affirmation Reading task complete`, type: "ok" },
+              })
+            );
+          } else if (r.error === "ALREADY_CLAIMED") {
+            // Server says today's claim exists (other device / cleared storage) — just sync the flag.
+            window.localStorage.setItem(REWARD_KEY, "1");
+          } else {
+            console.warn("[affirmation bridge] claim not accepted:", r.error, r.message);
           }
-          // Recompute RPG score / rank / coins so rank + coins stay in sync.
-          if (recordXPGain) {
-            try {
-              await recordXPGain(toAward, newLevel, leveledUp);
-              console.log("[affirmation bridge] recordXPGain OK");
-            } catch (e) {
-              console.warn("[affirmation bridge] recordXPGain failed:", e);
-            }
-          }
-          // Mark as rewarded for today (cap = 1, max one 50 XP per day)
-          window.localStorage.setItem(REWARD_KEY, "1");
-          window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
-          window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
-          // Show toast
-          window.dispatchEvent(
-            new CustomEvent("manifest_toast", {
-              detail: {
-                msg: `+50 XP · Affirmation Reading task complete`,
-                type: "ok",
-              },
-            })
-          );
         }
       } catch (e) {
         console.warn("[affirmation bridge] error:", e);

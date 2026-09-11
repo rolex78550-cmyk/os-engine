@@ -10,7 +10,6 @@ import {
   Crown,
   Check,
   X,
-  Plus,
   Save,
   Trash2,
   Award,
@@ -19,7 +18,7 @@ import {
 import { resolveImageUrl } from "../../lib/imageHelper";
 import {
   XP_PER_LEVEL, SEASON_DAYS,
-  levelFromXp, xpInLevel as xpInLevelOf, levelProgressPct,
+  xpInLevel as xpInLevelOf, levelProgressPct,
   resolveLifetimeXp, resolveCycleXp, daysLeftInCycle,
 } from "../../lib/xpSeason";
 
@@ -280,35 +279,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (signOut) signOut();
   };
 
-  const addDemoXP = async (delta: number) => {
-    if (updateUserProfile) {
-      try {
-        const newLifetime = totalXp + delta;
-        const newSeason = seasonXp + delta;
-        const newLevel = levelFromXp(newLifetime);
-        await updateUserProfile({
-          totalXp: newSeason,
-          xp: newSeason,
-          lifetimeXp: newLifetime,
-          level: newLevel,
-        } as any);
-        showToast(`+${delta} XP added`, "ok");
-      } catch (e) {
-        showToast("Failed to add XP", "err");
-      }
-    }
-  };
-
-  const addDemoStreak = async () => {
-    if (updateUserProfile) {
-      try {
-        await updateUserProfile({ streak: streak + 1 });
-        showToast("Streak +1", "ok");
-      } catch {
-        showToast("Failed to add streak", "err");
-      }
-    }
-  };
+  // (Demo "+XP" buttons removed — XP is awarded only by the server via
+  //  POST /api/tasks/claim; Firestore rules reject client-side XP writes.)
 
   const clearAllData = async () => {
     if (
@@ -672,51 +644,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
             </div>
           ))}
-        </section>
-
-        {/* ===================== DEMO ACTIONS (debug XP/streak) ===================== */}
-        <section className="px-4 pt-3 pb-4">
-          <h3
-            className="text-[10px] font-bold tracking-widest uppercase mb-2.5 px-1"
-            style={{ color: TEXT_TERTIARY }}
-          >
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => addDemoXP(50)}
-              className="py-2.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition"
-              style={{
-                backgroundColor: SURFACE,
-                border: `1px solid ${HAIRLINE}`,
-                color: ORANGE,
-              }}
-            >
-              <Plus size={12} strokeWidth={2.5} />50 XP
-            </button>
-            <button
-              onClick={() => addDemoXP(200)}
-              className="py-2.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition"
-              style={{
-                backgroundColor: SURFACE,
-                border: `1px solid ${HAIRLINE}`,
-                color: ORANGE,
-              }}
-            >
-              <Plus size={12} strokeWidth={2.5} />200 XP
-            </button>
-            <button
-              onClick={addDemoStreak}
-              className="py-2.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition"
-              style={{
-                backgroundColor: SURFACE,
-                border: `1px solid ${HAIRLINE}`,
-                color: ORANGE,
-              }}
-            >
-              <Plus size={12} strokeWidth={2.5} />Streak
-            </button>
-          </div>
         </section>
 
         {/* ===================== CTA: SEE POTENTIAL RATING ===================== */}

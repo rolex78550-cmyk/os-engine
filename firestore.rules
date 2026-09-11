@@ -2,16 +2,119 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ══════════════════════════════════════════════════════════════════
+    // XP LOCK
+    // XP / level are awarded ONLY by the server (Admin SDK bypasses rules):
+    //   POST /api/tasks/claim            → +50 XP per AI-verified task
+    //   /api/xp/season-rollover (cron)   → 30-day season reset
+    // A signed-in client may still:
+    //   • leave these fields untouched (normal profile edits)
+    //   • create its doc with 0 XP / level 1 (first-run bootstrap)
+    //   • zero the XP fields (client season-reset hook, "reset profile")
+    //   • seed lifetimeXp ONCE on a legacy doc, never above its stored XP
+    //   • set level only to the value derived from lifetimeXp (16,500/level)
+    // but can NEVER increase XP or invent a level.
+    //
+    // NOTE (rules v2): a recursive wildcard `{x=**}` also matches ZERO
+    // segments, so never put one directly under /users/{uid} — it would
+    // re-grant writes on the user doc itself and defeat the lock.
+    // ══════════════════════════════════════════════════════════════════
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    // Document state before / after the write (empty map when the doc
+    // does not exist yet, so helpers never throw on create).
+    function before() {
+      return resource == null ? {} : resource.data;
+    }
+    function after() {
+      return request.resource == null ? {} : request.resource.data;
+    }
+    // Numeric value of a field after / before the write (0 if absent).
+    function afterNum(f) {
+      return f in after() ? after()[f] : 0;
+    }
+    function beforeNum(f) {
+      return f in before() ? before()[f] : 0;
+    }
+    // Season XP fields (totalXp, xp): unchanged, or reset to 0.
+    function keptOrZero(f) {
+      return afterNum(f) == beforeNum(f) || afterNum(f) == 0;
+    }
+    // lifetimeXp: unchanged, reset to 0, or seeded once on a legacy doc
+    // (no lifetimeXp yet) from the season XP the doc already holds.
+    function lifetimeOk() {
+      return afterNum('lifetimeXp') == beforeNum('lifetimeXp')
+        || afterNum('lifetimeXp') == 0
+        || (
+          !('lifetimeXp' in before())
+          && (afterNum('lifetimeXp') <= beforeNum('totalXp')
+              || afterNum('lifetimeXp') <= beforeNum('xp'))
+        );
+    }
+    // level: unchanged, 1, or exactly the level implied by lifetimeXp
+    // after the write (lifetimeXp itself is already validated above).
+    function levelMatchesLifetime(level, lifetime) {
+      return level is int
+        && level >= 1
+        && (level - 1) * 16500 <= lifetime
+        && lifetime < level * 16500;
+    }
+    function levelOk() {
+      return afterNum('level') == beforeNum('level')
+        || afterNum('level') == 1
+        || levelMatchesLifetime(afterNum('level'), afterNum('lifetimeXp'));
+    }
+    // XP fields can never be removed from the doc (a non-merge setDoc that
+    // drops lifetimeXp would otherwise allow a later "legacy re-seed").
+    function xpFieldsKept() {
+      return (!('totalXp' in before()) || 'totalXp' in after())
+        && (!('xp' in before()) || 'xp' in after())
+        && (!('lifetimeXp' in before()) || 'lifetimeXp' in after())
+        && (!('level' in before()) || 'level' in after());
+    }
+    function xpNotInflated() {
+      return xpFieldsKept()
+        && keptOrZero('totalXp') && keptOrZero('xp') && lifetimeOk() && levelOk();
+    }
+    function xpZeroOnCreate() {
+      return afterNum('totalXp') == 0
+        && afterNum('xp') == 0
+        && afterNum('lifetimeXp') == 0
+        && (!('level' in after()) || after().level == 1);
+    }
+
     // ── USERS ──────────────────────────────────────────────────────────
     // Each user can only write their OWN profile + subcollections.
     // Any authenticated user can read (needed for leaderboard lookups).
     match /users/{uid} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow create: if isOwner(uid) && xpZeroOnCreate();
+      allow update: if isOwner(uid) && xpNotInflated();
+      allow delete: if isOwner(uid);
 
-      match /{doc=**} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == uid;
+      // Proof audit trail — written ONLY by the server (/api/tasks/claim).
+      // Private to the owner (scores, AI feedback, image hashes).
+      match /task_claims/{claimId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // Season archive — append-only. Created by the client reset hook or
+      // the server cron; never rewritten or deleted from the client.
+      match /xp_seasons/{seasonId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid);
+        allow update, delete: if false;
+      }
+
+      // Every other subcollection (goals, rituals, solo_missions, …):
+      // same policy as before — authed read, owner write.
+      match /{sub}/{rest=**} {
+        allow read: if request.auth != null
+          && sub != 'task_claims' && sub != 'xp_seasons';
+        allow write: if isOwner(uid)
+          && sub != 'task_claims' && sub != 'xp_seasons';
       }
     }
 
@@ -42,8 +145,11 @@ service cloud.firestore {
 
     // ── DEFAULT DENY ───────────────────────────────────────────────────
     // Anything not explicitly allowed is blocked (write) and auth-gated (read).
+    // Excludes /users/** — that tree has its own (stricter) read rules above
+    // and match blocks are OR'd, so a catch-all here would re-open
+    // task_claims / xp_seasons to every signed-in user.
     match /{document=**} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && document[0] != 'users';
       allow write: if false;
     }
   }

@@ -12,13 +12,10 @@ import { db } from "../../lib/firebase";
 import { useFirebase } from "../FirebaseProvider";
 import { doc, setDoc, onSnapshot, increment, serverTimestamp } from "firebase/firestore";
 import { resolveImageUrl, onImgError } from "../../lib/imageHelper";
-import { WorkoutTracker } from "./WorkoutTracker";
 import { SoloDominionHub } from "./SoloDominionHub";
 import { DominionFeatureView } from "./DominionFeatureView";
 import { TaskListView, type TaskDef, TASKS } from "./TaskListView";
 import { LeaderboardView } from "./LeaderboardView";
-import { TaskTrackingView, type TrackingTaskId } from "./TaskTrackingView";
-import { detectWorkoutType, type RepState } from "../../lib/workoutSensor";
 import {
   XP_PER_LEVEL, XP_PER_TASK, SEASON_DAYS,
   levelFromXp, xpInLevel, levelProgressPct,
@@ -317,9 +314,8 @@ export const SoloDominion: React.FC<any> = (props) => {
   };
 
   // --- DOMINION HUB ROUTER (hub view = simple home, default) ---
-  type DominionView = "hub" | "tasks" | "leaderboard" | "tracking";
+  type DominionView = "hub" | "tasks" | "leaderboard";
   const [dominionView, setDominionView] = useState<DominionView>("hub");
-  const [trackingTask, setTrackingTask] = useState<TrackingTaskId>("pushup");
   const [playerName, setPlayerName] = useState<string>("Hunter");
   useEffect(() => {
     try {
@@ -388,7 +384,6 @@ export const SoloDominion: React.FC<any> = (props) => {
   // ============================================================
   const [proofMission, setProofMission] = useState<Mission | null>(null);
   // Unified workout tracker state — handles push-ups, squats, plank, walking, meditation
-  const [workoutMission, setWorkoutMission] = useState<Mission | null>(null);
   const [proofStep, setProofStep] = useState<"choose" | "selfie" | "video" | "text" | "verifying" | "result">("choose");
   const [proofSelfieBase64, setProofSelfieBase64] = useState<string | null>(null);
   const [proofVideoBlob, setProofVideoBlob] = useState<Blob | null>(null);
@@ -415,15 +410,9 @@ export const SoloDominion: React.FC<any> = (props) => {
   const openProofModal = (mission: Mission) => {
     if (mission.completed || !user) return;
 
-    // WORKOUT mission (push-up, squat, plank, walking, meditation)
-    // → use unified motion sensor tracker (no camera, no AI)
-    const workoutType = detectWorkoutType(mission.title + " " + (mission.desc || "") + " " + (mission.id || ""));
-    if (workoutType) {
-      setWorkoutMission(mission);
-      return;
-    }
-
-    // Other missions → use old selfie/video/text proof system
+    // Every mission (workouts included) goes through the photo/video/oath
+    // proof modal — the motion-sensor tracker was removed because phone
+    // shaking could pass it. Camera + AI audit is the only accepted proof.
     setProofMission(mission);
     setProofStep("choose");
     setProofSelfieBase64(null);
@@ -880,11 +869,13 @@ export const SoloDominion: React.FC<any> = (props) => {
         const saved = snap.data().missions || [];
         setMissions(saved);
 
-        // Migrate: if user has no sensor-tracked workout missions in their
+        // Migrate: if user has none of the default workout missions in their
         // saved list, persist the new defaults to Firestore. This is a
         // one-time migration per user so refreshes don't keep re-adding.
         const hasWorkout = saved.some((m: Mission) =>
-          detectWorkoutType(m.title + " " + (m.desc || "") + " " + (m.id || ""))
+          /push[\s-]?up|squat|plank|walk|run|step|meditat|breath|mindful/i.test(
+            m.title + " " + (m.desc || "") + " " + (m.id || "")
+          )
         );
         if (!hasWorkout && DEFAULT_QUESTS.length > 0) {
           const DEFAULT_TARGETS_MIG: Record<string, { target: number; unit: string }> = {
@@ -963,77 +954,6 @@ export const SoloDominion: React.FC<any> = (props) => {
   }, [user]);
 
   // --- HANDLERS ---
-  // Handle workout completion (unified for push-ups, squats, plank, walking, meditation)
-  const handleWorkoutComplete = async (state: RepState) => {
-    if (!workoutMission || !user) return;
-
-    const mission = workoutMission;
-    setWorkoutMission(null);
-
-    // Validation
-    const isTimeBased = state.metadata?.isTimeBased;
-    const minRequired = isTimeBased ? 10 : 5; // 10s for plank/meditation, 5 reps for others
-
-    if (state.count < minRequired) {
-      const unit = isTimeBased ? "seconds" : "reps";
-      showToast(`❌ Only ${state.count} ${unit} detected. Need at least ${minRequired}.`);
-      return;
-    }
-
-    // Anti-cheat: reject clearly fake / shaken input (erratic pace, high
-    // rejection ratio). Suspicious-but-plausible still passes with a note.
-    const q = state.quality;
-    if (q && q.label === "likely_fake") {
-      showToast(
-        `❌ Movement pattern looks faked (${q.paceCV}% pace variance). Slow down and perform real ${state.type} reps.`
-      );
-      return;
-    }
-
-    // Mark mission complete with motion proof data
-    const proof: MissionProof = {
-      selfieBase64: undefined,
-      selfieUrl: undefined,
-      videoUrl: undefined,
-      videoStoragePath: undefined,
-      textOath: undefined,
-      proofTypeUsed: "video_oath",
-      verified: true,
-      verificationScore: q ? q.score : Math.min(100, Math.round((state.count / (mission.targetVal || 100)) * 100)),
-      verificationFeedback: `${state.type} completed: ${state.count} ${isTimeBased ? "seconds" : "reps"}. ${
-        q
-          ? `Motion quality ${q.score}/100 (${q.label}).`
-          : "Form verified via motion sensor."
-      }`,
-      submittedAt: new Date().toISOString(),
-    };
-
-    const updated = missions.map((m) =>
-      m.id === mission.id
-        ? {
-            ...m,
-            completed: true,
-            currentVal: state.count,
-            progress: `${state.count}/${mission.targetVal || state.count} ${mission.unit || ""}`.trim(),
-            proofData: proof,
-            verifiedAt: new Date().toISOString(),
-          }
-        : m
-    );
-    setMissions(updated);
-    const ref = doc(db, "users", user.uid, "solo_missions", today);
-    await setDoc(ref, { missions: updated, date: today }, { merge: true });
-
-    // Award XP
-    const xpGain = mission.xp;
-    const patch = buildXpAwardPatch(xpGain);
-    await setDoc(doc(db, "users", user.uid), patch, { merge: true });
-    if (recordXPGain) await recordXPGain(xpGain, patch.level, patch.level > (profile.level || 1));
-    attackBoss(100);
-    if ("vibrate" in navigator) navigator.vibrate([100, 50, 200]);
-    showToast(`⚔️ ${state.count} ${state.type} verified! +${xpGain} XP!`);
-  };
-
   const completeMission = async (id: string) => {
     if (!user || saving) return;
     const mission = missions.find(m => m.id === id);
@@ -1555,8 +1475,7 @@ export const SoloDominion: React.FC<any> = (props) => {
             }
             return;
           }
-          setTrackingTask(task.id as any);
-          setDominionView("tracking");
+          // All other tasks are handled inside TaskListView (camera proof / honor claim).
         }}
       />
     );
@@ -1582,72 +1501,9 @@ export const SoloDominion: React.FC<any> = (props) => {
     );
   }
 
-  // ===================== TRACKING ROUTE =====================
-  // (Replaces old 'main' view for task click flow — full app-style page)
-  if (dominionView === "tracking") {
-    // Find the task being tracked
-    const currentTask = TASKS.find((t) => t.id === trackingTask);
-    const xpReward = currentTask?.xpReward ?? XP_PER_TASK;
-    return (
-      <TaskTrackingView
-        taskId={trackingTask}
-        onBack={() => setDominionView("tasks")}
-        onComplete={async () => {
-          // ============== SAVE XP TO FIRESTORE (SINGLE ATOMIC WRITE) ==============
-          try {
-            // Cycle XP (30-day, resets) + lifetime XP (drives level, never resets)
-            const currentTotalXp = resolveCycleXp(profileData);
-            const currentLifetimeXp = resolveLifetimeXp(profileData);
-            const newTotalXp = currentTotalXp + xpReward;
-            const newLifetimeXp = currentLifetimeXp + xpReward;
-            const newLevel = levelFromXp(newLifetimeXp);
-            const oldLevel = Number(profileData.level) || 1;
-            const leveledUp = newLevel > oldLevel;
-            console.log(
-              `[task complete] awarding ${xpReward} XP: cycleXp ${currentTotalXp} -> ${newTotalXp}, lifetimeXp ${currentLifetimeXp} -> ${newLifetimeXp}, level ${oldLevel} -> ${newLevel}`
-            );
-            // Single atomic increment — race-safe, no double count. onSnapshot
-            // (FirebaseProvider) re-renders the UI with the true value.
-            if (user?.uid) {
-              await setDoc(
-                doc(db, "users", user.uid),
-                buildXpAwardPatch(xpReward, { lastTaskAward: serverTimestamp() }),
-                { merge: true }
-              );
-              console.log("[task complete] atomic XP write OK");
-            }
-            // Recompute RPG score / rank / coins
-            if (recordXPGain) {
-              try {
-                await recordXPGain(xpReward, newLevel, leveledUp);
-                console.log("[task complete] recordXPGain OK");
-              } catch (e) {
-                console.warn("[task complete] recordXPGain failed:", e);
-              }
-            }
-            // Trigger SFX
-            try {
-              window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
-              window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
-            } catch {}
-            // 6. Show toast
-            window.dispatchEvent(
-              new CustomEvent("manifest_toast", {
-                detail: {
-                  msg: `+${xpReward} XP · ${currentTask?.title} complete`,
-                  type: "ok",
-                },
-              })
-            );
-            // 7. Return to tasks list
-            setDominionView("tasks");
-          } catch (e: any) {
-            console.error("[dominion] task complete error:", e);
-          }
-        }}
-      />
-    );
-  }
+  // (Sensor / timer / counter tracking route removed — every task is now
+  //  proven with a live photo + AI audit inside TaskListView → TaskProofCamera,
+  //  and XP is awarded by the server: POST /api/tasks/claim.)
 
   return (
     <div
@@ -2331,27 +2187,6 @@ export const SoloDominion: React.FC<any> = (props) => {
           })}
         </div>
       </div>
-
-      {/* ============================================================ */}
-      {/* UNIFIED WORKOUT TRACKER MODAL — Push-ups, Squats, Plank, Walk, Meditation */}
-      {/* ============================================================ */}
-      {workoutMission && detectWorkoutType(workoutMission.title + " " + (workoutMission.desc || "") + " " + (workoutMission.id || "")) && (
-        <WorkoutTracker
-          workoutType={detectWorkoutType(workoutMission.title + " " + (workoutMission.desc || "") + " " + (workoutMission.id || ""))!}
-          missionTitle={workoutMission.title}
-          targetValue={workoutMission.targetVal || 100}
-          onComplete={(state) => {
-            handleWorkoutComplete({
-              ...state,
-              metadata: {
-                ...state.metadata,
-                isTimeBased: ["plank", "meditation"].includes(state.type),
-              },
-            });
-          }}
-          onCancel={() => setWorkoutMission(null)}
-        />
-      )}
 
       {/* ============================================================ */}
       {/* EXISTING PROOF MODAL — kept fully functional                */}

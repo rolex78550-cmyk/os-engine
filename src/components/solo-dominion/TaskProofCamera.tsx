@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Camera, RotateCw, CheckCircle2, XCircle, Loader2, Sparkles,
-  Image as ImageIcon, AlertTriangle, Upload, Eye
+  Image as ImageIcon, AlertTriangle, Eye
 } from "lucide-react";
-import { verifyGoalProof, type ProofVerdict } from "../../lib/goalApi";
+import { TASK_BY_ID, type TaskId, PROOF_PASS_SCORE, MAX_PROOF_ATTEMPTS_PER_DAY } from "../../lib/taskCatalog";
+import { claimTask, type ClaimResult } from "../../lib/taskClaimApi";
 
 // iOS 17 + Solo Leveling ARISE design tokens
 const TEXT_PRIMARY = "#ffffff";
@@ -18,188 +19,55 @@ const ORANGE_DARK = "#ff7a00";
 const IOS_RED = "#ff453a";
 const IOS_GREEN = "#34c759";
 
-export type ProofTaskId = "writing" | "gratitude" | "script369" | "dress";
+/** Any task whose proofMode is "camera" (see src/lib/taskCatalog.ts). */
+export type ProofTaskId = TaskId;
 
 interface TaskProofCameraProps {
   taskId: ProofTaskId;
   taskTitle: string;
   taskDescription: string;
-  /** Called when proof verified (true) or rejected (false) */
+  /** Attempts already used today (from /api/tasks/today), for the counter. */
+  attemptsUsed?: number;
+  /**
+   * Called ONLY after the server verified the proof AND awarded XP.
+   * The client never writes XP itself.
+   */
   onVerified: (result: {
-    verified: boolean;
+    verified: true;
     score: number;
     feedback: string;
-    imageBase64?: string;
-    imageHash?: string;
+    xpAwarded: number;
+    newLevel?: number;
+    leveledUp?: boolean;
   }) => void;
   onClose: () => void;
 }
-
-const TASK_GUIDANCE: Record<ProofTaskId, { label: string; rules: string[]; prompt: string }> = {
-  writing: {
-    label: "Scripting",
-    rules: [
-      "Show your notebook / diary / journal",
-      "Today's DATE must be clearly written",
-      "Write your desire in PRESENT tense (as if already done)",
-      "Minimum 50 words of scripting content",
-    ],
-    prompt: `You are a STRICT Manifestation Coach auditing a Scripting proof.
-The user claims to have completed their daily SCRIPTING practice.
-The task is: "Scripting — Write your manifestation script in present tense. Feel it as already done."
-
-WHAT TO CHECK (in this order):
-1. IMAGE QUALITY: Is this a real photo of a notebook/diary/journal? (Reject blank paper, screenshots, old photos)
-2. DATE: Does the image show TODAY'S DATE? (Look for any date — header, top, side, or in the text itself). If the date is clearly from a PREVIOUS DAY, REJECT.
-3. CONTENT: Is the content a manifestation script? — written in PRESENT TENSE, describing the desire as if it's already happened ("I am so happy now that...", "Thank you for...", "It's done, I have my..."). Reject if it's just a to-do list, random notes, or unrelated writing.
-4. FRESHNESS: Reject if the handwriting/photo looks like it's from a previous day being reused.
-
-SCORING:
-- 90-100: Today + present-tense scripting + clear intent
-- 60-89: Today + some scripting but lacking emotion/specificity
-- 30-59: Date ambiguous OR content not in present tense
-- 0-29: Old photo, blank page, screenshot, or unrelated content
-
-Return ONLY JSON:
-{
-  "verified": boolean (true if score >= 60),
-  "verificationScore": number (0-100),
-  "verificationFeedback": "1-2 sharp sentences explaining the verdict"
-}`,
-  },
-  gratitude: {
-    label: "Gratitude Script",
-    rules: [
-      "Show your notebook with gratitude entries",
-      "Today's DATE must be written",
-      "List 5 specific things you're grateful for",
-      "Feel the emotion — write from the heart, not generic lines",
-    ],
-    prompt: `You are a STRICT Manifestation Coach auditing a Gratitude Script proof.
-The user claims to have completed their daily GRATITUDE practice.
-The task is: "Gratitude Script — Write 5 things you're deeply grateful for. Specific, emotional, felt in the body."
-
-WHAT TO CHECK:
-1. IMAGE QUALITY: Real photo of notebook/diary? (Reject blank pages, screenshots, reused photos)
-2. DATE: TODAY'S DATE clearly visible? Reject if clearly from a previous day.
-3. CONTENT: Is there a gratitude list? Look for 5+ items starting with "Thank you", "I'm grateful for", "Grateful", or numbered/bulleted items. Reject if not gratitude content.
-4. SPECIFICITY: Are items specific (not generic like "I'm grateful for my family" without details)? Reward specificity.
-5. FRESHNESS: Reject if photo looks reused from a previous day.
-
-SCORING:
-- 90-100: Today + 5+ specific gratitude items with emotion
-- 60-89: Today + gratitude content but less specific
-- 30-59: Date ambiguous or content too generic
-- 0-29: Old photo, blank page, or not gratitude content
-
-Return ONLY JSON:
-{
-  "verified": boolean (true if score >= 60),
-  "verificationScore": number (0-100),
-  "verificationFeedback": "1-2 sharp sentences"
-}`,
-  },
-  script369: {
-    label: "369 Script",
-    rules: [
-      "Show your notebook with 3/6/9 pattern",
-      "3 times in morning, 6 times in afternoon, 9 times at night",
-      "Today's DATE must be written",
-      "Same desire written the required number of times",
-    ],
-    prompt: `You are a STRICT Manifestation Coach auditing a 369 Script proof.
-The user claims to have completed their 369 METHOD practice.
-The task is: "369 Script — Write your desire 3x in morning, 6x in afternoon, 9x at night. Tesla's manifestation method."
-
-WHAT TO CHECK:
-1. IMAGE QUALITY: Real photo of notebook? (Reject blank, screenshots, reused)
-2. DATE: TODAY'S DATE visible? Reject if clearly a previous day.
-3. 3-6-9 PATTERN: Look for evidence of 3 sections, OR clear repetition pattern of the same desire written multiple times. Look for numbers like "3x", "6x", "9x" or groupings.
-4. FRESHNESS: Reject if reused.
-
-SCORING:
-- 90-100: Today + clear 3/6/9 pattern with same desire repeated
-- 60-89: Today + repetition pattern but less clear structure
-- 30-59: Date ambiguous or pattern not clear
-- 0-29: Old photo, blank, or no 369 evidence
-
-Return ONLY JSON:
-{
-  "verified": boolean (true if score >= 60),
-  "verificationScore": number (0-100),
-  "verificationFeedback": "1-2 sharp sentences"
-}`,
-  },
-  dress: {
-    label: "Dress Like Your Future Self",
-    rules: [
-      "Wear what your FUTURE self would wear today",
-      "Full body mirror selfie (face + outfit visible)",
-      "Today's DATE in the photo (mirror, phone screen, or background)",
-      "Outfit must be intentional — not a screenshot, not a stock photo",
-    ],
-    prompt: `You are a STRICT Identity Coach auditing a "Dress Like Your Future Self" proof.
-The user claims to have dressed like their ideal future self today.
-The task is: "Dress Like Your Future Self — wear what your future self would wear, post a photo proof."
-
-WHAT TO CHECK (in this order):
-1. IMAGE TYPE: Real mirror selfie or full-body photo? (Reject if it's a stock photo, a saved picture from internet, a screenshot of an outfit, an old photo, or just a face closeup without outfit visible)
-2. DATE: TODAY'S DATE must be visible somewhere — phone screen lock, mirror date stamp, in background, or in app screenshot. REJECT if clearly a previous day.
-3. OUTFIT VISIBILITY: Can you see the full outfit / clothing? (Reject if only face visible)
-4. INTENT: Does the outfit look like a deliberate choice (formal, athletic, business, artistic)? Or is it just random casual wear with no intention?
-5. FRESHNESS: The photo must appear to be taken TODAY (recent image, today's light, current background). Reject if reused or from a previous day.
-
-SCORING:
-- 90-100: Today + clear outfit + intentional styling + date visible
-- 60-89: Today + outfit visible but lacks intentional styling
-- 30-59: Date ambiguous OR outfit not clearly visible
-- 0-29: Old photo, stock image, screenshot, or face-only
-
-Return ONLY JSON:
-{
-  "verified": boolean (true if score >= 60),
-  "verificationScore": number (0-100),
-  "verificationFeedback": "1-2 sharp sentences"
-}`,
-  },
-};
-
-// Simple hash of base64 to detect reused images
-const hashBase64 = (b64: string): string => {
-  let hash = 0;
-  const sample = b64.slice(0, 2000) + b64.slice(-2000);
-  for (let i = 0; i < sample.length; i++) {
-    hash = ((hash << 5) - hash) + sample.charCodeAt(i);
-    hash |= 0;
-  }
-  return String(hash);
-};
 
 export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
   taskId,
   taskTitle,
   taskDescription,
+  attemptsUsed = 0,
   onVerified,
   onClose,
 }) => {
-  const guidance = TASK_GUIDANCE[taskId];
+  const spec = TASK_BY_ID[taskId];
+  const guidance = { label: spec.title, rules: spec.rules };
 
   // ----- STATE -----
   const [mode, setMode] = useState<"capture" | "preview" | "verifying" | "result">("capture");
   const [streamReady, setStreamReady] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [capturedFile, setCapturedFile] = useState<File | null>(null);
-  const [verdict, setVerdict] = useState<ProofVerdict | null>(null);
+  const [verdict, setVerdict] = useState<ClaimResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
-  const [proofText, setProofText] = useState("");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(spec.camera);
+  const [attempts, setAttempts] = useState<number>(attemptsUsed);
+  const attemptsLeft = Math.max(0, MAX_PROOF_ATTEMPTS_PER_DAY - attempts);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const todayStr = new Date().toLocaleDateString("en-CA");
 
   // ----- LIVE CAMERA -----
   const startCamera = useCallback(async () => {
@@ -228,8 +96,8 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
         e?.name === "NotAllowedError"
           ? "Camera permission denied. Please allow camera access."
           : e?.name === "NotFoundError"
-          ? "No camera found. Use Upload instead."
-          : "Camera not available. Use Upload instead."
+          ? "No camera found on this device. A live camera is required for proof."
+          : "Camera not available. Please allow camera access — live photo is required."
       );
       setStreamReady(false);
     }
@@ -266,164 +134,78 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     ctx.drawImage(video, 0, 0, w, h);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
     setCapturedImage(dataUrl);
-    // Convert dataURL to File
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `proof-${Date.now()}.jpg`, { type: "image/jpeg" });
-        setCapturedFile(file);
-        setMode("preview");
-      }
-    }, "image/jpeg", 0.62);
+    setMode("preview");
   }, []);
 
-  // ----- FILE UPLOAD FALLBACK -----
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setError("Image too large (max 8MB).");
-      return;
-    }
-    // Compress uploaded image too (downscale + re-encode) so the proof
-    // payload stays small enough for the API (avoids HTTP 413).
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX_DIM = 900;
-        const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          setCapturedFile(file);
-          setCapturedImage(reader.result as string);
-          setMode("preview");
-          return;
-        }
-        ctx.drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL("image/jpeg", 0.62);
-        canvas.toBlob((blob) => {
-          const compressedFile = blob
-            ? new File([blob], `proof-${Date.now()}.jpg`, { type: "image/jpeg" })
-            : file;
-          setCapturedFile(compressedFile);
-          setCapturedImage(compressed);
-          setMode("preview");
-        }, "image/jpeg", 0.62);
-      };
-      img.onerror = () => {
-        setCapturedFile(file);
-        setCapturedImage(reader.result as string);
-        setMode("preview");
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // ----- REUSE DETECTION -----
-  const checkReuse = (b64: string): { isReuse: boolean; previousDate?: string } => {
-    try {
-      const h = hashBase64(b64);
-      const key = `manifest_proof_hashes_${taskId}`;
-      const raw = window.localStorage.getItem(key);
-      const map = raw ? JSON.parse(raw) : {};
-      const todayRecord = map[todayStr];
-      if (todayRecord === h) {
-        return { isReuse: true };
-      }
-      // Check if this hash was used in a previous day
-      for (const [date, hash] of Object.entries(map)) {
-        if (hash === h && date !== todayStr) {
-          return { isReuse: true, previousDate: date };
-        }
-      }
-      return { isReuse: false };
-    } catch {
-      return { isReuse: false };
-    }
-  };
-
-  const saveHash = (b64: string) => {
-    try {
-      const h = hashBase64(b64);
-      const key = `manifest_proof_hashes_${taskId}`;
-      const raw = window.localStorage.getItem(key);
-      const map = raw ? JSON.parse(raw) : {};
-      map[todayStr] = h;
-      // Keep only last 14 days
-      const dates = Object.keys(map).sort();
-      while (dates.length > 14) {
-        delete map[dates.shift()!];
-      }
-      window.localStorage.setItem(key, JSON.stringify(map));
-    } catch {}
-  };
-
-  // ----- SUBMIT FOR AI VERIFICATION -----
+  // ----- SUBMIT → SERVER CLAIM (auth + AI audit + duplicate check + XP award all server-side) -----
   const submit = async () => {
-    if (!capturedFile && !capturedImage) {
-      setError("Capture or upload an image first.");
+    if (!capturedImage) {
+      setError("Capture a photo first.");
       return;
     }
     setError(null);
     setMode("verifying");
+    try {
+      const r = await claimTask(taskId, capturedImage);
 
-    // CLIENT-SIDE REUSE CHECK
-    if (capturedImage) {
-      const reuse = checkReuse(capturedImage);
-      if (reuse.isReuse) {
-        const msg = reuse.previousDate
-          ? `❌ REJECTED: This image was used on ${reuse.previousDate}. Take a fresh photo of today's practice.`
-          : `❌ REJECTED: You've already submitted this exact image today. Take a fresh photo.`;
-        setError(msg);
+      // Refusals that are NOT a verdict on the photo
+      if (r.error === "ALREADY_CLAIMED") {
+        setError("✅ You already completed this task today. Come back tomorrow.");
         setMode("preview");
-        window.dispatchEvent(new CustomEvent("manifest_sfx_error"));
         return;
       }
-    }
-
-    try {
-      const v = await verifyGoalProof({
-        taskTitle,
-        taskDescription: `${taskDescription}\n\nSTRICT VERIFICATION CRITERIA:\n${guidance.prompt}`,
-        proofText: proofText.trim() || `Submitted photo of ${guidance.label.toLowerCase()} practice for today (${todayStr}).`,
-        imageFile: capturedFile,
-      });
-      setVerdict(v);
-      setMode("result");
-      // Save hash on success
-      if (v.verified && capturedImage) {
-        saveHash(capturedImage);
-        window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
-      } else {
-        window.dispatchEvent(new CustomEvent("manifest_sfx_error"));
+      if (r.error === "ATTEMPTS_EXHAUSTED") {
+        setAttempts(MAX_PROOF_ATTEMPTS_PER_DAY);
+        setError(`❌ ${r.message || "No attempts left for today."}`);
+        setMode("preview");
+        return;
       }
+      if (r.error === "AI_UNAVAILABLE") {
+        setError("⏳ Verification is temporarily unavailable — this attempt was NOT counted. Try again in a few minutes.");
+        setMode("preview");
+        return;
+      }
+      if (r.error === "AUTH_REQUIRED") {
+        setError("Please sign in again to submit proof.");
+        setMode("preview");
+        return;
+      }
+      if (r.error && r.error !== "IMAGE_REUSED" && !r.verified) {
+        setError(r.message || "Verification failed. Try again.");
+        setMode("preview");
+        return;
+      }
+
+      // A real verdict (verified or rejected) — counts as an attempt
+      setAttempts((a) => (typeof r.attemptsLeft === "number" ? MAX_PROOF_ATTEMPTS_PER_DAY - r.attemptsLeft : a + 1));
+      if (r.error === "IMAGE_REUSED") {
+        r.feedback = r.message || "This exact photo was already used. Take a fresh one.";
+        r.score = 0;
+      }
+      setVerdict(r);
+      setMode("result");
+      window.dispatchEvent(new CustomEvent(r.verified ? "manifest_sfx_success" : "manifest_sfx_error"));
     } catch (e: any) {
       setError(e?.message || "Verification failed. Try again.");
       setMode("preview");
     }
   };
 
-  // ----- CONFIRM / CLOSE -----
+  // ----- CONFIRM / CLOSE (XP is already awarded by the server at this point) -----
   const confirm = () => {
-    if (!verdict) return;
+    if (!verdict?.verified) return;
     onVerified({
-      verified: verdict.verified,
-      score: verdict.verificationScore,
-      feedback: verdict.verificationFeedback,
-      imageBase64: capturedImage || undefined,
-      imageHash: capturedImage ? hashBase64(capturedImage) : undefined,
+      verified: true,
+      score: verdict.score ?? 0,
+      feedback: verdict.feedback ?? "",
+      xpAwarded: verdict.xpAwarded ?? 0,
+      newLevel: verdict.newLevel,
+      leveledUp: verdict.leveledUp,
     });
   };
 
   const retake = () => {
     setCapturedImage(null);
-    setCapturedFile(null);
     setVerdict(null);
     setError(null);
     setMode("capture");
@@ -607,29 +389,24 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                 Capture proof photo
               </button>
 
-              {/* Upload fallback */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.99] transition"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.04)",
-                  border: `1px solid ${HAIRLINE}`,
-                  color: TEXT_SECONDARY,
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
+              {/* Live-camera only — no gallery uploads (anti-cheat) */}
+              <div
+                className="flex items-center justify-between rounded-xl px-3 py-2"
+                style={{ backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${HAIRLINE}` }}
               >
-                <Upload size={14} />
-                Or upload from device
-              </button>
+                <span className="text-[11px] font-semibold" style={{ color: TEXT_SECONDARY }}>
+                  📷 Live camera only · gallery uploads are disabled
+                </span>
+                <span
+                  className="text-[10px] font-extrabold tabular-nums px-2 py-0.5 rounded-full"
+                  style={{
+                    color: attemptsLeft <= 1 ? IOS_RED : ORANGE,
+                    border: `1px solid ${attemptsLeft <= 1 ? IOS_RED : ORANGE}`,
+                  }}
+                >
+                  {attemptsLeft}/{MAX_PROOF_ATTEMPTS_PER_DAY} tries left
+                </span>
+              </div>
             </div>
           )}
 
@@ -648,29 +425,6 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                   alt="Proof"
                   className="w-full h-auto"
                   style={{ maxHeight: 360, objectFit: "contain" }}
-                />
-              </div>
-
-              {/* Optional proof text */}
-              <div>
-                <label
-                  className="text-[10px] font-extrabold tracking-widest uppercase block mb-1.5"
-                  style={{ color: TEXT_TERTIARY }}
-                >
-                  Add note (optional)
-                </label>
-                <textarea
-                  value={proofText}
-                  onChange={(e) => setProofText(e.target.value)}
-                  rows={2}
-                  placeholder="e.g., morning session 3x, evening 6x, night 9x"
-                  className="w-full rounded-xl p-3 text-[12px] outline-none resize-none"
-                  style={{
-                    backgroundColor: "#000",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontFamily: "inherit",
-                  }}
                 />
               </div>
 
@@ -886,25 +640,38 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {verdict.verificationScore}
+                  {verdict.score ?? 0}
                   <span className="text-[14px] ml-1" style={{ color: TEXT_TERTIARY }}>
-                    /100
+                    /100 · pass ≥ {PROOF_PASS_SCORE}
                   </span>
                 </p>
                 <p
                   className="text-[12px] mt-3 leading-relaxed px-2"
                   style={{ color: TEXT_SECONDARY }}
                 >
-                  {verdict.verificationFeedback}
+                  {verdict.feedback}
                 </p>
-                {verdict.aiGenerated && (
-                  <p
-                    className="text-[9px] mt-3 tracking-widest uppercase"
-                    style={{ color: TEXT_TERTIARY }}
-                  >
-                    AI reviewed · {verdict.modelUsed || "Gemini"}
-                  </p>
+                {!!verdict.flags?.length && !verdict.verified && (
+                  <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+                    {verdict.flags.map((f) => (
+                      <span
+                        key={f}
+                        className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase"
+                        style={{ color: IOS_RED, border: "1px solid rgba(255,69,58,0.4)" }}
+                      >
+                        {f.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                  </div>
                 )}
+                <p
+                  className="text-[9px] mt-3 tracking-widest uppercase"
+                  style={{ color: TEXT_TERTIARY }}
+                >
+                  {verdict.verified
+                    ? `AI verified · +${verdict.xpAwarded ?? 0} XP added`
+                    : `AI reviewed · ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left today`}
+                </p>
                 </div>
               </div>
 
@@ -921,13 +688,14 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                   }}
                 >
                   <CheckCircle2 size={16} />
-                  Claim +50 XP
+                  +{verdict.xpAwarded ?? 0} XP earned · Continue
                 </button>
               ) : (
                 <div className="space-y-2">
                   <button
                     onClick={retake}
-                    className="w-full py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95"
+                    disabled={attemptsLeft <= 0}
+                    className="w-full py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
                     style={{
                       backgroundColor: ORANGE,
                       color: "#000",
@@ -936,7 +704,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                     }}
                   >
                     <Camera size={14} />
-                    Try again with new photo
+                    {attemptsLeft > 0 ? "Try again with new photo" : "No attempts left today"}
                   </button>
                   <button
                     onClick={onClose}

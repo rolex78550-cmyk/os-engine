@@ -10,8 +10,12 @@ import dotenv from "dotenv";
 import fs from "fs";
 import {
   XP_PER_TASK, XP_PER_LEVEL, SEASON_DAYS,
-  planCycleReset, buildResetPatch, resolveLifetimeXp, seasonDocId,
+  planCycleReset, buildResetPatch, resolveLifetimeXp, seasonDocId, levelFromXp,
 } from "./src/lib/xpSeason";
+import {
+  TASK_BY_ID, isTaskId, buildAuditPrompt, claimDateKey,
+  PROOF_PASS_SCORE, MAX_PROOF_ATTEMPTS_PER_DAY,
+} from "./src/lib/taskCatalog";
 
 dotenv.config();
 
@@ -1629,6 +1633,212 @@ app.get("/api/xp/config", (_req, res) => {
   res.json({ xpPerTask: XP_PER_TASK, xpPerLevel: XP_PER_LEVEL, seasonDays: SEASON_DAYS, tasksPerDay: 11, xpPerPerfectDay: 11 * XP_PER_TASK, xpPerPerfectSeason: 11 * XP_PER_TASK * SEASON_DAYS });
 });
 
+// ============================================================
+// DAILY TASK CLAIM — server-authoritative proof + XP award
+// ============================================================
+// POST /api/tasks/claim
+//   Authorization: Bearer <Firebase ID token>   (required)
+//   body: { taskId, imageBase64? }
+//
+// Flow (all on the server — the client can NOT award itself XP):
+//   1. verify Firebase token → uid
+//   2. "today" = server date in Asia/Kolkata (device clock is irrelevant)
+//   3. claim doc users/{uid}/task_claims/{date}_{taskId}
+//        - already verified   → 409 (no double XP)
+//        - attempts ≥ 5       → 429 (no retry-until-pass)
+//   4. proof by task.proofMode
+//        camera → Gemini vision audit, FAIL-CLOSED (AI down → 503, no XP)
+//        flips  → client bridge already counted 10 reads (trusted, low value)
+//        honor  → no proof (water)
+//   5. transaction: write claim + XP (totalXp/xp/lifetimeXp/level)
+//
+// Every attempt is logged in the claim doc (score, flags, feedback, image
+// hash) so abuse can be reviewed later.
+// ============================================================
+function sha256(s: string): string {
+  return crypto.createHash("sha256").update(s).digest("hex");
+}
+
+async function getUidFromRequest(req: any): Promise<string | null> {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return null;
+  try {
+    if (!admin.apps.length) admin.initializeApp({ projectId: getFirebaseConfig().projectId });
+    const decoded = await admin.app().auth().verifyIdToken(token);
+    return decoded.uid || null;
+  } catch {
+    return null;
+  }
+}
+
+app.post("/api/tasks/claim", async (req, res) => {
+  const startedAt = Date.now();
+  try {
+    const uid = await getUidFromRequest(req);
+    if (!uid) return res.status(401).json({ error: "AUTH_REQUIRED", message: "Sign in required." });
+
+    const { taskId, imageBase64 } = req.body || {};
+    if (!isTaskId(taskId)) return res.status(400).json({ error: "BAD_TASK", message: "Unknown task." });
+    const task = TASK_BY_ID[taskId];
+
+    const now = new Date();
+    const dateKey = claimDateKey(now);
+    const db = getDb();
+    const userRef = db.collection("users").doc(uid);
+    const claimRef = userRef.collection("task_claims").doc(`${dateKey}_${taskId}`);
+
+    // ---- 3. duplicate / attempt guard (read before doing any AI work) ----
+    const claimSnap = await claimRef.get();
+    const claim = claimSnap.exists ? (claimSnap.data() as any) : null;
+    if (claim?.verified) {
+      return res.status(409).json({ error: "ALREADY_CLAIMED", message: "You already completed this task today.", claimedAt: claim.verifiedAt });
+    }
+    const attempts = Number(claim?.attempts) || 0;
+    if (task.proofMode === "camera" && attempts >= MAX_PROOF_ATTEMPTS_PER_DAY) {
+      return res.status(429).json({ error: "ATTEMPTS_EXHAUSTED", message: `Max ${MAX_PROOF_ATTEMPTS_PER_DAY} proof attempts per day reached for this task. Try again tomorrow.` });
+    }
+
+    // ---- 4. proof ----
+    let verdict = { verified: false, score: 0, feedback: "", flags: [] as string[], modelUsed: "" };
+    let imageHash: string | null = null;
+
+    if (task.proofMode === "camera") {
+      if (!imageBase64 || typeof imageBase64 !== "string") {
+        return res.status(400).json({ error: "IMAGE_REQUIRED", message: "A live photo is required for this task." });
+      }
+      const rawB64 = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+      if (rawB64.length < 5_000) {
+        return res.status(400).json({ error: "IMAGE_TOO_SMALL", message: "Photo is too small/empty. Take a clear photo." });
+      }
+      imageHash = sha256(rawB64);
+
+      // Exact-duplicate image reuse across days (server-side, can't be cleared by the user)
+      const dupSnap = await userRef.collection("task_claims")
+        .where("imageHash", "==", imageHash).limit(1).get();
+      if (!dupSnap.empty && dupSnap.docs[0].id !== claimRef.id) {
+        await claimRef.set({
+          taskId, date: dateKey, verified: false,
+          attempts: admin.firestore.FieldValue.increment(1),
+          lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastRejectReason: "IMAGE_REUSED",
+        }, { merge: true });
+        return res.status(422).json({ verified: false, error: "IMAGE_REUSED", message: "This exact photo was already used for a previous claim. Take a fresh photo of today's practice.", attemptsLeft: Math.max(0, MAX_PROOF_ATTEMPTS_PER_DAY - attempts - 1) });
+      }
+
+      // Gemini vision audit — FAIL CLOSED
+      const client = getGeminiClient();
+      if (!client) {
+        return res.status(503).json({ error: "AI_UNAVAILABLE", message: "Verification is temporarily unavailable. Your attempt was not counted — try again in a few minutes." });
+      }
+      let parsed: any;
+      try {
+        const result = await generateWithFallback({
+          contents: [{ role: "user", parts: [
+            { text: buildAuditPrompt(task, now) },
+            { inlineData: { mimeType: "image/jpeg", data: rawB64 } },
+          ] }],
+          config: { responseMimeType: "application/json", temperature: 0.1 },
+        });
+        parsed = JSON.parse(result.text || "{}");
+        verdict.modelUsed = result.modelUsed;
+      } catch (e: any) {
+        console.error("[tasks/claim] AI error:", e?.message);
+        return res.status(503).json({ error: "AI_UNAVAILABLE", message: "Verification service is busy. Your attempt was not counted — try again shortly." });
+      }
+      const score = Math.max(0, Math.min(100, Math.round(Number(parsed.verificationScore) || 0)));
+      verdict.score = score;
+      verdict.flags = Array.isArray(parsed.flags) ? parsed.flags.map(String).slice(0, 8) : [];
+      verdict.feedback = String(parsed.verificationFeedback || "").slice(0, 400) || "Proof reviewed.";
+      // Threshold enforced HERE — the model's own `verified` flag is advisory.
+      verdict.verified = score >= PROOF_PASS_SCORE && !!parsed.verified;
+    } else if (task.proofMode === "flips") {
+      verdict = { verified: true, score: 100, feedback: "10 affirmation cards read.", flags: [], modelUsed: "" };
+    } else {
+      verdict = { verified: true, score: 100, feedback: "Logged on your honor.", flags: [], modelUsed: "" };
+    }
+
+    const attemptLog = {
+      at: now.toISOString(), verified: verdict.verified, score: verdict.score,
+      flags: verdict.flags, feedback: verdict.feedback, model: verdict.modelUsed || null,
+      imageHash, latencyMs: Date.now() - startedAt,
+    };
+
+    // ---- rejected: log attempt, no XP ----
+    if (!verdict.verified) {
+      await claimRef.set({
+        taskId, date: dateKey, verified: false,
+        attempts: admin.firestore.FieldValue.increment(1),
+        lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastScore: verdict.score, lastFlags: verdict.flags, lastFeedback: verdict.feedback,
+        history: admin.firestore.FieldValue.arrayUnion(attemptLog),
+      }, { merge: true });
+      return res.status(200).json({
+        verified: false, score: verdict.score, feedback: verdict.feedback, flags: verdict.flags,
+        attemptsLeft: Math.max(0, MAX_PROOF_ATTEMPTS_PER_DAY - attempts - 1),
+      });
+    }
+
+    // ---- 5. verified: award XP atomically (server is the only writer) ----
+    const xp = XP_PER_TASK;
+    const awarded = await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(claimRef);
+      if (fresh.exists && (fresh.data() as any)?.verified) return null; // raced with a parallel request
+      const uSnap = await tx.get(userRef);
+      const u = uSnap.exists ? (uSnap.data() as any) : {};
+      const lifetimeNow = resolveLifetimeXp(u);
+      const newLifetime = lifetimeNow + xp;
+      const newLevel = levelFromXp(newLifetime);
+      const oldLevel = Number(u.level) || 1;
+      tx.set(userRef, {
+        totalXp: admin.firestore.FieldValue.increment(xp),
+        xp: admin.firestore.FieldValue.increment(xp),
+        lifetimeXp: u.lifetimeXp != null ? admin.firestore.FieldValue.increment(xp) : newLifetime,
+        level: newLevel,
+        [`lastProof_${taskId}`]: admin.firestore.FieldValue.serverTimestamp(),
+        lastTaskAward: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
+      }, { merge: true });
+      tx.set(claimRef, {
+        taskId, date: dateKey, verified: true, xpAwarded: xp,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        attempts: admin.firestore.FieldValue.increment(1),
+        score: verdict.score, flags: verdict.flags, feedback: verdict.feedback,
+        model: verdict.modelUsed || null, imageHash, proofMode: task.proofMode,
+        history: admin.firestore.FieldValue.arrayUnion(attemptLog),
+      }, { merge: true });
+      return { newLevel, leveledUp: newLevel > oldLevel, seasonXp: (Number(u.totalXp) || 0) + xp, lifetimeXp: newLifetime };
+    });
+
+    if (!awarded) {
+      return res.status(409).json({ error: "ALREADY_CLAIMED", message: "You already completed this task today." });
+    }
+    return res.json({ verified: true, xpAwarded: xp, score: verdict.score, feedback: verdict.feedback, flags: verdict.flags, ...awarded });
+  } catch (error: any) {
+    console.error("[tasks/claim] error:", error);
+    return res.status(500).json({ error: "SERVER_ERROR", message: error?.message || "Something went wrong." });
+  }
+});
+
+// Today's claim status for the signed-in user (drives the task list UI).
+app.get("/api/tasks/today", async (req, res) => {
+  try {
+    const uid = await getUidFromRequest(req);
+    if (!uid) return res.status(401).json({ error: "AUTH_REQUIRED" });
+    const dateKey = claimDateKey(new Date());
+    const snap = await getDb().collection("users").doc(uid).collection("task_claims")
+      .where("date", "==", dateKey).get();
+    const claims: Record<string, any> = {};
+    snap.docs.forEach((d) => {
+      const v = d.data() as any;
+      claims[v.taskId] = { verified: !!v.verified, attempts: Number(v.attempts) || 0, score: v.score ?? v.lastScore ?? null, feedback: v.feedback ?? v.lastFeedback ?? null };
+    });
+    return res.json({ date: dateKey, claims, maxAttempts: MAX_PROOF_ATTEMPTS_PER_DAY, xpPerTask: XP_PER_TASK });
+  } catch (error: any) {
+    return res.status(500).json({ error: "SERVER_ERROR", message: error?.message });
+  }
+});
+
 // API Route: Verify Razorpay Payment
 app.post("/api/razorpay/verify", async (req, res) => {
   try {
@@ -2208,14 +2418,16 @@ app.post("/api/missions/verify-proof", async (req, res) => {
 
     const client = getGeminiClient();
     if (!client) {
-      // Graceful fallback — accept proof on trust if Gemini offline
-      return res.json({
-        verified: true,
-        verificationScore: 72,
-        verificationFeedback: "AI Oracle offline — proof accepted on your honor. AI verification will resume shortly.",
-        modelUsed: "fallback",
+      // FAIL-CLOSED: no AI = no verification. Never auto-pass a proof.
+      return res.status(503).json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: "AI verifier is offline right now. Your proof was NOT accepted — please try again in a few minutes.",
+        modelUsed: "none",
         verifiedAt: new Date().toISOString(),
         aiGenerated: false,
+        code: "AI_UNAVAILABLE",
+        retryable: true,
       });
     }
 
@@ -2317,19 +2529,21 @@ Return ONLY clean JSON:
         proofType,
       });
     } catch (aiErr: any) {
-      const isQuota = aiErr?.message?.includes("quota") || aiErr?.status === "RESOURCE_EXHAUSTED";
-      if (isQuota) {
-        return res.json({
-          verified: true,
-          verificationScore: 68,
-          verificationFeedback: "AI quota reached — proof accepted on your honor. Universe trusts your oath for now.",
-          modelUsed: "quota-fallback",
-          verifiedAt: new Date().toISOString(),
-          aiGenerated: false,
-          proofType,
-        });
-      }
-      throw aiErr;
+      // FAIL-CLOSED: quota exhausted / model down → reject with retry, never auto-pass.
+      const isQuota = isQuotaError(aiErr) || aiErr?.message?.includes("quota") || aiErr?.status === "RESOURCE_EXHAUSTED";
+      return res.status(503).json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: isQuota
+          ? "AI verifier quota is exhausted for the moment. Your proof was NOT accepted — please retry in a few minutes."
+          : "AI verifier is temporarily unavailable. Your proof was NOT accepted — please retry shortly.",
+        modelUsed: "none",
+        verifiedAt: new Date().toISOString(),
+        aiGenerated: false,
+        proofType,
+        code: "AI_UNAVAILABLE",
+        retryable: true,
+      });
     }
   } catch (error: any) {
     console.error("[Mission Proof Verify] Error:", error?.message || error);
@@ -2356,12 +2570,15 @@ app.post("/api/goals/verify-proof", async (req, res) => {
 
     const client = getGeminiClient();
     if (!client) {
-      return res.json({
-        verified: true,
-        verificationScore: 70,
-        verificationFeedback: "Verified via offline mode. Add a Gemini key for AI-checked proofs.",
+      // FAIL-CLOSED: no AI = no verification. Never auto-pass a proof.
+      return res.status(503).json({
+        verified: false,
+        verificationScore: 0,
+        verificationFeedback: "AI verifier is offline right now. Your proof was NOT accepted — please try again in a few minutes.",
         verifiedAt: new Date().toISOString(),
         aiGenerated: false,
+        code: "AI_UNAVAILABLE",
+        retryable: true,
       });
     }
 
@@ -2408,12 +2625,15 @@ Return ONLY JSON:
     });
   } catch (error: any) {
     console.error("[Verify Proof] Error:", error?.message);
-    res.json({
-      verified: true,
-      verificationScore: 65,
-      verificationFeedback: "Verification service busy — marked complete. AI review will resume shortly.",
+    // FAIL-CLOSED: busy / quota / parse error → reject with retry, never auto-pass.
+    res.status(503).json({
+      verified: false,
+      verificationScore: 0,
+      verificationFeedback: "AI verifier is busy or unavailable. Your proof was NOT accepted — please retry in a few minutes.",
       verifiedAt: new Date().toISOString(),
       aiGenerated: false,
+      code: "AI_UNAVAILABLE",
+      retryable: true,
       error: error?.message,
     });
   }
