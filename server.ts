@@ -70,21 +70,53 @@ function getFirebaseConfig() {
   }
 }
 
+// Service-account credentials for the Admin SDK (required on Vercel — there
+// are no Google "default credentials" there). Accepts, in priority order:
+//   FIREBASE_SERVICE_ACCOUNT        full service-account JSON (raw or base64)
+//   FIREBASE_SERVICE_ACCOUNT_BASE64 same, base64 only
+//   FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY (+ FIREBASE_PROJECT_ID)
+//   GOOGLE_APPLICATION_CREDENTIALS  path to a JSON file (local / GCP)
+// Falls back to Application Default Credentials (works on GCP / gcloud login).
+function loadServiceAccount(): admin.ServiceAccount | null {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || "";
+  if (raw.trim()) {
+    const txt = raw.trim().startsWith("{") ? raw.trim() : Buffer.from(raw.trim(), "base64").toString("utf-8");
+    const j = JSON.parse(txt);
+    return {
+      projectId: j.project_id || j.projectId,
+      clientEmail: j.client_email || j.clientEmail,
+      privateKey: String(j.private_key || j.privateKey || "").replace(/\\n/g, "\n"),
+    };
+  }
+  if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      projectId: process.env.FIREBASE_PROJECT_ID || getFirebaseConfig().projectId,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    };
+  }
+  return null;
+}
+
+function ensureAdminApp() {
+  if (admin.apps.length) return admin.apps[0]!;
+  const config = getFirebaseConfig();
+  const sa = loadServiceAccount();
+  if (sa) {
+    console.log("[firebase] Initializing with service account:", sa.clientEmail);
+    return admin.initializeApp({ credential: admin.credential.cert(sa), projectId: sa.projectId || config.projectId });
+  }
+  console.log("[firebase] Initializing with application default credentials, project:", config.projectId);
+  return admin.initializeApp({ credential: admin.credential.applicationDefault(), projectId: config.projectId });
+}
+
 function getDb() {
   if (_db) return _db;
   if (_firebaseInitError) throw new Error(_firebaseInitError);
 
   try {
-    const config = getFirebaseConfig();
-    console.log("[firebase] Initializing with project:", config.projectId);
-
-    if (!admin.apps.length) {
-      admin.initializeApp({ projectId: config.projectId });
-    }
-    const fbApp = admin.apps[0];
-
+    const fbApp = ensureAdminApp();
     _db = fbApp.firestore();
-
     console.log("[firebase] Initialized successfully");
     return _db;
   } catch (err: any) {
@@ -92,6 +124,12 @@ function getDb() {
     console.error("[firebase] Init failed:", _firebaseInitError);
     throw err;
   }
+}
+
+/** True when a credential error means "server is missing FIREBASE_SERVICE_ACCOUNT". */
+function isCredentialError(err: any): boolean {
+  const m = String(err?.message || err || "");
+  return /default credentials|could not load the default|invalid_grant|UNAUTHENTICATED|PERMISSION_DENIED|Getting metadata from plugin failed|Could not refresh access token/i.test(m);
 }
 
 // Supported env var names for the Gemini API key, in priority order.
@@ -1664,7 +1702,7 @@ async function getUidFromRequest(req: any): Promise<string | null> {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return null;
   try {
-    if (!admin.apps.length) admin.initializeApp({ projectId: getFirebaseConfig().projectId });
+    ensureAdminApp();
     const decoded = await admin.app().auth().verifyIdToken(token);
     return decoded.uid || null;
   } catch {
@@ -1816,6 +1854,12 @@ app.post("/api/tasks/claim", async (req, res) => {
     return res.json({ verified: true, xpAwarded: xp, score: verdict.score, feedback: verdict.feedback, flags: verdict.flags, ...awarded });
   } catch (error: any) {
     console.error("[tasks/claim] error:", error);
+    if (isCredentialError(error)) {
+      return res.status(503).json({
+        error: "SERVER_MISCONFIGURED",
+        message: "Server can't reach the database (Firebase Admin credentials missing). Your attempt was not counted — please tell the admin to set FIREBASE_SERVICE_ACCOUNT.",
+      });
+    }
     return res.status(500).json({ error: "SERVER_ERROR", message: error?.message || "Something went wrong." });
   }
 });
@@ -1980,7 +2024,7 @@ async function verifyUser(req: any): Promise<boolean> {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return false;
   try {
-    if (!admin.apps.length) admin.initializeApp({ projectId: getFirebaseConfig().projectId });
+    ensureAdminApp();
     await admin.app().auth().verifyIdToken(token);
     return true;
   } catch { return false; }
@@ -1991,7 +2035,7 @@ async function verifyAdminToken(req: any): Promise<boolean> {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return false;
   try {
-    if (!admin.apps.length) admin.initializeApp({ projectId: getFirebaseConfig().projectId });
+    ensureAdminApp();
     const decoded = await admin.app().auth().verifyIdToken(token);
     return decoded.email === ADMIN_EMAIL;
   } catch { return false; }
@@ -2193,7 +2237,7 @@ app.post('/api/user-payments-check', async (req, res) => {
   if (!token) return res.status(401).json({ error: 'Missing auth token' });
   
   try {
-    if (!admin.apps.length) admin.initializeApp({ projectId: getFirebaseConfig().projectId });
+    ensureAdminApp();
     const decoded = await admin.app().auth().verifyIdToken(token);
     const callerUid = decoded.uid;
     
