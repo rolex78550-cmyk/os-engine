@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Camera, RotateCw, CheckCircle2, XCircle, Loader2, Sparkles,
@@ -231,7 +232,13 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     : mode === "verifying" ? "Step 3 of 3 · AI check"
     : "Result";
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  // Portal to <body>: the Dominion tab is wrapped in a motion.div with a
+  // transform / will-change, which would make `position: fixed` resolve
+  // against that element instead of the viewport (header-only strip, black
+  // camera area). Rendering at the body level keeps this truly full-screen.
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -239,7 +246,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
         exit={{ opacity: 0, y: 24 }}
         transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.3 }}
         className="fixed inset-0 z-[500] flex flex-col"
-        style={{ backgroundColor: BG, color: TEXT_PRIMARY }}
+        style={{ backgroundColor: BG, color: TEXT_PRIMARY, height: "100dvh", width: "100vw" }}
       >
         <style>{`
           @keyframes sdScan { 0% { top: 8%; opacity: 0; } 50% { opacity: 1; } 100% { top: 92%; opacity: 0; } }
@@ -614,7 +621,8 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
           )}
         </div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

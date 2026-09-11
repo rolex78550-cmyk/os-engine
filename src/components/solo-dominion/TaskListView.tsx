@@ -163,27 +163,27 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
     refreshClaims();
   };
 
-  // ============== CAMERA PROOF PAGE ==============
-  if (proofTask) {
-    const t = TASKS.find((x) => x.id === proofTask)!;
-    return (
-      <TaskProofCamera
-        taskId={proofTask}
-        taskTitle={t.title}
-        taskDescription={t.description}
-        attemptsUsed={attemptsOf(proofTask)}
-        onVerified={handleProofVerified}
-        onClose={() => {
-          setProofTask(null);
-          refreshClaims();
-        }}
-      />
-    );
-  }
+  // ============== CAMERA PROOF (full-screen overlay via portal) ==============
+  const proofSpec = proofTask ? TASKS.find((x) => x.id === proofTask) : null;
+  const proofOverlay = proofTask && proofSpec ? (
+    <TaskProofCamera
+      key={proofTask}
+      taskId={proofTask}
+      taskTitle={proofSpec.title}
+      taskDescription={proofSpec.description}
+      attemptsUsed={attemptsOf(proofTask)}
+      onVerified={handleProofVerified}
+      onClose={() => {
+        setProofTask(null);
+        refreshClaims();
+      }}
+    />
+  ) : null;
 
   // ============== MAIN LIST ==============
   return (
     <div className="relative w-full" style={{ backgroundColor: "#000", minHeight: "100dvh" }}>
+      {proofOverlay}
       {/* ===================== TOP BAR ===================== */}
       <div
         className="sticky top-0 z-30 flex items-center justify-between px-4 pt-5 pb-3"
