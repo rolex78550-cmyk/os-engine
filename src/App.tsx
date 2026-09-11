@@ -149,11 +149,26 @@ export default function App() {
             // Server says today's claim exists (other device / cleared storage) — just sync the flag.
             window.localStorage.setItem(REWARD_KEY, "1");
           } else {
+            // Claim refused (server down / DB misconfigured / auth). Tell the
+            // user instead of failing silently; REWARD_KEY stays 0 so the next
+            // flip retries automatically.
             console.warn("[affirmation bridge] claim not accepted:", r.error, r.message);
+            const msg =
+              r.error === "SERVER_MISCONFIGURED" || r.error === "AI_UNAVAILABLE"
+                ? "10 cards read ✓ but XP could not be saved right now (server issue). Flip one more card in a bit to retry."
+                : r.error === "AUTH_REQUIRED"
+                ? "10 cards read ✓ — sign in again to receive your +50 XP."
+                : `10 cards read ✓ but XP was not saved: ${r.message || r.error || "unknown error"}. Flip once more to retry.`;
+            window.dispatchEvent(new CustomEvent("manifest_toast", { detail: { msg, type: "err" } }));
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn("[affirmation bridge] error:", e);
+        window.dispatchEvent(
+          new CustomEvent("manifest_toast", {
+            detail: { msg: `10 cards read ✓ but XP was not saved (${e?.message || "network error"}). Flip once more to retry.`, type: "err" },
+          })
+        );
       }
     };
     window.addEventListener("manifest_affirmation_flip", onFlip);

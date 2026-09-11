@@ -176,6 +176,11 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
         setMode("preview");
         return;
       }
+      if (r.error === "SERVER_MISCONFIGURED") {
+        setError("⚠️ Server can't save your proof right now (database credentials missing on the server). This attempt was NOT counted — please try again later.");
+        setMode("preview");
+        return;
+      }
       if (r.error === "AUTH_REQUIRED") {
         setError("Please sign in again to submit proof.");
         setMode("preview");
