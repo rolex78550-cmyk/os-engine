@@ -111,7 +111,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
     }
     if (task.proofMode === "camera") {
       if (attemptsOf(task.id) >= MAX_PROOF_ATTEMPTS_PER_DAY) {
-        showToast(`❌ No proof attempts left for ${task.title} today`, false);
+        showToast(`❌ No photo tries left for ${task.title} today`, false);
         return;
       }
       setProofTask(task.id);
@@ -220,15 +220,15 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           className="font-extrabold leading-[1.05] tracking-tight"
           style={{ color: TEXT_PRIMARY, fontSize: "clamp(1.5rem, 4.5vw, 2.25rem)", letterSpacing: "-0.02em" }}
         >
-          Choose your <span style={{ color: ORANGE }}>task</span>.
+          One round each. <span style={{ color: ORANGE }}>Once a day.</span>
         </h1>
         <p className="mt-2 text-[13px] leading-relaxed" style={{ color: TEXT_SECONDARY, maxWidth: 420 }}>
-          Eleven disciplines · {XP_PER_TASK} XP each · proof verified by AI from a live photo.
-          Every task can be claimed once per day.
+          Eleven tasks · each is a single round worth {XP_PER_TASK} XP · complete it once today and it locks until tomorrow.
+          Proof is a live photo checked by AI.
         </p>
         <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: TEXT_TERTIARY }}>
           <ShieldCheck size={11} style={{ color: ORANGE }} />
-          Server-verified · {MAX_PROOF_ATTEMPTS_PER_DAY} photo attempts per task per day
+          Server-verified · up to {MAX_PROOF_ATTEMPTS_PER_DAY} photo tries per task if the AI rejects
         </div>
       </section>
 
@@ -296,19 +296,26 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       {task.description}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-2 text-[10px]" style={{ color: TEXT_TERTIARY }}>
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2 text-[10px]" style={{ color: TEXT_TERTIARY }}>
                     <span className="font-bold" style={{ color: ORANGE }}>+{XP_PER_TASK} XP</span>
-                    <span>·</span>
+                    <span
+                      className="px-1.5 py-[1px] rounded-md font-bold"
+                      style={{ color: TEXT_SECONDARY, backgroundColor: "rgba(255,255,255,0.06)", border: `1px solid ${HAIRLINE}` }}
+                    >
+                      1 round · {task.goal}
+                    </span>
                     <span>
                       {task.proofMode === "camera"
                         ? done
-                          ? `AI verified · score ${claimOf(task.id)?.score ?? "—"}`
+                          ? `Done today · AI score ${claimOf(task.id)?.score ?? "—"}`
                           : exhausted
-                          ? "No attempts left today"
-                          : `${MAX_PROOF_ATTEMPTS_PER_DAY - attempts}/${MAX_PROOF_ATTEMPTS_PER_DAY} attempts left`
+                          ? "No photo tries left today"
+                          : attempts > 0
+                          ? `${MAX_PROOF_ATTEMPTS_PER_DAY - attempts}/${MAX_PROOF_ATTEMPTS_PER_DAY} photo tries left`
+                          : "Live photo → AI check"
                         : task.proofMode === "flips"
-                        ? done ? "10 cards read" : "Read 10 affirmation cards"
-                        : done ? "Logged" : "Tap to log · honor system"}
+                        ? done ? "Done today" : "Read 10 cards → done"
+                        : done ? "Done today" : "Tap once → done"}
                     </span>
                   </div>
                   {lastFeedback && attempts > 0 && (

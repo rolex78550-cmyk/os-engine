@@ -2,22 +2,23 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X, Camera, RotateCw, CheckCircle2, XCircle, Loader2, Sparkles,
-  Image as ImageIcon, AlertTriangle, Eye
+  AlertTriangle, Eye, ShieldCheck,
 } from "lucide-react";
 import { TASK_BY_ID, type TaskId, PROOF_PASS_SCORE, MAX_PROOF_ATTEMPTS_PER_DAY } from "../../lib/taskCatalog";
 import { claimTask, type ClaimResult } from "../../lib/taskClaimApi";
 
-// iOS 17 + Solo Leveling ARISE design tokens
-const TEXT_PRIMARY = "#ffffff";
-const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
-const TEXT_TERTIARY = "rgba(235,235,245,0.32)";
-const SURFACE = "#0a0a0a";
-const HAIRLINE = "rgba(255,255,255,0.08)";
-const HAIRLINE_STRONG = "rgba(255,255,255,0.18)";
-const ORANGE = "#ff9f0a";
-const ORANGE_DARK = "#ff7a00";
-const IOS_RED = "#ff453a";
-const IOS_GREEN = "#34c759";
+// Light theme tokens (iOS 17 style, white background)
+const BG = "#ffffff";
+const SURFACE = "#f5f5f7";
+const TEXT_PRIMARY = "#111114";
+const TEXT_SECONDARY = "rgba(60,60,67,0.72)";
+const TEXT_TERTIARY = "rgba(60,60,67,0.45)";
+const HAIRLINE = "rgba(0,0,0,0.08)";
+const HAIRLINE_STRONG = "rgba(0,0,0,0.16)";
+const ORANGE = "#ff7a00";
+const ORANGE_SOFT = "rgba(255,122,0,0.10)";
+const IOS_RED = "#e5372d";
+const IOS_GREEN = "#1f9d4d";
 
 /** Any task whose proofMode is "camera" (see src/lib/taskCatalog.ts). */
 export type ProofTaskId = TaskId;
@@ -103,6 +104,15 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     }
   }, [facingMode]);
 
+  // Full-screen overlay: lock page scroll behind it while open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // Start camera on mount
   useEffect(() => {
     startCamera();
@@ -122,7 +132,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     // Downscale to a proof-friendly size (max 900px long edge) + compress.
     // Full camera resolution base64 easily exceeds the API body limit
     // (HTTP 413) and slows Gemini. 900px is more than enough for AI review.
-    const MAX_DIM = 900;
+    const MAX_DIM = 1080;
     const scale = Math.min(1, MAX_DIM / Math.max(video.videoWidth, video.videoHeight));
     const w = Math.round(video.videoWidth * scale);
     const h = Math.round(video.videoHeight * scale);
@@ -132,7 +142,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, w, h);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.66);
     setCapturedImage(dataUrl);
     setMode("preview");
   }, []);
@@ -215,61 +225,77 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
     setFacingMode((f) => (f === "user" ? "environment" : "user"));
   };
 
+  const stepLabel =
+    mode === "capture" ? "Step 1 of 3 · Capture"
+    : mode === "preview" ? "Step 2 of 3 · Review"
+    : mode === "verifying" ? "Step 3 of 3 · AI check"
+    : "Result";
+
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
+        exit={{ opacity: 0, y: 24 }}
         transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.3 }}
-        className="w-full min-h-dvh flex flex-col"
-        style={{ backgroundColor: SURFACE }}
+        className="fixed inset-0 z-[500] flex flex-col"
+        style={{ backgroundColor: BG, color: TEXT_PRIMARY }}
       >
-          {/* ============== HEADER ============== */}
-          <div
-            className="sticky top-0 z-10 flex items-center justify-between px-5 py-4"
-            style={{
-              backgroundColor: SURFACE,
-              borderBottom: `1px solid ${HAIRLINE}`,
-            }}
-          >
-            <div>
-              <div
-                className="text-[10px] font-extrabold tracking-[0.25em] uppercase"
-                style={{ color: ORANGE }}
-              >
-                AI Proof · Live Camera
-              </div>
-              <h2
-                className="font-extrabold text-lg tracking-tight leading-tight mt-0.5"
-                style={{ color: TEXT_PRIMARY }}
-              >
-                {guidance.label}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.08)",
-                border: `1px solid ${HAIRLINE}`,
-                color: TEXT_PRIMARY,
-              }}
-            >
-              <X size={18} />
-            </button>
-          </div>
+        <style>{`
+          @keyframes sdScan { 0% { top: 8%; opacity: 0; } 50% { opacity: 1; } 100% { top: 92%; opacity: 0; } }
+          @keyframes sdPulse { 0% { transform: scale(0.85); opacity: 0.9; } 100% { transform: scale(1.7); opacity: 0; } }
+          @keyframes sdTick { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        `}</style>
 
+        {/* ============== HEADER ============== */}
+        <div
+          className="shrink-0 flex items-center justify-between px-4 sm:px-6 pb-3"
+          style={{
+            paddingTop: "max(14px, env(safe-area-inset-top))",
+            backgroundColor: BG,
+            borderBottom: `1px solid ${HAIRLINE}`,
+          }}
+        >
+          <div className="min-w-0">
+            <div className="text-[10px] font-extrabold tracking-[0.22em] uppercase" style={{ color: ORANGE }}>
+              AI Proof · {stepLabel}
+            </div>
+            <h2 className="font-extrabold text-[19px] sm:text-[22px] tracking-tight leading-tight mt-0.5 truncate" style={{ color: TEXT_PRIMARY }}>
+              {spec.icon} {guidance.label}
+            </h2>
+            <div className="text-[11px] mt-0.5 truncate" style={{ color: TEXT_TERTIARY }}>
+              One round · {spec.goal} · once per day
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90 shrink-0 ml-3"
+            style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* ============== BODY (scrolls if needed) ============== */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+        >
           {/* ============== CAPTURE MODE ============== */}
           {mode === "capture" && (
-            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
-              {/* Camera viewport */}
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-3.5 max-w-2xl w-full mx-auto">
+              {/* Camera viewport — big, portrait, fills most of the screen */}
               <div
-                className="relative w-full rounded-2xl overflow-hidden"
+                className="relative w-full rounded-[22px] overflow-hidden"
                 style={{
-                  aspectRatio: "4 / 3",
-                  backgroundColor: "#000",
+                  aspectRatio: "3 / 4",
+                  maxHeight: "calc(100dvh - 300px)",
+                  minHeight: 320,
+                  margin: "0 auto",
+                  backgroundColor: "#0b0b0d",
                   border: `1px solid ${HAIRLINE_STRONG}`,
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.14)",
                 }}
               >
                 <video
@@ -281,127 +307,117 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
                   style={{ display: streamReady ? "block" : "none" }}
                 />
                 {!streamReady && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                     {streamError ? (
                       <>
-                        <AlertTriangle size={32} style={{ color: ORANGE }} />
-                        <p
-                          className="text-[12px] mt-3 font-semibold"
-                          style={{ color: TEXT_PRIMARY }}
-                        >
+                        <AlertTriangle size={34} style={{ color: ORANGE }} />
+                        <p className="text-[13px] mt-3 font-semibold" style={{ color: "#fff" }}>
                           {streamError}
                         </p>
                         <button
                           onClick={startCamera}
-                          className="mt-3 px-3 py-1.5 rounded-lg text-[11px] font-bold"
-                          style={{
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                            color: TEXT_PRIMARY,
-                          }}
+                          className="mt-4 px-4 py-2 rounded-xl text-[12px] font-bold"
+                          style={{ backgroundColor: "#fff", color: TEXT_PRIMARY }}
                         >
                           Retry camera
                         </button>
                       </>
                     ) : (
                       <>
-                        <Loader2 size={28} className="animate-spin" style={{ color: ORANGE }} />
-                        <p className="text-[11px] mt-2" style={{ color: TEXT_SECONDARY }}>
-                          Starting camera...
+                        <Loader2 size={30} className="animate-spin" style={{ color: ORANGE }} />
+                        <p className="text-[12px] mt-3 font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>
+                          Starting camera…
                         </p>
                       </>
                     )}
                   </div>
                 )}
 
-                {/* Corner brackets for framing */}
                 {streamReady && (
                   <>
-                    <div className="absolute top-3 left-3 w-6 h-6 border-l-2 border-t-2 rounded-tl-md" style={{ borderColor: ORANGE }} />
-                    <div className="absolute top-3 right-3 w-6 h-6 border-r-2 border-t-2 rounded-tr-md" style={{ borderColor: ORANGE }} />
-                    <div className="absolute bottom-3 left-3 w-6 h-6 border-l-2 border-b-2 rounded-bl-md" style={{ borderColor: ORANGE }} />
-                    <div className="absolute bottom-3 right-3 w-6 h-6 border-r-2 border-b-2 rounded-br-md" style={{ borderColor: ORANGE }} />
-                  </>
-                )}
+                    {/* Corner brackets */}
+                    <div className="absolute top-4 left-4 w-8 h-8 border-l-[3px] border-t-[3px] rounded-tl-lg" style={{ borderColor: "#fff" }} />
+                    <div className="absolute top-4 right-4 w-8 h-8 border-r-[3px] border-t-[3px] rounded-tr-lg" style={{ borderColor: "#fff" }} />
+                    <div className="absolute bottom-4 left-4 w-8 h-8 border-l-[3px] border-b-[3px] rounded-bl-lg" style={{ borderColor: "#fff" }} />
+                    <div className="absolute bottom-4 right-4 w-8 h-8 border-r-[3px] border-b-[3px] rounded-br-lg" style={{ borderColor: "#fff" }} />
 
-                {/* Camera flip button */}
-                {streamReady && (
-                  <button
-                    onClick={toggleCamera}
-                    className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      backdropFilter: "blur(10px)",
-                      border: `1px solid rgba(255,255,255,0.2)`,
-                      color: "#fff",
-                    }}
-                  >
-                    <RotateCw size={14} />
-                  </button>
+                    {/* LIVE pill */}
+                    <div
+                      className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase"
+                      style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#fff", backdropFilter: "blur(8px)" }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: IOS_RED, boxShadow: `0 0 8px ${IOS_RED}` }} />
+                      Live
+                    </div>
+
+                    {/* Flip camera */}
+                    <button
+                      onClick={toggleCamera}
+                      aria-label="Flip camera"
+                      className="absolute bottom-4 right-4 w-11 h-11 rounded-full flex items-center justify-center active:scale-90"
+                      style={{ backgroundColor: "rgba(255,255,255,0.92)", color: TEXT_PRIMARY, boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
+                    >
+                      <RotateCw size={16} />
+                    </button>
+
+                    {/* Shutter (inside the viewport, iOS-style) */}
+                    <button
+                      onClick={capture}
+                      aria-label="Capture proof photo"
+                      className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-95"
+                      style={{ backgroundColor: "rgba(255,255,255,0.28)", backdropFilter: "blur(6px)" }}
+                    >
+                      <span className="block w-[58px] h-[58px] rounded-full" style={{ backgroundColor: "#fff", boxShadow: "inset 0 0 0 3px rgba(0,0,0,0.08)" }} />
+                    </button>
+                  </>
                 )}
               </div>
 
               {/* Hidden canvas for capture */}
               <canvas ref={canvasRef} className="hidden" />
 
-              {/* Rules */}
-              <div
-                className="rounded-2xl p-3.5"
-                style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${HAIRLINE}` }}
-              >
-                <div
-                  className="text-[10px] font-extrabold tracking-widest uppercase mb-2 flex items-center gap-1.5"
-                  style={{ color: ORANGE }}
-                >
-                  <Sparkles size={11} /> Today's proof must include
+              {/* Rules checklist */}
+              <div className="rounded-2xl p-4" style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}` }}>
+                <div className="text-[10px] font-extrabold tracking-widest uppercase mb-2 flex items-center gap-1.5" style={{ color: ORANGE }}>
+                  <Sparkles size={11} /> Your photo must show
                 </div>
                 <ul className="space-y-1.5">
                   {guidance.rules.map((r, i) => (
-                    <li
-                      key={i}
-                      className="text-[12px] flex items-start gap-2"
-                      style={{ color: TEXT_SECONDARY }}
-                    >
-                      <span
-                        className="w-1 h-1 rounded-full mt-1.5 shrink-0"
-                        style={{ backgroundColor: ORANGE }}
-                      />
+                    <li key={i} className="text-[12.5px] leading-snug flex items-start gap-2" style={{ color: TEXT_SECONDARY }}>
+                      <CheckCircle2 size={13} className="shrink-0 mt-[2px]" style={{ color: ORANGE }} />
                       {r}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Capture button */}
+              {/* Primary capture button (for users who miss the shutter) */}
               <button
                 onClick={capture}
                 disabled={!streamReady}
-                className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 transition"
+                className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40 transition"
                 style={{
                   backgroundColor: ORANGE,
-                  color: "#000",
+                  color: "#fff",
                   fontWeight: 800,
-                  fontSize: 14,
-                  letterSpacing: "0.02em",
-                  boxShadow: streamReady ? "0 8px 24px rgba(255,159,10,0.3)" : "none",
+                  fontSize: 15,
+                  boxShadow: streamReady ? "0 10px 26px rgba(255,122,0,0.28)" : "none",
                 }}
               >
                 <Camera size={18} strokeWidth={2.5} />
                 Capture proof photo
               </button>
 
-              {/* Live-camera only — no gallery uploads (anti-cheat) */}
-              <div
-                className="flex items-center justify-between rounded-xl px-3 py-2"
-                style={{ backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${HAIRLINE}` }}
-              >
-                <span className="text-[11px] font-semibold" style={{ color: TEXT_SECONDARY }}>
-                  📷 Live camera only · gallery uploads are disabled
+              <div className="flex items-center justify-between gap-3 px-1">
+                <span className="text-[11px] font-semibold flex items-center gap-1.5" style={{ color: TEXT_TERTIARY }}>
+                  <ShieldCheck size={12} style={{ color: ORANGE }} />
+                  Live camera only · no gallery uploads
                 </span>
                 <span
-                  className="text-[10px] font-extrabold tabular-nums px-2 py-0.5 rounded-full"
+                  className="text-[10px] font-extrabold tabular-nums px-2 py-0.5 rounded-full shrink-0"
                   style={{
                     color: attemptsLeft <= 1 ? IOS_RED : ORANGE,
-                    border: `1px solid ${attemptsLeft <= 1 ? IOS_RED : ORANGE}`,
+                    backgroundColor: attemptsLeft <= 1 ? "rgba(229,55,45,0.08)" : ORANGE_SOFT,
                   }}
                 >
                   {attemptsLeft}/{MAX_PROOF_ATTEMPTS_PER_DAY} tries left
@@ -412,307 +428,183 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
 
           {/* ============== PREVIEW MODE ============== */}
           {mode === "preview" && capturedImage && (
-            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-3.5 max-w-2xl w-full mx-auto">
               <div
-                className="w-full rounded-2xl overflow-hidden"
+                className="relative w-full rounded-[22px] overflow-hidden"
                 style={{
+                  aspectRatio: "3 / 4",
+                  maxHeight: "calc(100dvh - 260px)",
+                  minHeight: 320,
+                  margin: "0 auto",
+                  backgroundColor: "#0b0b0d",
                   border: `1px solid ${HAIRLINE_STRONG}`,
-                  backgroundColor: "#000",
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.14)",
                 }}
               >
-                <img
-                  src={capturedImage}
-                  alt="Proof"
-                  className="w-full h-auto"
-                  style={{ maxHeight: 360, objectFit: "contain" }}
-                />
+                <img src={capturedImage} alt="Proof" className="absolute inset-0 w-full h-full object-contain" />
+                <div
+                  className="absolute top-4 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase"
+                  style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#fff", backdropFilter: "blur(8px)" }}
+                >
+                  Review your proof
+                </div>
               </div>
 
               {error && (
-                <div
-                  className="rounded-xl p-3 flex items-start gap-2"
-                  style={{
-                    backgroundColor: "rgba(255,69,58,0.1)",
-                    border: "1px solid rgba(255,69,58,0.3)",
-                  }}
-                >
-                  <AlertTriangle size={14} style={{ color: IOS_RED, marginTop: 1 }} />
-                  <p className="text-[11px] font-semibold" style={{ color: IOS_RED }}>
+                <div className="rounded-2xl p-3.5 flex items-start gap-2" style={{ backgroundColor: "rgba(229,55,45,0.07)", border: "1px solid rgba(229,55,45,0.25)" }}>
+                  <AlertTriangle size={15} style={{ color: IOS_RED, marginTop: 1 }} />
+                  <p className="text-[12px] font-semibold leading-snug" style={{ color: IOS_RED }}>
                     {error}
                   </p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={retake}
-                  className="py-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.05)",
-                    border: `1px solid ${HAIRLINE}`,
-                    color: TEXT_PRIMARY,
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
+                  className="py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95"
+                  style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, color: TEXT_PRIMARY, fontSize: 14, fontWeight: 700 }}
                 >
-                  <Camera size={14} />
+                  <Camera size={15} />
                   Retake
                 </button>
                 <button
                   onClick={submit}
-                  className="py-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95"
-                  style={{
-                    backgroundColor: ORANGE,
-                    color: "#000",
-                    fontSize: 13,
-                    fontWeight: 800,
-                  }}
+                  className="py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95"
+                  style={{ backgroundColor: ORANGE, color: "#fff", fontSize: 14, fontWeight: 800, boxShadow: "0 10px 26px rgba(255,122,0,0.28)" }}
                 >
-                  <Sparkles size={14} />
+                  <Sparkles size={15} />
                   Verify with AI
                 </button>
               </div>
+              <p className="text-center text-[11px]" style={{ color: TEXT_TERTIARY }}>
+                Passing score {PROOF_PASS_SCORE}/100 · +XP is added by the server instantly
+              </p>
             </div>
           )}
 
           {/* ============== VERIFYING MODE ============== */}
           {mode === "verifying" && (
-            <div className="relative min-h-[60dvh] flex flex-col items-center justify-center text-center overflow-hidden">
-              {/* Anime shadow-monarch background */}
+            <div className="px-4 sm:px-6 pt-4 pb-6 max-w-2xl w-full mx-auto">
               <div
-                className="absolute inset-0 pointer-events-none"
+                className="relative w-full rounded-[22px] overflow-hidden flex flex-col items-center justify-center text-center"
                 style={{
-                  backgroundImage: "url(/images/anime_shadow_monarch_dark.jpg)",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: 0.35,
+                  aspectRatio: "3 / 4",
+                  maxHeight: "calc(100dvh - 200px)",
+                  minHeight: 360,
+                  margin: "0 auto",
+                  backgroundColor: "#0b0b0d",
+                  border: `1px solid ${HAIRLINE_STRONG}`,
                 }}
-              />
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.9) 100%)",
-                }}
-              />
-              {/* Scanning line animation */}
-              <div
-                className="absolute left-0 right-0 h-px pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(90deg, transparent, rgba(255,159,10,0.9), transparent)",
-                  animation: "sdScan 1.6s ease-in-out infinite",
-                }}
-              />
-              <style>{`
-                @keyframes sdScan {
-                  0% { top: 10%; opacity: 0; }
-                  50% { opacity: 1; }
-                  100% { top: 90%; opacity: 0; }
-                }
-              `}</style>
-
-              <div className="relative z-10 flex flex-col items-center px-6">
-                {/* Pulsing AI eye */}
+              >
+                {capturedImage && (
+                  <img src={capturedImage} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.35, filter: "blur(2px)" }} />
+                )}
+                <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.65) 100%)" }} />
                 <div
-                  className="relative w-20 h-20 rounded-full flex items-center justify-center"
-                  style={{
-                    border: `1px solid rgba(255,159,10,0.4)`,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      border: `2px solid rgba(255,159,10,0.5)`,
-                      animation: "sdPulse 1.4s ease-out infinite",
-                    }}
-                  />
-                  <Eye size={30} style={{ color: ORANGE }} />
+                  className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)", animation: "sdScan 1.6s ease-in-out infinite" }}
+                />
+                <div className="relative z-10 flex flex-col items-center px-6">
+                  <div className="relative w-20 h-20 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(255,255,255,0.5)", backgroundColor: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)" }}>
+                    <div className="absolute inset-0 rounded-full" style={{ border: "2px solid rgba(255,255,255,0.6)", animation: "sdPulse 1.4s ease-out infinite" }} />
+                    <Eye size={30} style={{ color: "#fff" }} />
+                  </div>
+                  <p className="mt-5 text-[17px] font-extrabold tracking-tight" style={{ color: "#fff" }}>
+                    AI is checking your proof
+                  </p>
+                  <p className="mt-1.5 text-[12px] leading-relaxed max-w-[260px]" style={{ color: "rgba(255,255,255,0.75)" }}>
+                    Checking date, content &amp; freshness of your photo…
+                  </p>
+                  <div className="mt-5 flex items-center gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <span key={i} className="inline-block rounded-full" style={{ width: 6, height: 6, backgroundColor: "#fff", animation: `sdTick 1s ease-in-out ${i * 0.2}s infinite` }} />
+                    ))}
+                  </div>
                 </div>
-                <style>{`
-                  @keyframes sdPulse {
-                    0% { transform: scale(0.8); opacity: 1; }
-                    100% { transform: scale(1.6); opacity: 0; }
-                  }
-                `}</style>
-
-                <p
-                  className="mt-5 text-[16px] font-extrabold tracking-tight"
-                  style={{ color: TEXT_PRIMARY }}
-                >
-                  The Oracle is judging your proof
-                </p>
-                <p
-                  className="mt-1.5 text-[12px] leading-relaxed max-w-[260px]"
-                  style={{ color: TEXT_SECONDARY }}
-                >
-                  Scanning date, content &amp; freshness of your submission…
-                </p>
-
-                {/* Progress ticks */}
-                <div className="mt-5 flex items-center gap-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className="inline-block rounded-full"
-                      style={{
-                        width: 6,
-                        height: 6,
-                        backgroundColor: ORANGE,
-                        animation: `sdTick 1s ease-in-out ${i * 0.2}s infinite`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <style>{`
-                  @keyframes sdTick {
-                    0%, 100% { opacity: 0.25; transform: scale(0.8); }
-                    50% { opacity: 1; transform: scale(1.2); }
-                  }
-                `}</style>
               </div>
             </div>
           )}
 
           {/* ============== RESULT MODE ============== */}
           {mode === "result" && verdict && (
-            <div className="p-5 space-y-4 max-w-3xl w-full mx-auto">
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-3.5 max-w-2xl w-full mx-auto">
               <div
-                className="relative rounded-2xl p-5 text-center overflow-hidden"
+                className="relative rounded-[22px] p-6 text-center overflow-hidden"
                 style={{
-                  backgroundColor: verdict.verified
-                    ? "rgba(52,199,89,0.08)"
-                    : "rgba(255,69,58,0.08)",
-                  border: `1px solid ${
-                    verdict.verified ? "rgba(52,199,89,0.3)" : "rgba(255,69,58,0.3)"
-                  }`,
+                  backgroundColor: verdict.verified ? "rgba(31,157,77,0.07)" : "rgba(229,55,45,0.06)",
+                  border: `1px solid ${verdict.verified ? "rgba(31,157,77,0.3)" : "rgba(229,55,45,0.28)"}`,
                 }}
               >
-                {/* Anime backdrop behind verdict */}
+                {capturedImage && (
+                  <img
+                    src={capturedImage}
+                    alt=""
+                    className="w-24 h-32 object-cover rounded-xl mx-auto mb-4"
+                    style={{ border: `1px solid ${HAIRLINE_STRONG}` }}
+                  />
+                )}
                 <div
-                  className="absolute inset-0 pointer-events-none"
+                  className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3"
                   style={{
-                    backgroundImage: verdict.verified
-                      ? "url(/images/anime_dark_hero_purple.jpg)"
-                      : "url(/images/anime_red_warrior_1785177142520.jpg)",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    opacity: 0.18,
+                    backgroundColor: verdict.verified ? "rgba(31,157,77,0.12)" : "rgba(229,55,45,0.10)",
+                    boxShadow: verdict.verified ? "0 0 0 8px rgba(31,157,77,0.06)" : "0 0 0 8px rgba(229,55,45,0.05)",
                   }}
-                />
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.7) 100%)",
-                  }}
-                />
-                <div className="relative z-10">
-                  <div
-                    className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3"
-                    style={{
-                      backgroundColor: verdict.verified
-                        ? "rgba(52,199,89,0.15)"
-                        : "rgba(255,69,58,0.15)",
-                      boxShadow: verdict.verified
-                        ? "0 0 30px rgba(52,199,89,0.4)"
-                        : "0 0 30px rgba(255,69,58,0.4)",
-                    }}
-                  >
-                    {verdict.verified ? (
-                      <CheckCircle2 size={32} style={{ color: IOS_GREEN }} />
-                    ) : (
-                      <XCircle size={32} style={{ color: IOS_RED }} />
-                    )}
-                  </div>
-                <p
-                  className="text-xl font-extrabold tracking-tight"
-                  style={{ color: TEXT_PRIMARY }}
                 >
+                  {verdict.verified ? <CheckCircle2 size={34} style={{ color: IOS_GREEN }} /> : <XCircle size={34} style={{ color: IOS_RED }} />}
+                </div>
+                <p className="text-[22px] font-extrabold tracking-tight" style={{ color: TEXT_PRIMARY }}>
                   {verdict.verified ? "Verified!" : "Not verified"}
                 </p>
-                <p
-                  className="text-3xl font-extrabold tabular-nums mt-2"
-                  style={{
-                    color: verdict.verified ? IOS_GREEN : IOS_RED,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
+                <p className="text-[36px] font-extrabold tabular-nums mt-1 leading-none" style={{ color: verdict.verified ? IOS_GREEN : IOS_RED, letterSpacing: "-0.02em" }}>
                   {verdict.score ?? 0}
-                  <span className="text-[14px] ml-1" style={{ color: TEXT_TERTIARY }}>
+                  <span className="text-[13px] ml-1 font-bold" style={{ color: TEXT_TERTIARY }}>
                     /100 · pass ≥ {PROOF_PASS_SCORE}
                   </span>
                 </p>
-                <p
-                  className="text-[12px] mt-3 leading-relaxed px-2"
-                  style={{ color: TEXT_SECONDARY }}
-                >
+                <p className="text-[13px] mt-3 leading-relaxed px-1" style={{ color: TEXT_SECONDARY }}>
                   {verdict.feedback}
                 </p>
                 {!!verdict.flags?.length && !verdict.verified && (
                   <div className="flex flex-wrap justify-center gap-1.5 mt-3">
                     {verdict.flags.map((f) => (
-                      <span
-                        key={f}
-                        className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase"
-                        style={{ color: IOS_RED, border: "1px solid rgba(255,69,58,0.4)" }}
-                      >
+                      <span key={f} className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase" style={{ color: IOS_RED, backgroundColor: "rgba(229,55,45,0.08)", border: "1px solid rgba(229,55,45,0.25)" }}>
                         {f.replace(/_/g, " ")}
                       </span>
                     ))}
                   </div>
                 )}
-                <p
-                  className="text-[9px] mt-3 tracking-widest uppercase"
-                  style={{ color: TEXT_TERTIARY }}
-                >
+                <p className="text-[10px] mt-4 tracking-widest uppercase font-bold" style={{ color: TEXT_TERTIARY }}>
                   {verdict.verified
-                    ? `AI verified · +${verdict.xpAwarded ?? 0} XP added`
+                    ? `AI verified · +${verdict.xpAwarded ?? 0} XP added · done for today`
                     : `AI reviewed · ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left today`}
                 </p>
-                </div>
               </div>
 
               {verdict.verified ? (
                 <button
                   onClick={confirm}
-                  className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95"
-                  style={{
-                    backgroundColor: ORANGE,
-                    color: "#000",
-                    fontSize: 14,
-                    fontWeight: 800,
-                    boxShadow: "0 6px 18px rgba(255,159,10,0.3)",
-                  }}
+                  className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95"
+                  style={{ backgroundColor: ORANGE, color: "#fff", fontSize: 15, fontWeight: 800, boxShadow: "0 10px 26px rgba(255,122,0,0.28)" }}
                 >
-                  <CheckCircle2 size={16} />
+                  <CheckCircle2 size={17} />
                   +{verdict.xpAwarded ?? 0} XP earned · Continue
                 </button>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <button
                     onClick={retake}
                     disabled={attemptsLeft <= 0}
-                    className="w-full py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
-                    style={{
-                      backgroundColor: ORANGE,
-                      color: "#000",
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
+                    className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
+                    style={{ backgroundColor: ORANGE, color: "#fff", fontSize: 14, fontWeight: 800 }}
                   >
-                    <Camera size={14} />
-                    {attemptsLeft > 0 ? "Try again with new photo" : "No attempts left today"}
+                    <Camera size={15} />
+                    {attemptsLeft > 0 ? "Try again with a new photo" : "No attempts left today"}
                   </button>
                   <button
                     onClick={onClose}
-                    className="w-full py-2.5 rounded-xl text-[12px] font-semibold"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      color: TEXT_TERTIARY,
-                    }}
+                    className="w-full py-3 rounded-2xl text-[13px] font-semibold"
+                    style={{ backgroundColor: SURFACE, border: `1px solid ${HAIRLINE}`, color: TEXT_SECONDARY }}
                   >
                     Close
                   </button>
@@ -720,6 +612,7 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
               )}
             </div>
           )}
+        </div>
       </motion.div>
     </AnimatePresence>
   );

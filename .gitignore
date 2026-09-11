@@ -10,3 +10,4 @@ api/_server.cjs
 api/_server.cjs.map
 api/_server.cjs.d.ts
 api/notifications/*.js
+.harness/

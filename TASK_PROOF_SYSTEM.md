@@ -1,7 +1,12 @@
 # Daily Task Proof System (server-verified)
 
-Every Solo Dominion daily task is worth a flat **50 XP**, awarded **only by the
-server**, **once per task per day**. The client can no longer write XP.
+Every Solo Dominion daily task is **one round** (e.g. 50 push-ups, one 2-minute plank,
+18 lines of 369, 5 gratitude entries) worth a flat **50 XP**, awarded **only by the
+server**, **once per task per day**. Complete the round once and the task locks until the
+next day (Asia/Kolkata). The client can no longer write XP.
+
+The proof camera is a full-screen, light-themed (white) screen with a large portrait
+viewport: Capture → Review → AI check → Result.
 
 ## Proof modes
 

@@ -33,6 +33,8 @@ export interface TaskSpec {
   icon: string;
   image: string;
   description: string;
+  /** What ONE round of this task is. Every task = exactly 1 round, claimable once per day. */
+  goal: string;
   rank: "E" | "D" | "C" | "B" | "A";
   proofMode: ProofMode;
   /** Shown as a checklist above the camera. */
@@ -65,7 +67,8 @@ export const TASKS: TaskSpec[] = [
     jpLabel: "アファメーション",
     icon: "🗣️",
     image: "/images/goal_jinwoo.jpg",
-    description: "Read 10 affirmation cards with full attention. Speak them out loud.",
+    description: "One round: read 10 affirmation cards out loud, with full attention.",
+    goal: "10 cards",
     rank: "E",
     proofMode: "flips",
     rules: ["Open Affirmation Hub", "Read 10 cards — out loud", "Take your time on each"],
@@ -78,7 +81,8 @@ export const TASKS: TaskSpec[] = [
     jpLabel: "スクリプティング",
     icon: "✍️",
     image: "/images/goal_jinwoo.jpg",
-    description: "Write your manifestation script in present tense. Feel it as already done.",
+    description: "One round: write your manifestation script in present tense, 50+ words. Feel it as already done.",
+    goal: "50+ words",
     rank: "C",
     proofMode: "camera",
     camera: "environment",
@@ -102,7 +106,8 @@ SCORING: 90-100 today + present tense + emotional specificity · 60-89 today + s
     jpLabel: "感謝",
     icon: "🙏",
     image: "/images/goal_jinwoo.jpg",
-    description: "Write 5 things you're deeply grateful for. Specific, emotional, felt in the body.",
+    description: "One round: write 5 things you're deeply grateful for. Specific, emotional, felt in the body.",
+    goal: "5 entries",
     rank: "D",
     proofMode: "camera",
     camera: "environment",
@@ -126,23 +131,24 @@ SCORING: 90-100 today + 5 specific heartfelt items · 60-89 today + 5 items but 
     jpLabel: "369メソッド",
     icon: "🔁",
     image: "/images/goal_jinwoo.jpg",
-    description: "Write your desire 3x in morning, 6x in afternoon, 9x at night. Tesla's manifestation method.",
+    description: "One sitting: write your desire 3 + 6 + 9 = 18 times on today's page. Tesla's method, done in a single round.",
+    goal: "18 lines (3+6+9)",
     rank: "C",
     proofMode: "camera",
     camera: "environment",
     rules: [
-      "Show your notebook with the 3 / 6 / 9 pattern",
-      "Same affirmation repeated 3, 6 and 9 times",
+      "Show today's notebook page with 18 lines: 3 + 6 + 9",
+      "Same affirmation repeated — written in ONE sitting",
       "Today's DATE must be written",
-      "All 18 lines visible (or clearly grouped)",
+      "All 18 lines visible (or clearly grouped 3 / 6 / 9)",
     ],
-    audit: `You are auditing a 369 METHOD proof.
+    audit: `You are auditing a 369 METHOD proof — single-sitting version: all 18 lines are written in ONE round today (no morning/afternoon/night split required).
 CHECK IN ORDER:
 1. Real photo of a handwritten notebook page. Reject screens, typed text, blank pages.
 2. TODAY'S DATE written on the page (must match the date below).
-3. The SAME affirmation/desire repeated in groups of 3, 6 and 9 (18 lines total, or clearly labelled morning/afternoon/evening groups). Count the repetitions.
+3. The SAME affirmation/desire repeated 18 times — grouped 3 / 6 / 9 or written continuously. Count the repetitions.
 4. Consistency: the repeated sentence should be essentially identical.
-SCORING: 90-100 today + full 3/6/9 pattern · 60-89 today + pattern mostly complete (≥12 lines) · 30-59 partial pattern OR date unclear · 0-29 old/blank/screenshot/unrelated.`,
+SCORING: 90-100 today + 18 or more repetitions · 60-89 today + at least 12 repetitions · 30-59 fewer than 12 OR date unclear · 0-29 old/blank/screenshot/unrelated.`,
   },
   {
     id: "pushup",
@@ -150,7 +156,8 @@ SCORING: 90-100 today + full 3/6/9 pattern · 60-89 today + pattern mostly compl
     jpLabel: "腕立て伏せ",
     icon: "💪",
     image: "/images/goal_jinwoo.jpg",
-    description: "Drop and give 50 reps. Quality form, full range of motion.",
+    description: "One round: 50 push-ups. Quality form, full range of motion.",
+    goal: "50 reps",
     rank: "B",
     proofMode: "camera",
     camera: "user",
@@ -166,21 +173,22 @@ SCORING: 90-100 clearly in push-up position or obviously just finished (sweat, f
   },
   {
     id: "plank",
-    title: "2 Min 5-Set Plank",
+    title: "2 Min Plank",
     jpLabel: "プランク",
     icon: "🧱",
     image: "/images/goal_jinwoo.jpg",
-    description: "Hold a strong plank. 5 sets, 2 minutes total. Core of steel.",
+    description: "One round: hold a strong plank for 2 minutes. Core of steel.",
+    goal: "2 min hold",
     rank: "B",
     proofMode: "camera",
     camera: "user",
     rules: [
-      "Photo while HOLDING the plank (phone on floor / mirror) or right after",
+      "Photo while HOLDING the plank (phone on floor / mirror) or right after the 2-minute hold",
       "Body visible in plank or on the mat",
       "Post-workout look: sweat, exertion",
       "Live capture only",
     ],
-    audit: `You are auditing a PLANK proof. ${WORKOUT_COMMON}
+    audit: `You are auditing a PLANK proof (one round: a single 2-minute hold). ${WORKOUT_COMMON}
 Strong evidence: person holding a plank (forearms/hands on floor, body straight), or collapsed on the mat right after.
 SCORING: 90-100 clearly in plank position or obviously just finished · 60-89 plausible post-workout selfie with mat/floor context · 30-59 person visible but no exercise context · 0-29 screenshot/stock/no person/relaxed scene.`,
   },
@@ -190,7 +198,8 @@ SCORING: 90-100 clearly in plank position or obviously just finished · 60-89 pl
     jpLabel: "腹筋",
     icon: "🔥",
     image: "/images/goal_jinwoo.jpg",
-    description: "50 crunches. Burn the core. Feel every rep.",
+    description: "One round: 50 crunches. Burn the core. Feel every rep.",
+    goal: "50 reps",
     rank: "C",
     proofMode: "camera",
     camera: "user",
@@ -210,7 +219,8 @@ SCORING: 90-100 clearly in crunch position or obviously just finished · 60-89 p
     jpLabel: "スクワット",
     icon: "🦵",
     image: "/images/goal_jinwoo.jpg",
-    description: "50 squats. Build the foundation. Legs of a warrior.",
+    description: "One round: 50 squats. Build the foundation. Legs of a warrior.",
+    goal: "50 reps",
     rank: "C",
     proofMode: "camera",
     camera: "user",
@@ -230,7 +240,8 @@ SCORING: 90-100 clearly squatting or obviously just finished · 60-89 plausible 
     jpLabel: "スプリント",
     icon: "🏃",
     image: "/images/goal_jinwoo.jpg",
-    description: "60 seconds of all-out sprint. Outrun yesterday's self.",
+    description: "One round: 60 seconds of all-out sprint. Outrun yesterday's self.",
+    goal: "60 seconds",
     rank: "B",
     proofMode: "camera",
     camera: "user",
@@ -250,7 +261,8 @@ SCORING: 90-100 outdoor/treadmill + clearly exerted · 60-89 plausible outdoor/t
     jpLabel: "水分補給",
     icon: "💧",
     image: "/images/goal_jinwoo.jpg",
-    description: "Drink 3 litres of water through the day. Hydrated body, clear mind.",
+    description: "Drink 3 litres through the day. One tap when done — honor system.",
+    goal: "3 litres",
     rank: "E",
     proofMode: "honor",
     rules: ["Drink ~3 litres across the day", "Tap Done when finished — honor system"],
@@ -263,7 +275,8 @@ SCORING: 90-100 outdoor/treadmill + clearly exerted · 60-89 plausible outdoor/t
     jpLabel: "未来の自分",
     icon: "👔",
     image: "/images/goal_jinwoo.jpg",
-    description: "Wear what your future self would wear. Identity shift starts with the mirror.",
+    description: "One round: wear what your future self would wear today. Identity shift starts with the mirror.",
+    goal: "1 outfit",
     rank: "D",
     proofMode: "camera",
     camera: "user",
@@ -320,6 +333,7 @@ export function buildAuditPrompt(task: TaskSpec, now: Date = new Date()): string
   return `You are a STRICT but fair proof auditor for a daily-discipline app. Users earn XP only for REAL, TODAY'S completion of a task, verified from a LIVE camera photo.
 
 TASK: "${task.title}" — ${task.description}
+ONE ROUND, ONCE A DAY: this task is a single round (${task.goal}) completed once today. Judge only whether that one round was genuinely done today.
 TODAY'S DATE: ${claimDateHuman(now)} (${claimDateKey(now)})
 
 ${task.audit}
