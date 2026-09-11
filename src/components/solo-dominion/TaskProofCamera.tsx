@@ -41,6 +41,8 @@ interface TaskProofCameraProps {
     xpAwarded: number;
     newLevel?: number;
     leveledUp?: boolean;
+    seasonXp?: number;
+    lifetimeXp?: number;
   }) => void;
   onClose: () => void;
 }
@@ -217,6 +219,8 @@ export const TaskProofCamera: React.FC<TaskProofCameraProps> = ({
       xpAwarded: verdict.xpAwarded ?? 0,
       newLevel: verdict.newLevel,
       leveledUp: verdict.leveledUp,
+      seasonXp: verdict.seasonXp,
+      lifetimeXp: verdict.lifetimeXp,
     });
   };
 

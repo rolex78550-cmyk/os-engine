@@ -9,6 +9,7 @@ import {
 } from "../../lib/taskCatalog";
 import { XP_PER_TASK } from "../../lib/xpSeason";
 import { claimTask, fetchTodayClaims, type TodayClaims } from "../../lib/taskClaimApi";
+import { celebrateXp } from "../XpCelebration";
 
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "rgba(235,235,245,0.62)";
@@ -129,11 +130,16 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       const r = await claimTask(task.id);
       if (r.verified) {
         window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
-        window.dispatchEvent(
-          new CustomEvent("manifest_toast", { detail: { msg: `+${r.xpAwarded ?? XP_PER_TASK} XP · ${task.title} logged`, type: "ok" } })
-        );
-        showToast(`+${r.xpAwarded ?? XP_PER_TASK} XP · ${task.title} logged`, true);
         if (r.leveledUp) window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+        celebrateXp({
+          xp: r.xpAwarded ?? XP_PER_TASK,
+          title: `${task.title} · ${task.goal}`,
+          seasonXp: r.seasonXp,
+          lifetimeXp: r.lifetimeXp,
+          newLevel: r.newLevel,
+          leveledUp: !!r.leveledUp,
+          source: "honor",
+        });
       } else if (r.error === "ALREADY_CLAIMED") {
         showToast(`✅ ${task.title} already completed today`, true);
       } else {
@@ -148,18 +154,26 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   };
 
   // Camera flow: server already verified + awarded XP before this fires.
-  const handleProofVerified = (result: { xpAwarded: number; leveledUp?: boolean }) => {
+  const handleProofVerified = (result: {
+    xpAwarded: number;
+    leveledUp?: boolean;
+    newLevel?: number;
+    seasonXp?: number;
+    lifetimeXp?: number;
+  }) => {
     const task = TASKS.find((t) => t.id === proofTask);
     setProofTask(null);
     window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
-    window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
     if (result.leveledUp) window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
-    window.dispatchEvent(
-      new CustomEvent("manifest_toast", {
-        detail: { msg: `+${result.xpAwarded} XP · ${task?.title} verified by AI`, type: "ok" },
-      })
-    );
-    showToast(`+${result.xpAwarded} XP · ${task?.title} verified by AI`, true);
+    celebrateXp({
+      xp: result.xpAwarded,
+      title: task ? `${task.title} · ${task.goal}` : undefined,
+      seasonXp: result.seasonXp,
+      lifetimeXp: result.lifetimeXp,
+      newLevel: result.newLevel,
+      leveledUp: !!result.leveledUp,
+      source: "ai",
+    });
     refreshClaims();
   };
 

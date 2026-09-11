@@ -22,6 +22,7 @@ import { useRPG } from "./hooks/useRPG";
 import { useFirebase } from "./components/FirebaseProvider";
 import { XP_PER_TASK, resolveLifetimeXp } from "./lib/xpSeason";
 import { claimTask } from "./lib/taskClaimApi";
+import { XpCelebration, celebrateXp } from "./components/XpCelebration";
 import { useXpSeasonReset } from "./hooks/useXpSeasonReset";
 
 // Lazy-loaded Views (Academy and Community removed permanently)
@@ -138,13 +139,17 @@ export default function App() {
             }
             window.localStorage.setItem(REWARD_KEY, "1");
             window.dispatchEvent(new CustomEvent("manifest_task_claimed", { detail: { taskId: "affirmation" } }));
-            window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
-            window.dispatchEvent(new CustomEvent("manifest_sfx_success"));
-            window.dispatchEvent(
-              new CustomEvent("manifest_toast", {
-                detail: { msg: `+${r.xpAwarded ?? XP_PER_TASK} XP · Affirmation Reading task complete`, type: "ok" },
-              })
-            );
+            window.dispatchEvent(new CustomEvent("manifest_sfx_xp"));
+            if (r.leveledUp) window.dispatchEvent(new CustomEvent("manifest_sfx_levelup"));
+            celebrateXp({
+              xp: r.xpAwarded ?? XP_PER_TASK,
+              title: "Affirmation Reading · 10 cards",
+              seasonXp: r.seasonXp,
+              lifetimeXp: r.lifetimeXp,
+              newLevel: r.newLevel,
+              leveledUp: !!r.leveledUp,
+              source: "flips",
+            });
           } else if (r.error === "ALREADY_CLAIMED") {
             // Server says today's claim exists (other device / cleared storage) — just sync the flag.
             window.localStorage.setItem(REWARD_KEY, "1");
@@ -188,11 +193,14 @@ export default function App() {
     // Only XP gain sound is kept. Click / success / error / level-up /
     // notify / whoosh sounds have been removed entirely.
     const onXP = () => audioEngine.sfxXP();
+    const onLevelUp = () => audioEngine.sfxLevelUp();
 
     window.addEventListener("manifest_sfx_xp", onXP);
+    window.addEventListener("manifest_sfx_levelup", onLevelUp);
 
     return () => {
       window.removeEventListener("manifest_sfx_xp", onXP);
+      window.removeEventListener("manifest_sfx_levelup", onLevelUp);
     };
   }, []);
 
@@ -249,6 +257,7 @@ export default function App() {
   // 4. Logged In, Onboarded, AND Paid -> System Access (MainLayout)
   return (
     <ErrorBoundary>
+      <XpCelebration />
       <MainLayout {...logic}>
         <Suspense fallback={<TabLoader />}>
           <AnimatePresence mode="wait">
