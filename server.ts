@@ -1035,8 +1035,59 @@ app.post("/api/notifications/send-email", async (req, res) => {
 });
 
 // API Route: Create Razorpay Order
+// ---- INR price table (server-side source of truth for Razorpay orders) ----
+const INR_PLAN_PRICES: Record<string, number> = { monthly: 415, yearly: 1999, lifetime: 4999 };
+// India intro offer: first month of Monthly = ₹99 for a user's first ever paid purchase.
+const INDIA_INTRO_FIRST_MONTH_INR = 99;
+
+/** True when the user has never had a successful paid purchase (any provider). */
+async function isFirstPurchase(uid: string): Promise<boolean> {
+  try {
+    const db = getDb();
+    const snap = await db.collection("payments").where("userId", "==", uid).limit(50).get();
+    let paid = false;
+    snap.forEach((d: any) => {
+      const p = d.data() || {};
+      if (p.paymentStatus === "success" && (p.planType === "monthly" || p.planType === "yearly" || p.planType === "lifetime")) paid = true;
+    });
+    if (paid) return false;
+    const u = await db.collection("users").doc(uid).get();
+    const d = u.exists ? (u.data() as any) : null;
+    if (d?.introOfferUsed) return false;
+    if (d?.lifetimeAccess) return false;
+    return true;
+  } catch (e: any) {
+    // Fail safe: if we can't check, charge the regular price.
+    console.warn("[pricing] isFirstPurchase check failed:", e?.message);
+    return false;
+  }
+}
+
+/** Resolves the INR amount the user must pay right now for a plan. */
+async function resolveInrAmount(planType: string, uid?: string): Promise<{ amount: number; intro: boolean; regular: number }> {
+  const regular = INR_PLAN_PRICES[planType] ?? INR_PLAN_PRICES.monthly;
+  if (planType === "monthly" && uid && (await isFirstPurchase(uid))) {
+    return { amount: INDIA_INTRO_FIRST_MONTH_INR, intro: true, regular };
+  }
+  return { amount: regular, intro: false, regular };
+}
+
+// GET /api/pricing/inr?uid=... → what this user pays today (used by the paywall UI)
+app.get("/api/pricing/inr", async (req, res) => {
+  const uid = typeof req.query.uid === "string" ? req.query.uid : "";
+  const monthly = await resolveInrAmount("monthly", uid || undefined);
+  res.json({
+    monthly: { amount: monthly.amount, regular: monthly.regular, intro: monthly.intro, introFirstMonth: INDIA_INTRO_FIRST_MONTH_INR },
+    yearly: { amount: INR_PLAN_PRICES.yearly, regular: INR_PLAN_PRICES.yearly, intro: false },
+    lifetime: { amount: INR_PLAN_PRICES.lifetime, regular: INR_PLAN_PRICES.lifetime, intro: false },
+  });
+});
+
 app.post("/api/razorpay/order", async (req, res) => {
-  const { amount = 99, currency = "INR", planType, uid } = req.body;
+  const { currency = "INR", planType = "monthly", uid } = req.body;
+  // Amount is decided HERE, never trusted from the client.
+  const priced = await resolveInrAmount(planType, uid);
+  const amount = priced.amount;
   const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || process.env.razorpay_key_id;
   const keySecret = process.env.RAZORPAY_KEY_SECRET || process.env.rz_secrete_key || process.env.rz_secret_key;
 
@@ -1056,7 +1107,7 @@ app.post("/api/razorpay/order", async (req, res) => {
       amount: Math.round(Number(amount) * 100), // amount in paise (₹99 -> 9900 paise)
       currency,
       receipt: `receipt_${Date.now()}`,
-      notes: { planType: planType || "monthly", uid: uid || "" }
+      notes: { planType: planType || "monthly", uid: uid || "", userId: uid || "", intro: priced.intro ? "first_month_99" : "" }
     };
 
     const order = await rzp.orders.create(options);
@@ -1064,6 +1115,8 @@ app.post("/api/razorpay/order", async (req, res) => {
       ...order,
       key_id: keyId,
       is_demo: false,
+      intro: priced.intro,
+      regular_amount: priced.regular,
     });
   } catch (_error: any) {
     // Seamless sandbox fallback when test API keys require local authorization
@@ -1108,14 +1161,17 @@ app.post("/api/subscription/activate", async (req, res) => {
     else if (planType === "monthly") { expiryDate = new Date(now); expiryDate.setDate(expiryDate.getDate() + 30); }
     else if (planType === "yearly") { expiryDate = new Date(now); expiryDate.setDate(expiryDate.getDate() + 365); }
 
-    await userRef.set({
+    const activatePatch: any = {
       currentPlan: planType,
       subscriptionStatus: status,
       purchaseDate: now.toISOString(),
       expiryDate: expiryDate ? expiryDate.toISOString() : null,
       lifetimeAccess,
       updatedAt: now.toISOString()
-    }, { merge: true });
+    };
+    // Intro (₹99 first month) can only ever be used once per account.
+    if (planType === "monthly" && Number(amount) === INDIA_INTRO_FIRST_MONTH_INR) activatePatch.introOfferUsed = true;
+    await userRef.set(activatePatch, { merge: true });
 
     // Deterministic payment doc id so re-activations are idempotent.
     const payDocId = razorpayPaymentId || razorpayOrderId || `rzp_act_${uid}_${now.getTime()}`;
@@ -2308,6 +2364,7 @@ app.post('/api/razorpay/webhook', async (req, res) => {
         expiryDate: expiryDate ? expiryDate.toISOString() : null, lifetimeAccess, updatedAt: now.toISOString(),
       };
       if (planType === 'lifetime') updatePayload.founderSlotUsed = true;
+      if (order.notes?.intro === 'first_month_99') updatePayload.introOfferUsed = true;
       
       await db.collection('users').doc(userId).set(updatePayload, { merge: true });
       const paymentRef = db.collection('payments').doc(order.id);

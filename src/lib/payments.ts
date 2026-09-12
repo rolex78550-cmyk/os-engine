@@ -100,10 +100,12 @@ export async function initiateSubscription(
   }
 
   const plan = PLAN_PRICING_INR[planType];
-  // Razorpay charges in INR. Use the explicit INR price (not USD × FX)
-  // so the user always sees the same ₹ value on the subscription page
-  // and in the Razorpay checkout.
-  const amountInRupees = plan.price;
+  // Razorpay charges in INR. The FINAL amount is decided by the server
+  // (/api/razorpay/order): regular ₹ price, or the ₹99 India intro price for
+  // a first-ever Monthly purchase. We only use the client price as a fallback
+  // label until the order comes back.
+  let amountInRupees = plan.price;
+  let isIntro = false;
 
   // Order creation — resolved before modal opens, so errors are handled here.
   let order: any;
@@ -111,7 +113,7 @@ export async function initiateSubscription(
     const orderRes = await fetchWithTimeout("/api/razorpay/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: amountInRupees, currency: "INR", planType, uid: user.uid }),
+      body: JSON.stringify({ currency: "INR", planType, uid: user.uid }),
     });
 
     if (!orderRes.ok) {
@@ -120,6 +122,8 @@ export async function initiateSubscription(
       throw new Error(errorBody);
     }
     order = await orderRes.json();
+    if (order?.amount) amountInRupees = Math.round(Number(order.amount)) / 100; // paise → ₹ (server-decided)
+    isIntro = !!order?.intro;
   } catch (error: any) {
     console.error("[Subscription] Order creation failed:", error?.message);
     onError?.("Could not start payment. Please try again. (" + (error?.message || "network error") + ")");
@@ -133,7 +137,9 @@ export async function initiateSubscription(
     amount: order.amount,
     currency: order.currency,
     name: "Menifest OS",
-    description: `${plan.name} Plan — ₹${amountInRupees}`,
+    description: isIntro
+      ? `${plan.name} — first month ₹${amountInRupees}, then ₹${plan.price}/mo`
+      : `${plan.name} Plan — ₹${amountInRupees}`,
     order_id: order.id,
     handler: async function (response: any) {
       // ── PAYMENT CONFIRMED BY RAZORPAY ──

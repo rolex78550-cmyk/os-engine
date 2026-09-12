@@ -20,6 +20,13 @@ export const PLAN_PRICING = {
 // and on the Dodo fallback receipt.
 // Yearly is intentionally priced lower than USD × 83 to make the
 // 12-month plan feel like a real saving for Indian users.
+// ---- INDIA INTRO OFFER ----
+// First month of the Monthly plan is ₹99 for a user's FIRST EVER paid
+// purchase (Razorpay / India only). Renewals and every later month are the
+// regular ₹415. Eligibility is decided SERVER-SIDE (/api/razorpay/order looks
+// at the user's successful payments) — the client only displays it.
+export const INDIA_INTRO_FIRST_MONTH_INR = 99;
+
 export const PLAN_PRICING_INR = {
   monthly: { price: 415, currency: 'INR', durationDays: 30, name: 'Hunter Monthly' },
   yearly:  { price: 1999, currency: 'INR', durationDays: 365, name: 'Yearly Alignment' },

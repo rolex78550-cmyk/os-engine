@@ -268,7 +268,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               )}
 
               <p className="mt-4 text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>
-                NO FREE TRIAL · STARTS AT ₹415/MONTH
+                NO FREE TRIAL · FIRST MONTH ₹99 · THEN ₹415/MONTH
               </p>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               <p><strong style={{ color: TEXT_PRIMARY }}>1. Acceptance of Terms</strong><br />By accessing or using Menifest OS, you agree to be bound by these Terms of Service.</p>
               <p><strong style={{ color: TEXT_PRIMARY }}>2. Description of Service</strong><br />Menifest OS is a manifestation and personal development RPG that combines AI verification with a leveling system.</p>
               <p><strong style={{ color: TEXT_PRIMARY }}>3. User Responsibilities</strong><br />You must provide accurate information and authentic proof for daily quests.</p>
-              <p><strong style={{ color: TEXT_PRIMARY }}>4. Subscription & Billing</strong><br />Plans start at ₹415/month. No free trial is offered.</p>
+              <p><strong style={{ color: TEXT_PRIMARY }}>4. Subscription & Billing</strong><br />Plans start at ₹415/month (India intro offer: first month ₹99 on a first-ever Monthly purchase, then ₹415/month). No free trial is offered.</p>
             </div>
             <button
               onClick={() => setShowTerms(false)}
@@ -938,10 +938,13 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   letterSpacing: "-0.02em",
                 }}
               >
-                ₹415
+                ₹99
+                <span className="ml-1.5 align-middle font-semibold" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textDecoration: "line-through" }}>
+                  ₹415
+                </span>
               </div>
               <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-                /mo
+                first month · then ₹415/mo
               </div>
             </button>
 

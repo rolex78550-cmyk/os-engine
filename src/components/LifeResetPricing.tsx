@@ -5,7 +5,7 @@ import { useFirebase } from "./FirebaseProvider";
 import { db } from "../lib/firebase";
 import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 import { initiateUnifiedSubscription, isCountryIndia } from "../lib/payments";
-import { getRemainingFounderSlots } from "../lib/subscription";
+import { getRemainingFounderSlots, INDIA_INTRO_FIRST_MONTH_INR } from "../lib/subscription";
 import { PlanType } from "../types";
 import { ScreenshotCarousel } from "./ScreenshotCarousel";
 
@@ -72,6 +72,21 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
 
   const isIndia = isCountryIndia(selectedCountry);
   const isLifetime = selectedPlan === "lifetime";
+
+  // India intro offer: ₹99 first month (first-ever purchase only). The server
+  // decides eligibility; this only controls what the card displays.
+  const [introEligible, setIntroEligible] = useState<boolean>(false);
+  useEffect(() => {
+    let alive = true;
+    const uid = user?.uid;
+    if (!uid) { setIntroEligible(false); return; }
+    fetch(`/api/pricing/inr?uid=${encodeURIComponent(uid)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive) setIntroEligible(!!j?.monthly?.intro); })
+      .catch(() => { if (alive) setIntroEligible(false); });
+    return () => { alive = false; };
+  }, [user?.uid]);
+  const showIntro = isIndia && introEligible;
 
   // Load remaining founder slots
   useEffect(() => {
@@ -335,6 +350,14 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
             >
               Monthly
             </div>
+            {showIntro && (
+              <div
+                className="absolute -top-2.5 left-3 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.12em] uppercase"
+                style={{ background: "linear-gradient(135deg, #ff7a00, #ffb457)", color: "#1a0d00", boxShadow: "0 4px 14px rgba(255,122,0,0.45)" }}
+              >
+                1st month ₹{INDIA_INTRO_FIRST_MONTH_INR}
+              </div>
+            )}
             <div
               className="font-extrabold tracking-tight tabular-nums"
               style={{
@@ -343,13 +366,27 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
                 letterSpacing: "-0.02em",
               }}
             >
-              {isIndia ? `₹${PLAN_PRICING.monthly.priceINR}` : `$${PLAN_PRICING.monthly.priceUSD}`}
+              {showIntro ? (
+                <>
+                  ₹{INDIA_INTRO_FIRST_MONTH_INR}
+                  <span
+                    className="ml-1.5 align-middle font-semibold"
+                    style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textDecoration: "line-through" }}
+                  >
+                    ₹{PLAN_PRICING.monthly.priceINR}
+                  </span>
+                </>
+              ) : isIndia ? (
+                `₹${PLAN_PRICING.monthly.priceINR}`
+              ) : (
+                `$${PLAN_PRICING.monthly.priceUSD}`
+              )}
             </div>
             <div
               className="text-[10px] font-semibold mt-0.5"
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
-              /mo
+              {showIntro ? `first month · then ₹${PLAN_PRICING.monthly.priceINR}/mo` : "/mo"}
             </div>
           </button>
 
@@ -433,7 +470,9 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
             className="text-[11px] font-medium"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Win-your-money-back challenge applies to this purchase.
+            {showIntro && selectedPlan === "monthly"
+              ? `Intro offer: pay ₹${INDIA_INTRO_FIRST_MONTH_INR} today for your first 30 days. From next month it's the regular ₹${PLAN_PRICING.monthly.priceINR}/mo. First purchase only.`
+              : "Win-your-money-back challenge applies to this purchase."}
           </span>
         </div>
 
