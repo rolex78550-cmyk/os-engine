@@ -173,5 +173,27 @@
       ]
     }
   ],
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/99",
+      "destination": "/?utm_source=offline&utm_medium=short&utm_campaign=99",
+      "permanent": false
+    },
+    {
+      "source": "/offer",
+      "destination": "/?utm_source=share&utm_medium=short&utm_campaign=99",
+      "permanent": false
+    },
+    {
+      "source": "/wa",
+      "destination": "/?utm_source=whatsapp&utm_medium=short&utm_campaign=99",
+      "permanent": false
+    },
+    {
+      "source": "/ig",
+      "destination": "/?utm_source=instagram&utm_medium=bio&utm_campaign=99",
+      "permanent": false
+    }
+  ]
 }
