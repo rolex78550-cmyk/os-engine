@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=api/_server.cjs",
+    "build": "vite build && node scripts/build-seo-pages.mjs && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=api/_server.cjs",
     "start": "NODE_ENV=production node dist/server.cjs",
     "preview": "vite preview",
+    "seo:og": "node scripts/build-seo-og.mjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },

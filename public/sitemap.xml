@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <url>
-    <loc>https://www.menifestos.com/</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-    <image:image>
-      <image:loc>https://www.menifestos.com/og-image.png</image:loc>
-      <image:title>Menifest OS — Manifestation RPG with AI-verified daily quests</image:title>
-    </image:image>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url><loc>https://www.menifestos.com/</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>1.0</priority><image:image><image:loc>https://www.menifestos.com/og-image.png</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/learn</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.menifestos.com/how-to-manifest</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/how-to-manifest.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/law-of-attraction</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/law-of-attraction.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/identity-shifting</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/identity-shifting.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/369-method</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/369-method.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/affirmations</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/affirmations.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/how-to-become-a-better-version-of-yourself</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/how-to-become-a-better-version-of-yourself.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/neuroscience-of-manifestation</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/neuroscience-of-manifestation.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/gamify-your-life-rpg</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/gamify-your-life-rpg.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/gratitude-journal</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.8</priority><image:image><image:loc>https://www.menifestos.com/og/gratitude-journal.jpg</image:loc></image:image></url>
+  <url><loc>https://www.menifestos.com/pricing</loc><lastmod>2026-09-15</lastmod><changefreq>weekly</changefreq><priority>0.9</priority><image:image><image:loc>https://www.menifestos.com/og/pricing.jpg</image:loc></image:image></url>
 </urlset>

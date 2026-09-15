@@ -13,6 +13,50 @@
       "destination": "/api"
     },
     {
+      "source": "/learn",
+      "destination": "/learn/index.html"
+    },
+    {
+      "source": "/how-to-manifest",
+      "destination": "/how-to-manifest/index.html"
+    },
+    {
+      "source": "/law-of-attraction",
+      "destination": "/law-of-attraction/index.html"
+    },
+    {
+      "source": "/identity-shifting",
+      "destination": "/identity-shifting/index.html"
+    },
+    {
+      "source": "/369-method",
+      "destination": "/369-method/index.html"
+    },
+    {
+      "source": "/affirmations",
+      "destination": "/affirmations/index.html"
+    },
+    {
+      "source": "/how-to-become-a-better-version-of-yourself",
+      "destination": "/how-to-become-a-better-version-of-yourself/index.html"
+    },
+    {
+      "source": "/neuroscience-of-manifestation",
+      "destination": "/neuroscience-of-manifestation/index.html"
+    },
+    {
+      "source": "/gamify-your-life-rpg",
+      "destination": "/gamify-your-life-rpg/index.html"
+    },
+    {
+      "source": "/gratitude-journal",
+      "destination": "/gratitude-journal/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing/index.html"
+    },
+    {
       "source": "/((?!api).*)",
       "destination": "/index.html"
     }
@@ -105,6 +149,29 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/og/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/jpeg"
+        }
+      ]
+    },
+    {
+      "source": "/(learn|how-to-manifest|law-of-attraction|identity-shifting|369-method|affirmations|how-to-become-a-better-version-of-yourself|neuroscience-of-manifestation|gamify-your-life-rpg|gratitude-journal|pricing)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
+        }
+      ]
     }
-  ]
+  ],
+  "trailingSlash": false
 }

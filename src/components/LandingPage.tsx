@@ -1178,6 +1178,20 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             </div>
 
             <div>
+              <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Guides</div>
+              <ul className="space-y-2 text-xs">
+                <li><a href="/how-to-manifest" className="transition-colors" style={{ color: TEXT_SECONDARY }}>How to manifest</a></li>
+                <li><a href="/369-method" className="transition-colors" style={{ color: TEXT_SECONDARY }}>369 method</a></li>
+                <li><a href="/law-of-attraction" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Law of attraction</a></li>
+                <li><a href="/identity-shifting" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Identity shifting</a></li>
+                <li><a href="/affirmations" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Affirmations that work</a></li>
+                <li><a href="/neuroscience-of-manifestation" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Neuroscience of manifestation</a></li>
+                <li><a href="/gamify-your-life-rpg" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Gamify your life (RPG)</a></li>
+                <li><a href="/learn" className="transition-colors" style={{ color: TEXT_SECONDARY }}>All guides →</a></li>
+              </ul>
+            </div>
+
+            <div>
               <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Legal</div>
               <ul className="space-y-2 text-xs">
                 <li><button onClick={() => setShowPrivacy(true)} className="transition-colors" style={{ color: TEXT_SECONDARY }}>Privacy Policy</button></li>
