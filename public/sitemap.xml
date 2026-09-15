@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://menifestos.com/</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>daily</changefreq>
+    <loc>https://www.menifestos.com/</loc>
+    <lastmod>2026-09-15</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.menifestos.com/og-image.png</image:loc>
+      <image:title>Menifest OS — Manifestation RPG with AI-verified daily quests</image:title>
+    </image:image>
   </url>
 </urlset>

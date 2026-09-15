@@ -1,7 +1,7 @@
 {
-  "name": "Menifest OS — Focus Engine",
+  "name": "Menifest OS — Manifestation RPG",
   "short_name": "Menifest OS",
-  "description": "Real-life RPG progression system. Level up by completing quests, slaying boss battles, and building daily discipline.",
+  "description": "Manifestation RPG: 369 method, affirmations, gratitude and workouts as daily quests — every task verified by AI, every XP earned for real.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -22,7 +22,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "lifestyle", "health"],
+  "categories": [
+    "productivity",
+    "lifestyle",
+    "health"
+  ],
   "shortcuts": [
     {
       "name": "Solo Dominion",
@@ -37,5 +41,7 @@
       "description": "View your stats and habits"
     }
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "lang": "en-IN",
+  "id": "/"
 }

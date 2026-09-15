@@ -1,3 +1,13 @@
 User-agent: *
 Allow: /
-Sitemap: https://menifestos.com/sitemap.xml
+Disallow: /api/
+
+# Social / preview bots must see the OG image
+User-agent: facebookexternalhit
+Allow: /
+User-agent: Twitterbot
+Allow: /
+User-agent: WhatsApp
+Allow: /
+
+Sitemap: https://www.menifestos.com/sitemap.xml
