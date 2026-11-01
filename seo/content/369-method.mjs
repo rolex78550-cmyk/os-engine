@@ -58,9 +58,9 @@ export default {
           p: ["Formula: **I am / I have + specific outcome + present tense + a feeling word.** Keep it to one line you can write in 15 seconds."],
           table: [
             ["Goal", "369 line"],
-            ["Money", "I am so grateful that I now earn ₹1,50,000 every month doing work I love."],
+            ["Money", "I am so grateful that I now earn $8,000 every month doing work I love."],
             ["Body", "I am strong, lean and full of energy — I train every morning and I love it."],
-            ["Career", "I am thriving as a senior designer at a company that values me and pays me ₹25 LPA."],
+            ["Career", "I am thriving as a senior designer at a company that values me and pays me $120,000 a year."],
             ["Relationship", "I am in a calm, loving, committed relationship with someone who chooses me every day."],
             ["Confidence", "I speak clearly and calmly in every room, and people listen."],
             ["Identity (best)", "I am a disciplined person who finishes what I start — and it shows."],
@@ -130,7 +130,7 @@ export default {
     { q: "Can I do the 369 method for multiple things?", a: "One line per 30-day cycle gives the best results. Stack desires across cycles, not within one." },
     { q: "Is there a 369 method app?", a: "Yes — Menifest OS runs 369 as a daily quest with photo proof verified by AI, streaks, XP and a 30-day season leaderboard." },
   ],
-  related: ["affirmations", "how-to-manifest", "law-of-attraction", "gratitude-journal"],
+  related: ["manifestation-app", "affirmations", "how-to-manifest", "gratitude-journal"],
   cta: {
     heading: "Do the 369 method for 30 days — with proof",
     text: "Write your 18 lines, snap a photo, Gemini AI verifies it, +50 XP. The same for affirmations, gratitude, scripting and your workout quests. Miss a day and the season leaderboard knows.",

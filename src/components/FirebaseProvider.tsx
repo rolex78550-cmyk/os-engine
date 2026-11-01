@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { ProfileState, SubscriptionData, PlanType } from '../types';
 import { hasActiveAccess, getDaysRemaining, getTrialEndDate, deriveAccessFromPayments } from '../lib/subscription';
 import { notifyAdmin } from '../lib/notify';
+import { initSeoAttribution, getUserAttributionPatch, trackCountrySignup, trackCountryPurchase } from '../lib/seoAttribution';
 
 interface FirebaseContextType {
   user: User | null;
@@ -93,6 +94,11 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const razorpayCheckedRef = useRef<string | null>(null);
   const signupNotifiedRef = useRef<string | null>(null);
   const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Passively capture first-touch organic SEO attribution & country (zero redirects)
+  useEffect(() => {
+    initSeoAttribution().catch(() => {});
+  }, []);
 
   const activeUser = user || demoUser;
 
@@ -422,12 +428,29 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             if (data?.welcomeEmailSent === true) return;
             const status = data?.subscriptionStatus;
             if (status === 'active' || status === 'lifetime' || data?.lifetimeAccess) return;
+            const attrPatch = getUserAttributionPatch();
             notifyAdmin('signup', {
               userName: firebaseUser.displayName || (data?.name || 'Seeker'),
               userEmail: firebaseUser.email || '',
             });
-            import('../lib/pixel').then(function(m) { m.trackSignup(); });
-            await setDoc(userDocRef, { welcomeEmailSent: true }, { merge: true });
+            import('../lib/pixel').then(function(m) {
+              m.trackSignup(attrPatch.countryCode === 'IN' ? 'INR' : 'USD', attrPatch.countryCode);
+            });
+            trackCountrySignup(firebaseUser.uid, firebaseUser.email).catch(() => {});
+            await setDoc(userDocRef, {
+              welcomeEmailSent: true,
+              ...(data?.country ? {} : { country: attrPatch.country, countryCode: attrPatch.countryCode }),
+              ...(data?.acquisitionChannel ? {} : {
+                acquisitionChannel: attrPatch.acquisitionChannel,
+                isOrganicAcquisition: attrPatch.isOrganicAcquisition,
+                firstLandingPage: attrPatch.firstLandingPage,
+                firstReferrer: attrPatch.firstReferrer,
+                searchEngine: attrPatch.searchEngine,
+                utmSource: attrPatch.utmSource,
+                utmMedium: attrPatch.utmMedium,
+                utmCampaign: attrPatch.utmCampaign,
+              }),
+            }, { merge: true });
           } catch (e) {
             console.warn('[FirebaseProvider] Signup notify skipped:', e);
           }
@@ -460,6 +483,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         // ============================================================
         const bootstrapUserDocument = async (attempt = 1) => {
           try {
+            const attrPatch = getUserAttributionPatch();
             const defaultProfile = {
               userId: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -472,6 +496,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
               // writing them reset lifetime progression to 0 on every auth.
               subscriptionStatus: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
               currentPlan: firebaseUser.email === "asartist20@gmail.com" ? 'lifetime' : 'free',
+              ...attrPatch,
               createdAt: new Date().toISOString(),
               lastLogin: new Date().toISOString(),
             };
@@ -542,7 +567,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             // Dodo's hosted checkout does not always pass back payment_id in the URL.
             // Generate a stable fallback so /api/dodo/activate has a non-empty id.
             const payId = urlParams.get('payment_id') || urlParams.get('checkout_id') || `pay_dodo_${firebaseUser.uid}_${Date.now()}`;
-            const amountUSD = planType === 'yearly' ? 49.99 : planType === 'lifetime' ? 99 : 4.99;
+            const amountUSD = planType === 'yearly' ? 49 : planType === 'lifetime' ? 99.99 : 4.99;
+            const attrPatch = getUserAttributionPatch();
 
             try {
               const res = await fetch('/api/dodo/activate', {
@@ -554,11 +580,27 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
                   dodoPaymentId: payId,
                   amount: amountUSD,
                   currency: 'USD',
+                  country: attrPatch.country === 'India' ? 'United States' : attrPatch.country,
+                  countryCode: attrPatch.countryCode === 'IN' ? 'US' : attrPatch.countryCode,
+                  acquisitionChannel: attrPatch.acquisitionChannel,
+                  landingPage: attrPatch.firstLandingPage,
+                  utmSource: attrPatch.utmSource,
+                  utmCampaign: attrPatch.utmCampaign,
                 }),
               });
               const result = await res.json().catch(() => ({}));
               if (res.ok && result.success) {
                 console.log('[FirebaseProvider] ✅ Dodo payment return activated:', planType);
+                import('../lib/pixel').then(function(m) {
+                  m.trackPurchase(planType, amountUSD, 'USD', attrPatch.countryCode === 'IN' ? 'US' : attrPatch.countryCode);
+                });
+                trackCountryPurchase({
+                  userId: firebaseUser.uid,
+                  planType,
+                  amount: amountUSD,
+                  currency: 'USD',
+                  paymentId: payId,
+                }).catch(() => {});
               } else {
                 console.warn('[FirebaseProvider] Dodo activation API returned non-ok:', res.status, result);
               }

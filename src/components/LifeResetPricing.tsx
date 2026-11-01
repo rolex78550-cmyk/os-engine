@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 import { initiateUnifiedSubscription, isCountryIndia } from "../lib/payments";
 import { getRemainingFounderSlots, INDIA_INTRO_FIRST_MONTH_INR } from "../lib/subscription";
+import { getInitialCountryName, resolvePassiveGeo, saveCountryPreference } from "../lib/seoAttribution";
 import { PlanType } from "../types";
 import { ScreenshotCarousel } from "./ScreenshotCarousel";
 
@@ -66,9 +67,24 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<string>(profile?.country || "India");
+  const [selectedCountry, setSelectedCountry] = useState<string>(() =>
+    getInitialCountryName(profile?.country || fbProfile?.country)
+  );
   const [remainingSlots, setRemainingSlots] = useState(100);
   const [showMoneyBackRules, setShowMoneyBackRules] = useState(false);
+
+  useEffect(() => {
+    const savedProfileCountry = profile?.country || fbProfile?.country;
+    if (savedProfileCountry) {
+      setSelectedCountry(savedProfileCountry);
+      return;
+    }
+    let alive = true;
+    resolvePassiveGeo().then((geo) => {
+      if (alive && geo?.countryName) setSelectedCountry(geo.countryName);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [profile?.country, fbProfile?.country]);
 
   const isIndia = isCountryIndia(selectedCountry);
   const isLifetime = selectedPlan === "lifetime";
@@ -101,6 +117,7 @@ export const LifeResetPricing: React.FC<LifeResetPricingProps> = ({
 
   const handleCountryChange = (c: string) => {
     setSelectedCountry(c);
+    saveCountryPreference(c);
     try {
       if (user?.uid) {
         setDoc(doc(db, "users", user.uid), { country: c }, { merge: true });

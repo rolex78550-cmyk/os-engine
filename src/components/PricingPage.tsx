@@ -10,6 +10,7 @@ import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { initiateUnifiedSubscription, isCountryIndia } from '../lib/payments';
 import { getRemainingFounderSlots } from '../lib/subscription';
+import { getInitialCountryName, resolvePassiveGeo, saveCountryPreference } from '../lib/seoAttribution';
 import { PlanType } from '../types';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
 
@@ -113,16 +114,25 @@ export function PricingPage({ onClose, redirectAfterLogin, paywallMessage }: Pri
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showMoneyBackModal, setShowMoneyBackModal] = useState(false);
 
-  const [selectedCountry, setSelectedCountry] = useState<string>(profile?.country || 'India');
+  const [selectedCountry, setSelectedCountry] = useState<string>(() =>
+    getInitialCountryName(profile?.country)
+  );
 
   useEffect(() => {
     if (profile?.country) {
       setSelectedCountry(profile.country);
+      return;
     }
+    let alive = true;
+    resolvePassiveGeo().then((geo) => {
+      if (alive && geo?.countryName) setSelectedCountry(geo.countryName);
+    }).catch(() => {});
+    return () => { alive = false; };
   }, [profile?.country]);
 
   const handleCountryChange = async (newCountry: string) => {
     setSelectedCountry(newCountry);
+    saveCountryPreference(newCountry);
     if (user?.uid) {
       try {
         await setDoc(doc(db, 'users', user.uid), { country: newCountry }, { merge: true });

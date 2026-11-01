@@ -25,11 +25,12 @@ export function trackEvent(event: string, params?: Record<string, any>) {
  * Track user signup (Lead event).
  * Call this when a user successfully signs up.
  */
-export function trackSignup() {
+export function trackSignup(currency: string = 'USD', countryCode?: string) {
   trackEvent('Lead', {
     content_name: 'Signup',
     value: 0,
-    currency: 'INR',
+    currency,
+    ...(countryCode ? { country: countryCode } : {}),
   });
 }
 
@@ -37,12 +38,13 @@ export function trackSignup() {
  * Track subscription purchase.
  * Call this when a payment succeeds.
  */
-export function trackPurchase(planType: string, amount: number) {
+export function trackPurchase(planType: string, amount: number, currency: string = 'INR', countryCode?: string) {
   trackEvent('Purchase', {
     content_name: planType + '_subscription',
     content_type: 'subscription',
     value: amount,
-    currency: 'INR',
+    currency,
+    ...(countryCode ? { country: countryCode } : {}),
   });
 }
 

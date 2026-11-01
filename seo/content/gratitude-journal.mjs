@@ -117,7 +117,7 @@ export default {
       blocks: [
         {
           p: [
-            "Gratitude scripting is writing about a desired outcome in the past tense, with thanks, as if it already happened. 'I'm so grateful the studio crossed ₹2 lakh this month — the third retainer client signed on Tuesday and I took Friday off without guilt.'",
+            "Gratitude scripting is writing about a desired outcome in the past tense, with thanks, as if it already happened. 'I'm so grateful the studio crossed $10,000 this month — the third retainer client signed on Tuesday and I took Friday off without guilt.'",
             "It works on two mechanisms at once: gratitude regulates state, and future-tense specificity programs attention (the reticular activating system) and updates self-concept. It is scripting and gratitude in one line, which is why it's the most efficient manifestation writing there is. Two or three future-tense entries among your five is the sweet spot. ([The neuroscience →](/neuroscience-of-manifestation))",
           ],
         },
@@ -163,7 +163,7 @@ export default {
     { q: "Morning or night gratitude journal?", a: "Night for most people — it processes the day and improves sleep. Morning works if you pair it with affirmations. Consistency matters more than timing." },
     { q: "Is there a gratitude journal app with accountability?", a: "Menifest OS has a nightly Gratitude Script quest: five handwritten entries, photo proof verified by AI, +50 XP, streaks and a season leaderboard." },
   ],
-  related: ["how-to-manifest", "369-method", "affirmations", "neuroscience-of-manifestation"],
+  related: ["manifestation-app", "how-to-manifest", "369-method", "affirmations"],
   cta: {
     heading: "Five entries a night, verified, +50 XP",
     text: "The Gratitude Script is one of 11 daily quests in Menifest OS. Handwrite five entries, snap a photo, Gemini AI verifies it. Stack it with 369, affirmations and scripting for the full nightly ritual.",

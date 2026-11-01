@@ -30,7 +30,7 @@ export default {
         {
           h3: "1. Selective attention (the reticular activating system)",
           p: [
-            "You are bombarded with millions of bits of information a second and consciously process almost none of it. A brainstem network called the reticular activating system decides what gets through, based on what you've flagged as important. Decide a red car matters and you see red cars everywhere. Decide 'clients who pay ₹50,000 a month' matters, and you start noticing the conversations, posts and introductions you were previously deleting.",
+            "You are bombarded with millions of bits of information a second and consciously process almost none of it. A brainstem network called the reticular activating system decides what gets through, based on what you've flagged as important. Decide a red car matters and you see red cars everywhere. Decide 'clients who pay $3,000 a month' matters, and you start noticing the conversations, posts and introductions you were previously deleting.",
           ],
         },
         {
@@ -71,7 +71,7 @@ export default {
       blocks: [
         {
           ol: [
-            "**Clarity statement.** One sentence, present tense, specific: 'I run a studio that earns ₹2L a month with five retainer clients.'",
+            "**Clarity statement.** One sentence, present tense, specific: 'I run a studio that earns $10,000 a month with five retainer clients.'",
             "**Visualisation or scripting.** 3–5 minutes a day living the outcome in sensory detail, or write it as a diary entry from the future.",
             "**Affirmations.** 10 identity-based statements, read aloud, daily. [How to write ones that work →](/affirmations)",
             "**Gratitude.** Five specific entries a night. Puts the nervous system in the state where new beliefs stick. [Gratitude guide →](/gratitude-journal)",
@@ -112,9 +112,9 @@ export default {
     { q: "How do I start using the law of attraction as a beginner?", a: "Pick one specific desire, write a present-tense clarity statement, read 10 affirmations each morning, write 5 gratitudes each night, and take one aligned action daily. Do this for 30 days." },
     { q: "What's the difference between manifestation and the law of attraction?", a: "The law of attraction is the principle (focus and state shape experience). Manifestation is the practice of applying it to a specific desire. See our complete guide on how to manifest." },
     { q: "How long until the law of attraction works?", a: "Your behaviour visibly shifts in 2–3 weeks of daily practice. External results depend on the goal. Give each desire a 30-day cycle." },
-    { q: "Is there an app for law of attraction practice?", a: "Menifest OS runs affirmations, 369, gratitude, scripting and workouts as AI-verified daily quests with XP and levels. First month ₹99 in India." },
+    { q: "Is there an app for law of attraction practice?", a: "Menifest OS runs affirmations, 369, gratitude, scripting and workouts as AI-verified daily quests with XP and levels. Plans are $4.99/month worldwide (₹99 first month in India)." },
   ],
-  related: ["how-to-manifest", "identity-shifting", "neuroscience-of-manifestation", "affirmations"],
+  related: ["manifestation-app", "how-to-manifest", "identity-shifting", "neuroscience-of-manifestation"],
   cta: {
     heading: "Make the law of attraction a daily habit you can't fake",
     text: "Affirmations, 369, gratitude, scripting and the workout quests — every one verified with photo proof by Gemini AI. Earn XP, level up, climb the season leaderboard.",

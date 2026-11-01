@@ -1,16 +1,25 @@
 export default {
   type: "pricing",
   slug: "pricing",
+  eyebrow: "Global & Regional Pricing",
   h1: "Simple pricing. Everything included.",
   navTitle: "Pricing",
-  title: "Menifest OS Pricing — First Month ₹99, Then ₹415/month · Yearly ₹1,999 | Manifestation RPG App",
+  title: "Menifest OS Pricing — $4.99/mo Worldwide · ₹99 First Month (India) | Manifestation RPG",
   description:
-    "Menifest OS pricing in India: Monthly ₹415 (first month ₹99 for your first purchase), Yearly ₹1,999. International $4.99/month or $49/year. All 11 AI-verified daily quests, XP, levels, seasons. Money-back challenge.",
-  keywords: ["menifest os pricing", "manifestation app price", "manifestation app india", "manifestation app subscription", "law of attraction app price", "habit rpg app pricing", "menifest os cost"],
-  blurb: "Plans, what's included, the ₹99 intro month and the money-back challenge.",
+    "Simple global pricing for Menifest OS: $4.99/month or $49/year worldwide (India: ₹99 first month, then ₹415/mo or ₹1,999/yr). All 11 AI-verified daily quests, 90-day AI planner & 66-day money-back guarantee.",
+  keywords: [
+    "menifest os pricing",
+    "manifestation app price",
+    "manifestation app subscription",
+    "ai manifestation planner price",
+    "gamified habit tracker price",
+    "habit rpg app pricing",
+    "menifest os cost",
+  ],
+  blurb: "$4.99/mo or $49/yr worldwide (₹99 intro month in India) + 66-day money-back challenge.",
   intro: [
-    "One plan, everything included. Pay monthly or yearly. Indian users pay in ₹ via Razorpay (UPI, cards, net banking); everyone else pays in $ via Dodo Payments.",
-    "New to Menifest OS? Your **first month is ₹99** on a first-ever Monthly purchase. From the second month it's the regular ₹415.",
+    "One plan, everything included — no locked tiers, no upsells. Users worldwide (USA, UK, Canada, Australia, Europe & global) pay in **USD ($)** via Dodo Payments; users in India pay in **INR (₹)** via Razorpay (UPI, cards, net banking).",
+    "Every plan is backed by our **66-day win-your-money-back challenge**: complete 70% of your plan and get 100% refunded while keeping your subscription.",
   ],
   sections: [
     {
@@ -18,46 +27,46 @@ export default {
       blocks: [
         {
           ul: [
-            "**11 daily quests:** affirmation reading, 369 method, gratitude script, manifestation writing, push-ups, squats, crunches, 2-minute plank, 60-second sprint, 3 litres of water, dress like your future self.",
-            "**AI proof verification:** photo proof for 9 quests checked by Gemini AI — real, today, correct task — before XP is awarded. No fake completions.",
-            "**Progression:** 50 XP per quest, 16,500 XP per level, ranks from Seeker to Sovereign, full-screen XP and level-up celebrations.",
-            "**30-day seasons:** season XP resets the leaderboard every 30 days; lifetime XP and level never reset.",
-            "**AI 90-day blueprint**, goals, journal, vision board, streak protection, and all future features.",
+            "**11 daily quests:** affirmation reading, 369 method, gratitude script, manifestation writing, push-ups, squats, crunches, 2-minute plank, 60-second sprint, 3 liters of water, and dress like your future self.",
+            "**AI proof verification:** real-time photo proof checked by Gemini AI — authentic, today, matching the quest — before XP is awarded. Zero fake completions.",
+            "**RPG progression:** flat 50 XP per quest (550 XP/day), 16,500 XP per permanent level, 5 ranks from Seeker to Sovereign, and full-screen XP celebrations.",
+            "**30-day seasons:** season XP resets the global leaderboard every 30 days for fair competition; lifetime XP and level never reset.",
+            "**AI 90-day blueprint:** custom goal planner, journal block analysis, interactive vision board, streak protection, and all future updates.",
           ],
         },
       ],
     },
     {
-      h2: "India pricing (Razorpay — UPI, cards, net banking)",
+      h2: "Global pricing — USA, UK, Canada, Australia, Europe & Worldwide (USD)",
       blocks: [
         {
           table: [
-            ["Plan", "Price", "Notes"],
-            ["Monthly — first month", "₹99", "First-ever purchase only · 30 days access"],
+            ["Plan", "Price (USD)", "Notes"],
+            ["Monthly", "$4.99 / month", "Full access · cancel or pause anytime"],
+            ["Yearly", "$49 / year", "$4.08/month · save 18% · best value"],
+          ],
+        },
+      ],
+    },
+    {
+      h2: "India pricing — Razorpay (UPI, cards, net banking)",
+      blocks: [
+        {
+          table: [
+            ["Plan", "Price (INR)", "Notes"],
+            ["Monthly — first month", "₹99", "First-ever purchase in India · 30 days full access"],
             ["Monthly — regular", "₹415 / month", "From your second month onward"],
-            ["Yearly", "₹1,999 / year", "≈ ₹167 per month · best value"],
+            ["Yearly", "₹1,999 / year", "≈ ₹167/month · best annual value in India"],
           ],
         },
       ],
     },
     {
-      h2: "International pricing (Dodo Payments)",
-      blocks: [
-        {
-          table: [
-            ["Plan", "Price"],
-            ["Monthly", "$4.99 / month"],
-            ["Yearly", "$49 / year"],
-          ],
-        },
-      ],
-    },
-    {
-      h2: "The win-your-money-back challenge",
+      h2: "The 66-day win-your-money-back challenge",
       blocks: [
         {
           p: [
-            "Complete 70% of your 66-day plan and we refund 100% of what you paid — and you keep the subscription. It's deliberately generous: if you do the work, the app has already paid for itself many times over, and we'd rather have a finisher who tells three friends than ₹415.",
+            "Complete 70% of your 66-day transformation plan and we refund 100% of what you paid — and you keep the subscription. Why? Because if you show up for 66 days with AI-verified proof, the system has changed your life, and a finisher who tells three friends is worth far more than a monthly fee.",
           ],
         },
       ],
@@ -67,19 +76,19 @@ export default {
       blocks: [
         {
           p: [
-            "Skin in the game changes behaviour. Free users treat the quests as optional; paying users treat them as a commitment. At ₹99 the first month is priced to be a decision, not a barrier — less than a single food delivery for 30 days of a system that verifies you kept your word to yourself.",
+            "Skin in the game changes human behaviour. Free users treat daily quests as optional; committed members treat them as a promise to themselves. At **$4.99/month globally** (or **₹99 first month in India**), entry costs less than a single coffee — priced to trigger real commitment without being a financial barrier.",
           ],
         },
       ],
     },
   ],
   faqs: [
-    { q: "How much does Menifest OS cost in India?", a: "₹415 per month, with a ₹99 first month on your first-ever Monthly purchase. Yearly is ₹1,999 (about ₹167 a month)." },
-    { q: "Is the ₹99 price recurring?", a: "No. ₹99 applies to your first month only, once per account. Every month after that is ₹415." },
-    { q: "Can I cancel anytime?", a: "Yes — cancel or pause with one click in settings. Access continues to the end of the period you paid for." },
-    { q: "Which payment methods are supported?", a: "In India: UPI, debit/credit cards and net banking via Razorpay. Internationally: cards via Dodo Payments." },
-    { q: "Is there a free trial?", a: "No. The ₹99 first month is the low-risk entry, and the money-back challenge refunds 100% if you complete 70% of your 66-day plan." },
-    { q: "Do I lose my level when the season resets?", a: "Never. Only season XP (the leaderboard) resets every 30 days. Lifetime XP and level are permanent." },
+    { q: "How much does Menifest OS cost internationally?", a: "$4.99 per month or $49 per year ($4.08/month, saving 18%) across the USA, UK, Canada, Australia, Europe, and all international regions via secure card checkout." },
+    { q: "How much does Menifest OS cost in India?", a: "₹415 per month, with a ₹99 first month on your first-ever Monthly purchase. Yearly is ₹1,999 (about ₹167 a month) via UPI, cards, or net banking." },
+    { q: "Can I cancel anytime?", a: "Yes — cancel or pause with one click in settings. Your access continues through the end of the billing period you paid for." },
+    { q: "Which payment methods are supported?", a: "Worldwide: credit/debit cards, Apple Pay, and Google Pay (where supported) via Dodo Payments in USD. In India: UPI, debit/credit cards, and net banking via Razorpay in INR." },
+    { q: "Is there a free trial?", a: "No. Skin in the game drives follow-through, and our 66-day completion challenge refunds 100% of your payment if you finish 70% of your plan." },
+    { q: "Do I lose my level when the 30-day season resets?", a: "Never. Only season XP (the leaderboard race) resets every 30 days. Your lifetime XP and character level are permanent." },
   ],
-  related: ["how-to-manifest", "gamify-your-life-rpg", "how-to-become-a-better-version-of-yourself"],
+  related: ["manifestation-app", "ai-manifestation-planner", "gamified-habit-tracker", "how-to-manifest"],
 };

@@ -118,10 +118,10 @@ export default {
     { q: "What does it mean to gamify your life?", a: "Applying game mechanics — quests, XP, levels, ranks, seasons, feedback — to real-life behaviours so your brain's reward system supports long-term goals instead of fighting them." },
     { q: "Does gamifying habits actually work?", a: "Yes, when quests are behaviours (not outcomes), rewards are immediate and visible, proof is required, and the system is simple. It fails when it's complex, punitive or easy to cheat." },
     { q: "How do I level up in real life like Solo Leveling?", a: "Define daily quests for body, mind and identity, award flat XP with proof, set a level to take about a month of consistent play, and add ranks and seasons for status and freshness." },
-    { q: "What's the best real-life RPG app?", a: "Menifest OS is built specifically as a manifestation RPG: 11 daily quests, AI photo verification, flat 50 XP, 16,500-XP levels, 30-day seasons and a leaderboard. First month ₹99 in India." },
+    { q: "What's the best real-life RPG app?", a: "Menifest OS is built specifically as a real-life manifestation and discipline RPG: 11 daily quests, AI photo verification, flat 50 XP, 16,500-XP levels, 30-day seasons and a leaderboard. Plans start at $4.99/month worldwide (₹99 first month in India)." },
     { q: "Should I lose XP when I miss a day?", a: "No. Punishment trains avoidance. Let the streak and the season leaderboard reflect the miss; keep the XP you earned." },
   ],
-  related: ["neuroscience-of-manifestation", "how-to-become-a-better-version-of-yourself", "identity-shifting", "how-to-manifest"],
+  related: ["gamified-habit-tracker", "neuroscience-of-manifestation", "how-to-become-a-better-version-of-yourself", "identity-shifting"],
   cta: {
     heading: "Your life, as an RPG you can't cheat",
     text: "11 daily quests, photo proof verified by Gemini AI, 50 XP each, 16,500 XP per level, 30-day seasons, Seeker to Sovereign. Menifest OS is the six rules above — built.",

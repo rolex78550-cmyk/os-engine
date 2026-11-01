@@ -1,5 +1,8 @@
-// Central SEO content registry. Each guide targets one keyword cluster.
-// Add a new guide = add a file + import it here. No app code involved.
+// Central SEO content registry. Each guide or commercial landing page targets one keyword cluster.
+// Add a new page = add a file + import it here. No app code involved.
+import manifestationApp from "./manifestation-app.mjs";
+import aiPlanner from "./ai-manifestation-planner.mjs";
+import gamifiedHabitTracker from "./gamified-habit-tracker.mjs";
 import manifestation from "./manifestation.mjs";
 import lawOfAttraction from "./law-of-attraction.mjs";
 import identityShifting from "./identity-shifting.mjs";
@@ -17,18 +20,31 @@ export const SITE = {
 };
 
 export const HUB = {
-  title: "Manifestation Guides — 369 Method, Law of Attraction, Identity Shifting & More | Menifest OS",
+  title: "Manifestation & Life RPG Guides — 369 Method, Identity Shifting, AI Planning & Habit Science | Menifest OS",
   description:
-    "Free, practical guides on manifestation: the 369 method, law of attraction, identity shifting, affirmations that work, the neuroscience behind it, and how to gamify your life like an RPG.",
-  h1: "Manifestation, explained like a system",
-  keywords: ["manifestation guide", "how to manifest", "law of attraction guide", "369 method", "identity shifting", "affirmations", "neuroscience of manifestation"],
+    "Free, science-backed guides on manifestation and daily discipline: the 369 method, identity shifting, affirmations that work, neuroscience, AI goal planning, and how to gamify your habits like an RPG.",
+  h1: "Manifestation & discipline, explained like a system",
+  keywords: [
+    "manifestation guide",
+    "how to manifest",
+    "identity shifting",
+    "369 method",
+    "gamify your life",
+    "neuroscience of manifestation",
+    "manifestation app",
+    "ai manifestation planner",
+    "gamified habit tracker",
+  ],
   intro: [
-    "Most manifestation content is either pure fluff or pure skepticism. These guides sit in the middle: the actual techniques, what the psychology and neuroscience say about why they work, and a daily protocol you can follow — with or without our app.",
-    "Start anywhere. Each guide is self-contained, takes 5–9 minutes, and ends with a routine you can begin today.",
+    "Most manifestation content is either pure fluff or pure skepticism. These guides sit in the middle: the actual techniques, what psychology and neuroscience say about why they work, and a daily protocol you can follow anywhere in the world — with or without our app.",
+    "Start anywhere. Each guide is self-contained, takes 5–9 minutes, and ends with a daily routine you can begin today.",
   ],
 };
 
 export const PAGES = [
+  manifestationApp,
+  aiPlanner,
+  gamifiedHabitTracker,
   manifestation,
   lawOfAttraction,
   identityShifting,

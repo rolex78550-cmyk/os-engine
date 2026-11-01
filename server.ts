@@ -380,6 +380,139 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// INTERNATIONAL SEO: PASSIVE GEO HEADER LOOKUP (ZERO REDIRECTS) + FUNNEL STATS
+// ════════════════════════════════════════════════════════════════════════════
+const SEO_COUNTRY_NAMES: Record<string, string> = {
+  US: "United States",
+  IN: "India",
+  GB: "United Kingdom",
+  CA: "Canada",
+  AU: "Australia",
+  DE: "Germany",
+  NL: "Netherlands",
+  ZA: "South Africa",
+  PH: "Philippines",
+  BR: "Brazil",
+  BD: "Bangladesh",
+  VN: "Vietnam",
+  AE: "United Arab Emirates",
+  SG: "Singapore",
+  NZ: "New Zealand",
+  IE: "Ireland",
+  FR: "France",
+  ES: "Spain",
+  IT: "Italy",
+  JP: "Japan",
+  MX: "Mexico",
+  ID: "Indonesia",
+  SA: "Saudi Arabia",
+  NG: "Nigeria",
+  NP: "Nepal",
+  PK: "Pakistan",
+};
+
+function extractRequestCountryCode(req: express.Request): string | null {
+  const raw =
+    (req.headers["x-vercel-ip-country"] as string | undefined) ||
+    (req.headers["cf-ipcountry"] as string | undefined) ||
+    (req.headers["x-country-code"] as string | undefined) ||
+    "";
+  const code = raw.trim().toUpperCase();
+  if (!code || code === "XX" || code === "T1" || code.length !== 2) return null;
+  return code === "UK" ? "GB" : code;
+}
+
+// Passive geo lookup for pricing currency display (never redirects URLs)
+app.get("/api/geo", (req, res) => {
+  const code = extractRequestCountryCode(req);
+  if (!code) {
+    return res.json({ countryCode: "UNKNOWN", countryName: null });
+  }
+  return res.json({
+    countryCode: code,
+    countryName: SEO_COUNTRY_NAMES[code] || code,
+  });
+});
+
+// Country-wise Organic Clicks -> Signups -> Paid Subscriptions funnel tracker
+app.post("/api/analytics/seo-event", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const eventType = String(body.eventType || "");
+    if (!["organic_click", "page_visit", "signup", "purchase"].includes(eventType)) {
+      return res.status(400).json({ ok: false, error: "Invalid eventType" });
+    }
+
+    const headerCode = extractRequestCountryCode(req);
+    const rawCode = String(headerCode || body.countryCode || "US").trim().toUpperCase();
+    const countryCode = /^[A-Z]{2}$/.test(rawCode) ? (rawCode === "UK" ? "GB" : rawCode) : "US";
+    const countryName = SEO_COUNTRY_NAMES[countryCode] || String(body.countryName || countryCode).slice(0, 64);
+    const isOrganic = Boolean(body.isOrganic || body.channel === "organic_search" || eventType === "organic_click");
+    const landingPage = String(body.landingPage || "/").slice(0, 140);
+    const safeLandingKey = landingPage.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60) || "home";
+    const nowIso = new Date().toISOString();
+
+    try {
+      const db = getDb();
+      const inc = admin.firestore.FieldValue.increment;
+      const statsUpdate: Record<string, any> = {
+        countryCode,
+        countryName,
+        updatedAt: nowIso,
+      };
+
+      if (eventType === "organic_click") {
+        statsUpdate.organicClicks = inc(1);
+        statsUpdate.totalVisits = inc(1);
+        statsUpdate[`organicByLanding.${safeLandingKey}`] = inc(1);
+      } else if (eventType === "page_visit") {
+        statsUpdate.totalVisits = inc(1);
+      } else if (eventType === "signup") {
+        statsUpdate.signups = inc(1);
+        if (isOrganic) statsUpdate.organicSignups = inc(1);
+      } else if (eventType === "purchase") {
+        const amt = Number(body.amount) || 0;
+        const curr = String(body.currency || "USD").toUpperCase();
+        statsUpdate.paidSubscriptions = inc(1);
+        if (isOrganic) statsUpdate.organicPaidSubscriptions = inc(1);
+        if (curr === "INR") statsUpdate.revenueINR = inc(amt);
+        else statsUpdate.revenueUSD = inc(amt);
+      }
+
+      await db.collection("seo_country_stats").doc(countryCode).set(statsUpdate, { merge: true });
+
+      // Store compact event row for recent attribution audit (signups, purchases, organic clicks)
+      if (eventType !== "page_visit") {
+        const evId = `${eventType}_${countryCode}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        await db.collection("seo_events").doc(evId).set({
+          eventType,
+          countryCode,
+          countryName,
+          channel: String(body.channel || "direct").slice(0, 32),
+          isOrganic,
+          landingPage,
+          searchEngine: body.searchEngine ? String(body.searchEngine).slice(0, 32) : null,
+          utmSource: body.utmSource ? String(body.utmSource).slice(0, 64) : null,
+          utmCampaign: body.utmCampaign ? String(body.utmCampaign).slice(0, 64) : null,
+          userId: body.userId ? String(body.userId).slice(0, 64) : null,
+          planType: body.planType ? String(body.planType).slice(0, 32) : null,
+          amount: body.amount !== undefined ? Number(body.amount) || 0 : null,
+          currency: body.currency ? String(body.currency).slice(0, 8) : null,
+          createdAt: nowIso,
+        });
+      }
+    } catch (dbErr: any) {
+      // Never fail client navigation if local dev lacks Firebase Admin credentials
+      console.warn("[seo-event] Firestore write skipped:", dbErr?.message || dbErr);
+    }
+
+    return res.json({ ok: true, countryCode });
+  } catch (err: any) {
+    return res.status(200).json({ ok: false });
+  }
+});
+
 // API Route: Onboarding personalization based on user questions
 app.post("/api/manifestation/onboarding", async (req, res) => {
   try {
@@ -661,6 +794,86 @@ app.get("/api/admin/users", verifyAdmin, async (req, res) => {
   } catch (error: any) {
     console.error("Fetch admin users error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Secure Admin API: Country-wise Organic Clicks, Signups & Paid Subscriptions report
+app.get("/api/admin/seo-stats", verifyAdmin, async (_req, res) => {
+  try {
+    const db = getDb();
+    const [statsSnap, usersSnap, paymentsSnap] = await Promise.all([
+      db.collection("seo_country_stats").get(),
+      db.collection("users").get(),
+      db.collection("payments").where("paymentStatus", "==", "success").get(),
+    ]);
+
+    const byCountry: Record<string, any> = {};
+    const ensure = (code: string, name?: string) => {
+      const c = (code || "UNKNOWN").toUpperCase();
+      if (!byCountry[c]) {
+        byCountry[c] = {
+          countryCode: c,
+          countryName: SEO_COUNTRY_NAMES[c] || name || c,
+          organicClicks: 0,
+          totalVisits: 0,
+          signups: 0,
+          organicSignups: 0,
+          paidSubscriptions: 0,
+          organicPaidSubscriptions: 0,
+          revenueUSD: 0,
+          revenueINR: 0,
+        };
+      }
+      return byCountry[c];
+    };
+
+    statsSnap.forEach((d: any) => {
+      const s = d.data() || {};
+      const row = ensure(d.id, s.countryName);
+      row.organicClicks = Math.max(row.organicClicks, Number(s.organicClicks) || 0);
+      row.totalVisits = Math.max(row.totalVisits, Number(s.totalVisits) || 0);
+      row.organicSignups = Math.max(row.organicSignups, Number(s.organicSignups) || 0);
+      row.organicPaidSubscriptions = Math.max(row.organicPaidSubscriptions, Number(s.organicPaidSubscriptions) || 0);
+    });
+
+    const userCountryMap: Record<string, { code: string; isOrganic: boolean }> = {};
+    usersSnap.forEach((d: any) => {
+      const u = d.data() || {};
+      const rawCountry = String(u.countryCode || u.country || "").trim();
+      let code = "IN";
+      if (/^[A-Za-z]{2}$/.test(rawCountry)) code = rawCountry.toUpperCase();
+      else if (rawCountry) {
+        const match = Object.entries(SEO_COUNTRY_NAMES).find(([, n]) => n.toLowerCase() === rawCountry.toLowerCase());
+        code = match ? match[0] : (rawCountry.toLowerCase() === "india" ? "IN" : "US");
+      }
+      const isOrg = Boolean(u.isOrganicAcquisition || u.acquisitionChannel === "organic_search");
+      userCountryMap[d.id] = { code, isOrganic: isOrg };
+      const row = ensure(code, rawCountry || undefined);
+      row.signups += 1;
+    });
+
+    paymentsSnap.forEach((d: any) => {
+      const p = d.data() || {};
+      const uMeta = p.userId ? userCountryMap[p.userId] : undefined;
+      const curr = String(p.currency || "INR").toUpperCase();
+      const code = String(p.countryCode || uMeta?.code || (curr === "INR" ? "IN" : "US")).toUpperCase();
+      const row = ensure(code, p.country);
+      row.paidSubscriptions += 1;
+      const amt = Number(p.amount) || 0;
+      if (curr === "INR") row.revenueINR += amt;
+      else row.revenueUSD += amt;
+    });
+
+    const countries = Object.values(byCountry).sort(
+      (a: any, b: any) =>
+        b.paidSubscriptions - a.paidSubscriptions ||
+        b.organicClicks - a.organicClicks ||
+        b.signups - a.signups
+    );
+
+    return res.json({ status: "ok", countries });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message || "Failed to load SEO stats" });
   }
 });
 
@@ -1175,8 +1388,12 @@ app.post("/api/subscription/activate", async (req, res) => {
 
     // Deterministic payment doc id so re-activations are idempotent.
     const payDocId = razorpayPaymentId || razorpayOrderId || `rzp_act_${uid}_${now.getTime()}`;
+    const uData = userDoc.data() || {};
     await db.collection("payments").doc(payDocId).set({
       userId: uid, planType, amount: Number(amount) || 0, currency: "INR",
+      country: "India", countryCode: "IN",
+      acquisitionChannel: uData.acquisitionChannel || null,
+      landingPage: uData.firstLandingPage || null,
       paymentStatus: "success", razorpayOrderId, razorpayPaymentId, createdAt: now.toISOString()
     }, { merge: true });
 
@@ -1345,11 +1562,18 @@ app.post("/api/dodo/activate", async (req, res) => {
     // ── STEP 2: record the payment (used by deriveAccessFromPayments) ──
     // Use a stable ID so duplicate activations don't create duplicate rows.
     const stablePayId = dodoPaymentId || `dodo_act_${uid}_${now.getTime()}`;
+    const uData = userDoc.exists ? (userDoc.data() || {}) : {};
+    const reqCountryCode = extractRequestCountryCode(req) || req.body?.countryCode || uData.countryCode || "US";
+    const resolvedCode = reqCountryCode === "IN" ? "US" : reqCountryCode;
     await db.collection("payments").doc(stablePayId).set({
       userId: uid,
       planType,
       amount: Number(amount) || 0,
       currency,
+      countryCode: resolvedCode,
+      country: req.body?.country || SEO_COUNTRY_NAMES[resolvedCode] || uData.country || "United States",
+      acquisitionChannel: req.body?.acquisitionChannel || uData.acquisitionChannel || null,
+      landingPage: req.body?.landingPage || uData.firstLandingPage || null,
       paymentStatus: "success",
       dodoPaymentId: stablePayId,
       source: "return_url_activate",

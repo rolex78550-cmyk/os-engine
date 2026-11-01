@@ -17,6 +17,18 @@
       "destination": "/learn/index.html"
     },
     {
+      "source": "/manifestation-app",
+      "destination": "/manifestation-app/index.html"
+    },
+    {
+      "source": "/ai-manifestation-planner",
+      "destination": "/ai-manifestation-planner/index.html"
+    },
+    {
+      "source": "/gamified-habit-tracker",
+      "destination": "/gamified-habit-tracker/index.html"
+    },
+    {
       "source": "/how-to-manifest",
       "destination": "/how-to-manifest/index.html"
     },
@@ -164,7 +176,7 @@
       ]
     },
     {
-      "source": "/(learn|how-to-manifest|law-of-attraction|identity-shifting|369-method|affirmations|how-to-become-a-better-version-of-yourself|neuroscience-of-manifestation|gamify-your-life-rpg|gratitude-journal|pricing)",
+      "source": "/(learn|manifestation-app|ai-manifestation-planner|gamified-habit-tracker|how-to-manifest|law-of-attraction|identity-shifting|369-method|affirmations|how-to-become-a-better-version-of-yourself|neuroscience-of-manifestation|gamify-your-life-rpg|gratitude-journal|pricing)",
       "headers": [
         {
           "key": "Cache-Control",

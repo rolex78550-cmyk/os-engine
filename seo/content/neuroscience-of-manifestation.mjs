@@ -115,7 +115,7 @@ export default {
     { q: "Why do affirmations work for some people and not others?", a: "Affirmations that are too far from current self-belief trigger counter-argument (a 2009 study). Identity-based and bridge statements are accepted and activate reward regions of the brain." },
     { q: "How long does it take to rewire the brain with these practices?", a: "Measurable shifts in self-talk and behaviour in 2–3 weeks; habits automatic in roughly 66 days on average. Repetition, attention and emotion are the levers." },
   ],
-  related: ["law-of-attraction", "gamify-your-life-rpg", "affirmations", "identity-shifting"],
+  related: ["ai-manifestation-planner", "gamified-habit-tracker", "law-of-attraction", "identity-shifting"],
   cta: {
     heading: "A manifestation practice built on the mechanisms",
     text: "RAS programming, spaced repetition, self-affirmation, dopamine-timed rewards, verified behavioural proof — that's the design of Menifest OS. 11 quests a day, AI-verified, XP and levels. Skeptic-friendly.",

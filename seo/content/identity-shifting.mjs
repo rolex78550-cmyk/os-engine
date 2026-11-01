@@ -38,7 +38,7 @@ export default {
         {
           h3: "Step 2 — Define the target identity as a person, not a goal",
           p: [
-            "Not 'I want to earn ₹2L a month' but 'I am a calm, decisive business owner who values her time at ₹5,000 an hour'. Goals are outcomes; identities are operating systems. Ask: what does this person believe about themselves, money, time, their body, other people?",
+            "Not 'I want to earn $10,000 a month' but 'I am a calm, decisive business owner who values her time at $250 an hour'. Goals are outcomes; identities are operating systems. Ask: what does this person believe about themselves, money, time, their body, other people?",
           ],
         },
         {
@@ -128,7 +128,7 @@ export default {
     { q: "What are good identity shifting affirmations?", a: "Present-tense identity statements you can act on today: 'I am someone who trains every morning', 'I am a calm and decisive decision-maker'. Avoid outcome claims your gut rejects; use 'I am becoming…' as a bridge." },
     { q: "Can an app help with identity shifting?", a: "Yes — the hard part is daily proof. Menifest OS assigns 11 identity behaviours a day, verifies each with an AI-checked photo, and turns the evidence into XP and levels." },
   ],
-  related: ["how-to-manifest", "better-version-of-yourself", "affirmations", "gamify-your-life-rpg"],
+  related: ["manifestation-app", "ai-manifestation-planner", "how-to-become-a-better-version-of-yourself", "affirmations", "gamify-your-life-rpg"],
   cta: {
     heading: "Install the new identity with daily, verified proof",
     text: "Menifest OS gives you 11 identity behaviours a day — affirmations, 369, gratitude, scripting, dress-the-part and body quests — each proven by photo and verified by Gemini AI. Watch the evidence stack up as XP, levels and rank.",

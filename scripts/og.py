@@ -11,8 +11,9 @@ imask = Image.new("L", (64, 64), 0); ImageDraw.Draw(imask).rounded_rectangle((0,
 for p in pages:
     bg = Image.new("RGB", (W, H), (6, 4, 3)); bg.paste(hs, (W - hs.width, 0))
     grad = Image.new("L", (W, H), 0); gd = ImageDraw.Draw(grad)
+    x0 = W - hs.width
     for x in range(W):
-        a = 255 if x < W - 600 else max(0, int(255 * (1 - (x - (W - 600)) / 520)))
+        a = 255 if x <= x0 else max(0, int(255 * (1 - (x - x0) / 360)))
         gd.line([(x, 0), (x, H)], fill=a)
     bg = Image.composite(Image.new("RGB", (W, H), (6, 4, 3)), bg, grad)
     glow = Image.new("RGB", (W, H), (0, 0, 0)); ImageDraw.Draw(glow).ellipse((40, 100, 640, 560), fill=(255, 122, 0))
@@ -26,7 +27,12 @@ for p in pages:
     y = 200 if len(lines) >= 3 else 230
     for ln in lines[:3]:
         d.text((72, y), ln, font=F(serifB, size), fill=(255, 255, 255)); y += size + 14
-    d.text((72, y + 16), "Free guide · practical steps · the science · a daily routine", font=F(sans, 22), fill=(225, 215, 205))
+    sub = (
+        "AI-verified daily quests · XP, levels & 30-day seasons · $4.99/mo"
+        if p.get("type") in ("commercial", "pricing")
+        else "Free guide · practical steps · the science · a daily routine"
+    )
+    d.text((72, y + 16), sub, font=F(sans, 22), fill=(225, 215, 205))
     px, py = 72, H - 88
     d.rounded_rectangle((px, py, px + 300, py + 48), 24, fill=(255, 122, 0))
     d.text((px + 22, py + 12), "www.menifestos.com", font=F(sansB, 20), fill=(26, 13, 0))

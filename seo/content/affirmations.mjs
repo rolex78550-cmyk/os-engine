@@ -19,7 +19,7 @@ export default {
       blocks: [
         {
           p: [
-            "Say 'I am a millionaire' while your bank app says ₹4,312 and your brain does what brains do: it fact-checks. 'No you're not.' Repeat that exchange 20 times and you've spent five minutes rehearsing 'I am not a millionaire' with feeling. This is the mechanism behind the low-self-esteem study — the affirmation was too far from the current belief, so it triggered counter-argument instead of acceptance.",
+            "Say 'I am a millionaire' while your bank app says $412 and your brain does what brains do: it fact-checks. 'No you're not.' Repeat that exchange 20 times and you've spent five minutes rehearsing 'I am not a millionaire' with feeling. This is the mechanism behind the low-self-esteem study — the affirmation was too far from the current belief, so it triggered counter-argument instead of acceptance.",
             "The fix is not to abandon affirmations. It's to write ones your brain can accept **today**, and to attach them to identity and action rather than to an outcome you don't have yet.",
           ],
         },
@@ -177,7 +177,7 @@ export default {
     { q: "How long until affirmations work?", a: "Your dominant self-talk shifts within 2–3 weeks of daily practice; behaviour follows. Give it 30 days." },
     { q: "Is there an affirmation app?", a: "Menifest OS has 100+ affirmation cards as a daily quest (10 flips = +50 XP), plus 369, gratitude, scripting and workouts — all part of one manifestation RPG." },
   ],
-  related: ["369-method", "identity-shifting", "how-to-manifest", "neuroscience-of-manifestation"],
+  related: ["manifestation-app", "369-method", "identity-shifting", "neuroscience-of-manifestation"],
   cta: {
     heading: "100+ affirmation cards, one daily quest",
     text: "Read 10 cards aloud, flip them, +50 XP. Then your 369 line, gratitude and the rest of the day's quests — photo-verified by AI. Build the identity, one proven day at a time.",

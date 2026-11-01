@@ -175,6 +175,19 @@ export async function initiateDodoSubscription(
 
   let checkoutData: any;
   try {
+    let countryMeta: Record<string, any> = {};
+    try {
+      const { getOrCreateAttribution } = await import('./seoAttribution');
+      const attr = getOrCreateAttribution();
+      countryMeta = {
+        countryCode: attr.countryCode === 'IN' ? 'US' : attr.countryCode,
+        countryName: attr.countryCode === 'IN' ? 'Global / Other' : attr.countryName,
+        acquisitionChannel: attr.channel,
+        landingPage: attr.landingPage,
+        utmSource: attr.utmSource,
+        utmCampaign: attr.utmCampaign,
+      };
+    } catch {}
     const res = await fetchWithTimeout("/api/dodo/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -184,7 +197,8 @@ export async function initiateDodoSubscription(
         planType,
         uid: user.uid,
         email: user.email || "",
-        name: user.displayName || ""
+        name: user.displayName || "",
+        ...countryMeta,
       }),
     });
 

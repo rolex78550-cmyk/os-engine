@@ -134,7 +134,7 @@ export default {
     { q: "Why do I always quit self-improvement after two weeks?", a: "Because days 11–30 are a plateau where novelty is gone and results aren't visible. Expect it, name it, and protect the chain through it — that's the whole skill." },
     { q: "Is there an app that keeps me accountable for daily habits?", a: "Menifest OS assigns 11 daily quests, verifies each with an AI-checked photo, and turns completion into XP, levels and a season leaderboard." },
   ],
-  related: ["identity-shifting", "gamify-your-life-rpg", "how-to-manifest", "gratitude-journal"],
+  related: ["gamified-habit-tracker", "ai-manifestation-planner", "identity-shifting", "gamify-your-life-rpg"],
   cta: {
     heading: "The 11 non-negotiables, verified daily",
     text: "Menifest OS is this system as a game: 11 quests a day, photo proof checked by Gemini AI, 550 XP per perfect day, 30-day seasons, a leaderboard. Start your 66 days today.",

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Users, UserCheck, IndianRupee, CreditCard, Clock, RefreshCw,
-  Crown, ShieldCheck
+  Users, IndianRupee, CreditCard, Clock, RefreshCw,
+  Crown, ShieldCheck, Globe, DollarSign
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs } from "firebase/firestore";
+import { countryNameToCode, countryCodeToName } from '../lib/seoAttribution';
 
 interface EnhancedUser {
   id: string;
@@ -12,6 +13,11 @@ interface EnhancedUser {
   email: string;
   subscriptionStatus: string;
   currentPlan: string;
+  country?: string;
+  countryCode?: string;
+  acquisitionChannel?: string;
+  isOrganicAcquisition?: boolean;
+  firstLandingPage?: string;
   level?: number;
   streak?: number;
   createdAt?: string;
@@ -22,13 +28,31 @@ interface PaymentRecord {
   userId: string;
   planType: string;
   amount: number;
+  currency?: string;
+  country?: string;
+  countryCode?: string;
+  acquisitionChannel?: string;
   paymentStatus: string;
   createdAt: string;
+}
+
+interface CountrySeoStat {
+  countryCode: string;
+  countryName: string;
+  organicClicks: number;
+  totalVisits: number;
+  signups: number;
+  organicSignups: number;
+  paidSubscriptions: number;
+  organicPaidSubscriptions: number;
+  revenueUSD: number;
+  revenueINR: number;
 }
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<EnhancedUser[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [rawCountryStats, setRawCountryStats] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [togglingUid, setTogglingUid] = useState<string | null>(null);
@@ -36,9 +60,10 @@ export default function AdminPanel() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [usersSnap, paymentsSnap] = await Promise.all([
+      const [usersSnap, paymentsSnap, seoSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'payments')),
+        getDocs(collection(db, 'seo_country_stats')).catch(() => null),
       ]);
 
       const payList: PaymentRecord[] = [];
@@ -58,12 +83,25 @@ export default function AdminPanel() {
           email: data.email || '',
           subscriptionStatus: data.subscriptionStatus || 'free',
           currentPlan: data.currentPlan || 'free',
+          country: data.country,
+          countryCode: data.countryCode,
+          acquisitionChannel: data.acquisitionChannel,
+          isOrganicAcquisition: data.isOrganicAcquisition,
+          firstLandingPage: data.firstLandingPage,
           level: data.level || 1,
           streak: data.streak || 0,
           createdAt: data.createdAt,
         });
       });
       setUsers(usersList);
+
+      const seoMap: Record<string, any> = {};
+      if (seoSnap) {
+        seoSnap.forEach((d) => {
+          seoMap[d.id.toUpperCase()] = d.data();
+        });
+      }
+      setRawCountryStats(seoMap);
     } catch (error) {
       console.error('Admin fetch error:', error);
       setActionMsg('⚠️ Failed to load data. Check console.');
@@ -76,18 +114,115 @@ export default function AdminPanel() {
     fetchAll();
   }, [fetchAll]);
 
-  // ── REAL DERIVED STATS (no fabricated fallback numbers) ──
+  // ── REAL DERIVED STATS (multi-currency USD + INR separated) ──
   const totalUsers = users.length;
   const premiumUsers = users.filter(u =>
     u.currentPlan !== 'free' || u.subscriptionStatus === 'active' ||
     u.subscriptionStatus === 'lifetime' || u.subscriptionStatus === 'premium'
   ).length;
   const trialUsers = users.filter(u => u.subscriptionStatus === 'trial').length;
-  const freeUsers = Math.max(0, totalUsers - premiumUsers - trialUsers);
-  const totalRevenue = payments
-    .filter(p => p.paymentStatus === 'success')
+  const successPayments = payments.filter(p => p.paymentStatus === 'success');
+  const totalRevenueINR = successPayments
+    .filter(p => (p.currency || 'INR').toUpperCase() === 'INR')
     .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const paymentsCount = payments.filter(p => p.paymentStatus === 'success').length;
+  const totalRevenueUSD = successPayments
+    .filter(p => (p.currency || 'INR').toUpperCase() !== 'INR')
+    .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const paymentsCount = successPayments.length;
+
+  // Country-wise Organic Clicks -> Signups -> Paid Subscriptions aggregation
+  const countryRows: CountrySeoStat[] = useMemo(() => {
+    const map: Record<string, CountrySeoStat> = {};
+    const ensure = (code: string, nameHint?: string) => {
+      const c = (code || 'IN').toUpperCase();
+      if (!map[c]) {
+        map[c] = {
+          countryCode: c,
+          countryName: countryCodeToName(c) !== 'Global / Other' ? countryCodeToName(c) : (nameHint || c),
+          organicClicks: 0,
+          totalVisits: 0,
+          signups: 0,
+          organicSignups: 0,
+          paidSubscriptions: 0,
+          organicPaidSubscriptions: 0,
+          revenueUSD: 0,
+          revenueINR: 0,
+        };
+      }
+      return map[c];
+    };
+
+    Object.entries(rawCountryStats).forEach(([code, s]: [string, any]) => {
+      const row = ensure(code, s?.countryName);
+      row.organicClicks = Number(s?.organicClicks) || 0;
+      row.totalVisits = Number(s?.totalVisits) || 0;
+      row.organicSignups = Number(s?.organicSignups) || 0;
+      row.organicPaidSubscriptions = Number(s?.organicPaidSubscriptions) || 0;
+    });
+
+    const userCountryById: Record<string, { code: string; isOrganic: boolean }> = {};
+    users.forEach((u) => {
+      const code = u.countryCode
+        ? u.countryCode.toUpperCase()
+        : u.country
+          ? countryNameToCode(u.country)
+          : 'IN';
+      const isOrg = Boolean(u.isOrganicAcquisition || u.acquisitionChannel === 'organic_search');
+      userCountryById[u.id] = { code, isOrganic: isOrg };
+      const row = ensure(code, u.country);
+      row.signups += 1;
+      if (isOrg && row.organicSignups < row.signups) {
+        row.organicSignups = Math.max(row.organicSignups, isOrg ? 1 : 0);
+      }
+    });
+
+    // Recompute exact organicSignups from user docs when higher than counter
+    const orgSignupCountByCode: Record<string, number> = {};
+    users.forEach((u) => {
+      const info = userCountryById[u.id];
+      if (info?.isOrganic) {
+        orgSignupCountByCode[info.code] = (orgSignupCountByCode[info.code] || 0) + 1;
+      }
+    });
+    Object.entries(orgSignupCountByCode).forEach(([c, count]) => {
+      const row = ensure(c);
+      row.organicSignups = Math.max(row.organicSignups, count);
+    });
+
+    const orgPaidCountByCode: Record<string, number> = {};
+    successPayments.forEach((p) => {
+      const uInfo = p.userId ? userCountryById[p.userId] : undefined;
+      const curr = (p.currency || 'INR').toUpperCase();
+      const code = p.countryCode
+        ? p.countryCode.toUpperCase()
+        : p.country
+          ? countryNameToCode(p.country)
+          : uInfo?.code || (curr === 'INR' ? 'IN' : 'US');
+      const isOrg = Boolean(p.acquisitionChannel === 'organic_search' || uInfo?.isOrganic);
+      const row = ensure(code, p.country);
+      row.paidSubscriptions += 1;
+      if (isOrg) orgPaidCountByCode[code] = (orgPaidCountByCode[code] || 0) + 1;
+      const amt = Number(p.amount) || 0;
+      if (curr === 'INR') row.revenueINR += amt;
+      else row.revenueUSD += amt;
+    });
+    Object.entries(orgPaidCountByCode).forEach(([c, count]) => {
+      const row = ensure(c);
+      row.organicPaidSubscriptions = Math.max(row.organicPaidSubscriptions, count);
+    });
+
+    return Object.values(map).sort(
+      (a, b) =>
+        b.paidSubscriptions - a.paidSubscriptions ||
+        b.organicClicks - a.organicClicks ||
+        b.signups - a.signups
+    );
+  }, [rawCountryStats, users, successPayments]);
+
+  const formatINR = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
+  const formatUSD = (n: number) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+  const formatTxAmount = (amount: number, currency?: string) =>
+    (currency || 'INR').toUpperCase() === 'INR' ? formatINR(amount) : formatUSD(amount);
 
   // Real transactions (no demo fallback)
   const recentTransactions = payments.slice(0, 8).map((p) => {
@@ -100,14 +235,14 @@ export default function AdminPanel() {
         : p.planType === 'lifetime' ? 'Lifetime'
         : 'Payment',
       amount: Number(p.amount) || 0,
+      currency: p.currency || 'INR',
+      countryCode: p.countryCode || user?.countryCode || ((p.currency || 'INR').toUpperCase() === 'INR' ? 'IN' : 'US'),
       status: p.paymentStatus === 'success' ? 'Success' : 'Failed',
       date: p.createdAt
         ? new Date(p.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '—',
     };
   });
-
-  const formatMoney = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 
   const isPremium = (u: EnhancedUser) =>
     u.subscriptionStatus === 'active' || u.subscriptionStatus === 'lifetime' ||
@@ -132,7 +267,6 @@ export default function AdminPanel() {
         return;
       }
       setActionMsg(`✅ ${user.email || user.name} → ${makePremium ? 'Premium' : 'Free'}.`);
-      // Refresh local list to reflect the change immediately
       setUsers(prev => prev.map(u =>
         u.id === user.id ? { ...u, subscriptionStatus: makePremium ? 'premium' : 'free' } : u
       ));
@@ -159,7 +293,7 @@ export default function AdminPanel() {
         <div>
           <div className="text-xs font-mono tracking-[1.5px] text-purple-400 mb-1">ADMIN DASHBOARD</div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="text-sm text-white/60 mt-0.5">Live data from Firestore — no demo numbers.</p>
+          <p className="text-sm text-white/60 mt-0.5">Live data from Firestore — global USD &amp; India INR funnel.</p>
         </div>
         <button
           onClick={fetchAll}
@@ -171,7 +305,7 @@ export default function AdminPanel() {
       </div>
 
       {/* KPI STATS ROW — REAL */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
         <div className="bg-zinc-950 border border-white/10 rounded-3xl p-4">
           <div className="flex items-center gap-2 text-xs text-white/60 mb-1"><Users size={15} /> Total Users</div>
           <div className="text-3xl font-bold tabular-nums">{totalUsers.toLocaleString()}</div>
@@ -185,8 +319,12 @@ export default function AdminPanel() {
           <div className="text-3xl font-bold tabular-nums">{trialUsers.toLocaleString()}</div>
         </div>
         <div className="bg-zinc-950 border border-white/10 rounded-3xl p-4">
-          <div className="flex items-center gap-2 text-xs text-white/60 mb-1"><IndianRupee size={15} /> Revenue</div>
-          <div className="text-3xl font-bold tabular-nums">{formatMoney(totalRevenue)}</div>
+          <div className="flex items-center gap-2 text-xs text-emerald-400 mb-1"><DollarSign size={15} /> Global USD</div>
+          <div className="text-2xl font-bold tabular-nums">{formatUSD(totalRevenueUSD)}</div>
+        </div>
+        <div className="bg-zinc-950 border border-white/10 rounded-3xl p-4">
+          <div className="flex items-center gap-2 text-xs text-amber-400 mb-1"><IndianRupee size={15} /> India INR</div>
+          <div className="text-2xl font-bold tabular-nums">{formatINR(totalRevenueINR)}</div>
         </div>
         <div className="bg-zinc-950 border border-white/10 rounded-3xl p-4">
           <div className="flex items-center gap-2 text-xs text-white/60 mb-1"><CreditCard size={15} /> Payments</div>
@@ -200,6 +338,64 @@ export default function AdminPanel() {
           {actionMsg}
         </div>
       )}
+
+      {/* INTERNATIONAL SEO COUNTRY FUNNEL TABLE */}
+      <div className="bg-zinc-950 border border-white/10 rounded-3xl p-5 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Globe size={16} className="text-emerald-400" />
+          <div className="font-semibold">International SEO &amp; Country Funnel</div>
+          <span className="text-xs text-white/40 ml-auto">{countryRows.length} countries tracked</span>
+        </div>
+        {countryRows.length === 0 ? (
+          <p className="text-sm text-white/40 py-6 text-center">
+            Country-wise organic clicks, signups, and paid subscriptions appear here automatically as traffic arrives.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-white/50 border-b border-white/10">
+                  <th className="text-left py-2 font-medium">Country</th>
+                  <th className="text-right py-2 font-medium">Organic Clicks</th>
+                  <th className="text-right py-2 font-medium">Signups (Org)</th>
+                  <th className="text-right py-2 font-medium">Paid Subs (Org)</th>
+                  <th className="text-right py-2 font-medium">Signup → Paid</th>
+                  <th className="text-right py-2 font-medium">Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {countryRows.map((c) => {
+                  const conv = c.signups > 0 ? ((c.paidSubscriptions / c.signups) * 100).toFixed(1) + '%' : '—';
+                  const revParts: string[] = [];
+                  if (c.revenueUSD > 0) revParts.push(formatUSD(c.revenueUSD));
+                  if (c.revenueINR > 0) revParts.push(formatINR(c.revenueINR));
+                  return (
+                    <tr key={c.countryCode}>
+                      <td className="py-2.5 pr-2 font-medium">
+                        <span className="text-xs font-mono text-white/40 mr-2">{c.countryCode}</span>
+                        {c.countryName}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono text-white/80">{c.organicClicks.toLocaleString()}</td>
+                      <td className="py-2.5 px-2 text-right font-mono text-white/80">
+                        {c.signups.toLocaleString()}{' '}
+                        <span className="text-xs text-emerald-400/80">({c.organicSignups})</span>
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono text-white/80">
+                        {c.paidSubscriptions.toLocaleString()}{' '}
+                        <span className="text-xs text-emerald-400/80">({c.organicPaidSubscriptions})</span>
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono text-white/60">{conv}</td>
+                      <td className="py-2.5 pl-2 text-right font-mono text-emerald-400">
+                        {revParts.length ? revParts.join(' + ') : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* USER MANAGEMENT TABLE */}
       <div className="bg-zinc-950 border border-white/10 rounded-3xl p-5 mb-5">
@@ -216,6 +412,7 @@ export default function AdminPanel() {
               <thead>
                 <tr className="text-xs text-white/50 border-b border-white/10">
                   <th className="text-left py-2 font-medium">User</th>
+                  <th className="text-left py-2 font-medium">Country / Source</th>
                   <th className="text-left py-2 font-medium">Plan</th>
                   <th className="text-left py-2 font-medium">Status</th>
                   <th className="text-left py-2 font-medium">Level</th>
@@ -229,6 +426,12 @@ export default function AdminPanel() {
                     <td className="py-2.5 pr-2">
                       <div className="font-medium">{u.name}</div>
                       <div className="text-xs text-white/50">{u.email}</div>
+                    </td>
+                    <td className="py-2.5 pr-2 text-xs text-white/60">
+                      <div>{u.country || u.countryCode || '—'}</div>
+                      {u.acquisitionChannel && (
+                        <div className="text-[11px] text-emerald-400/80 font-mono">{u.acquisitionChannel}</div>
+                      )}
                     </td>
                     <td className="py-2.5 pr-2 text-white/70">{u.currentPlan || 'free'}</td>
                     <td className="py-2.5 pr-2">
@@ -272,6 +475,7 @@ export default function AdminPanel() {
               <thead>
                 <tr className="text-xs text-white/50 border-b border-white/10">
                   <th className="text-left py-2 font-medium">User</th>
+                  <th className="text-left py-2 font-medium">Country</th>
                   <th className="text-left py-2 font-medium">Type</th>
                   <th className="text-left py-2 font-medium">Amount</th>
                   <th className="text-left py-2 font-medium">Status</th>
@@ -282,8 +486,9 @@ export default function AdminPanel() {
                 {recentTransactions.map((t) => (
                   <tr key={t.id}>
                     <td className="py-2.5 pr-2 font-medium">{t.user}</td>
+                    <td className="py-2.5 pr-2 font-mono text-xs text-white/60">{t.countryCode}</td>
                     <td className="py-2.5 pr-2 text-white/70">{t.type}</td>
-                    <td className="py-2.5 pr-2 font-mono text-emerald-400">{formatMoney(t.amount)}</td>
+                    <td className="py-2.5 pr-2 font-mono text-emerald-400">{formatTxAmount(t.amount, t.currency)}</td>
                     <td className="py-2.5 pr-2">
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
                         t.status === 'Success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'

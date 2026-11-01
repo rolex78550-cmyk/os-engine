@@ -37,7 +37,7 @@ export default {
       blocks: [
         {
           p: [
-            "Vague desires produce vague results. 'I want to be rich' gives your brain nothing to aim at. 'I earn ₹2,00,000 a month from my design studio by March, working with five retainer clients' gives it a target, a deadline and a shape.",
+            "Vague desires produce vague results. 'I want to be rich' gives your brain nothing to aim at. 'I earn $10,000 a month from my design studio by March, working with five retainer clients' gives it a target, a deadline and a shape.",
           ],
           ul: [
             "**One primary desire at a time.** You can hold several, but one gets the daily practice.",
@@ -166,9 +166,9 @@ export default {
     { q: "Does manifestation actually work?", a: "The parts that work are well documented: goal specificity, identity-based habits, attention priming, self-affirmation and consistent action. What doesn't work is wishing without behaviour. Treat it as a psychology-backed daily system and it works." },
     { q: "What is the best manifestation technique for beginners?", a: "The 369 method plus a 5-entry gratitude script. Both are simple, take under 15 minutes a day, and build the repetition and emotional state everything else depends on." },
     { q: "Can I manifest more than one thing at a time?", a: "Hold several desires, but give one the daily practice for 30 days. Splitting focus is the most common reason nothing lands." },
-    { q: "Is there a manifestation app that keeps me consistent?", a: "Menifest OS turns the practices in this guide into 11 daily quests with photo proof verified by AI, XP and levels. First month is ₹99 in India." },
+    { q: "Is there a manifestation app that keeps me consistent?", a: "Menifest OS turns the practices in this guide into 11 daily quests with photo proof verified by AI, XP and levels. Plans are $4.99/month worldwide (₹99 first month in India)." },
   ],
-  related: ["identity-shifting", "369-method", "affirmations", "law-of-attraction"],
+  related: ["manifestation-app", "ai-manifestation-planner", "identity-shifting", "369-method", "affirmations"],
   cta: {
     heading: "Run the 30-day protocol with AI keeping you honest",
     text: "Menifest OS turns every step in this guide into a daily quest — affirmations, 369, gratitude, scripting and the workouts. Take a photo proof, Gemini AI verifies it, you earn XP and rank up. No fake completions, no skipped days you can hide from.",

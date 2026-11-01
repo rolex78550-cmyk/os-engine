@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { resolveImageUrl, onImgError } from '../lib/imageHelper';
 import { ScreenshotCarousel } from './ScreenshotCarousel';
+import { inferBrowserGeo, resolvePassiveGeo, saveCountryPreference } from '../lib/seoAttribution';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -74,7 +75,7 @@ const FAQS = [
   },
   {
     q: "Why is there no free trial?",
-    a: "True commitment requires skin in the game. By starting at ₹415/month, you signal to your subconscious mind that you are serious about changing your reality."
+    a: "True commitment requires skin in the game. Starting at $4.99/month globally (or ₹99 first month in India), plus a 66-day win-your-money-back guarantee, signals to your subconscious mind that you are serious about changing your reality."
   },
   {
     q: "Can I cancel anytime?",
@@ -101,6 +102,20 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
   const [showContact, setShowContact] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isIndiaPricing, setIsIndiaPricing] = useState<boolean>(() => inferBrowserGeo().countryCode === 'IN');
+
+  useEffect(() => {
+    let alive = true;
+    resolvePassiveGeo().then((geo) => {
+      if (alive) setIsIndiaPricing(geo.countryCode === 'IN');
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const handleToggleCurrency = (india: boolean) => {
+    setIsIndiaPricing(india);
+    saveCountryPreference(india ? 'India' : 'United States');
+  };
 
   const activeError = localAuthError || authError;
   const currentHostname = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -268,7 +283,9 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               )}
 
               <p className="mt-4 text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: TEXT_TERTIARY }}>
-                NO FREE TRIAL · FIRST MONTH ₹99 · THEN ₹415/MONTH
+                {isIndiaPricing
+                  ? "NO FREE TRIAL · FIRST MONTH ₹99 · THEN ₹415/MONTH"
+                  : "NO FREE TRIAL · $4.99/MONTH OR $49/YEAR · CANCEL ANYTIME"}
               </p>
             </div>
           </div>
@@ -914,6 +931,34 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             </div>
           </div>
 
+          {/* Passive Currency Switcher (Zero Redirects) */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => handleToggleCurrency(false)}
+              className="px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase transition"
+              style={{
+                backgroundColor: !isIndiaPricing ? "rgba(167,139,250,0.22)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${!isIndiaPricing ? "rgba(167,139,250,0.6)" : HAIRLINE}`,
+                color: !isIndiaPricing ? "#fff" : TEXT_SECONDARY,
+              }}
+            >
+              🌐 Global (USD $)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleToggleCurrency(true)}
+              className="px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase transition"
+              style={{
+                backgroundColor: isIndiaPricing ? "rgba(167,139,250,0.22)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${isIndiaPricing ? "rgba(167,139,250,0.6)" : HAIRLINE}`,
+                color: isIndiaPricing ? "#fff" : TEXT_SECONDARY,
+              }}
+            >
+              🇮🇳 India (INR ₹)
+            </button>
+          </div>
+
           {/* 2 pricing cards side-by-side */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             {/* Monthly (purple, unselected) */}
@@ -930,25 +975,45 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               <div className="text-[12px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#a78bfa" }}>
                 Monthly
               </div>
-              <div
-                className="font-extrabold tracking-tight tabular-nums"
-                style={{
-                  color: "#fff",
-                  fontSize: "clamp(20px, 5vw, 26px)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                ₹99
-                <span className="ml-1.5 align-middle font-semibold" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textDecoration: "line-through" }}>
-                  ₹415
-                </span>
-              </div>
-              <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
-                first month · then ₹415/mo
-              </div>
+              {isIndiaPricing ? (
+                <>
+                  <div
+                    className="font-extrabold tracking-tight tabular-nums"
+                    style={{
+                      color: "#fff",
+                      fontSize: "clamp(20px, 5vw, 26px)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    ₹99
+                    <span className="ml-1.5 align-middle font-semibold" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", textDecoration: "line-through" }}>
+                      ₹415
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    first month · then ₹415/mo
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="font-extrabold tracking-tight tabular-nums"
+                    style={{
+                      color: "#fff",
+                      fontSize: "clamp(20px, 5vw, 26px)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    $4.99
+                  </div>
+                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    per month · cancel anytime
+                  </div>
+                </>
+              )}
             </button>
 
-            {/* Yearly (WHITE, selected, SAVE 33%) */}
+            {/* Yearly (WHITE, selected) */}
             <button
               type="button"
               onClick={() => setShowAuth(true)}
@@ -967,7 +1032,7 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
                   boxShadow: "0 4px 12px rgba(124,58,237,0.4)",
                 }}
               >
-                SAVE 33%
+                {isIndiaPricing ? "SAVE 33%" : "SAVE 18%"}
               </div>
               <div
                 className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center"
@@ -978,22 +1043,45 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
               <div className="text-[12px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#7c3aed" }}>
                 Yearly
               </div>
-              <div className="text-[12px] line-through tabular-nums" style={{ color: "rgba(0,0,0,0.40)" }}>
-                ₹415/mo
-              </div>
-              <div
-                className="font-extrabold tracking-tight tabular-nums"
-                style={{
-                  color: "#0a0a0a",
-                  fontSize: "clamp(20px, 5vw, 26px)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                ₹1,999
-              </div>
-              <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
-                /mo · billed annually
-              </div>
+              {isIndiaPricing ? (
+                <>
+                  <div className="text-[12px] line-through tabular-nums" style={{ color: "rgba(0,0,0,0.40)" }}>
+                    ₹415/mo
+                  </div>
+                  <div
+                    className="font-extrabold tracking-tight tabular-nums"
+                    style={{
+                      color: "#0a0a0a",
+                      fontSize: "clamp(20px, 5vw, 26px)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    ₹1,999
+                  </div>
+                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    /yr · ≈ ₹167/mo billed annually
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[12px] line-through tabular-nums" style={{ color: "rgba(0,0,0,0.40)" }}>
+                    $4.99/mo
+                  </div>
+                  <div
+                    className="font-extrabold tracking-tight tabular-nums"
+                    style={{
+                      color: "#0a0a0a",
+                      fontSize: "clamp(20px, 5vw, 26px)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    $49
+                  </div>
+                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    /yr · $4.08/mo billed annually
+                  </div>
+                </>
+              )}
             </button>
           </div>
 
@@ -1170,9 +1258,11 @@ export default function LandingPage({ onSignIn, onDemoSignIn, authError, clearAu
             <div>
               <div className="font-semibold text-xs tracking-wider uppercase mb-3" style={{ color: TEXT_PRIMARY }}>Product</div>
               <ul className="space-y-2 text-xs">
-                <li><a href="#features" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Features</a></li>
-                <li><a href="#ranks" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Ranks</a></li>
-                <li><a href="#pricing" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Pricing</a></li>
+                <li><a href="/manifestation-app" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Manifestation App</a></li>
+                <li><a href="/ai-manifestation-planner" className="transition-colors" style={{ color: TEXT_SECONDARY }}>AI Manifestation Planner</a></li>
+                <li><a href="/gamified-habit-tracker" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Gamified Habit Tracker</a></li>
+                <li><a href="/pricing" className="transition-colors" style={{ color: TEXT_SECONDARY }}>Pricing ($4.99 / ₹99)</a></li>
+                <li><a href="#ranks" className="transition-colors" style={{ color: TEXT_SECONDARY }}>RPG Ranks</a></li>
                 <li><a href="#faq" className="transition-colors" style={{ color: TEXT_SECONDARY }}>FAQ</a></li>
               </ul>
             </div>

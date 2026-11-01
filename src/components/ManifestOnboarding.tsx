@@ -6,6 +6,7 @@ import {
   Lock, LogOut, Shield, ChevronRight
 } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
+import { getInitialCountryName, resolvePassiveGeo, saveCountryPreference } from '../lib/seoAttribution';
 
 interface ManifestOnboardingProps {
   onComplete: (data: {
@@ -34,23 +35,27 @@ interface ManifestOnboardingProps {
 // 20 STEPS CONSTANTS
 const TOTAL_STEPS = 20;
 
-// COUNTRIES FOR STEP 3
+// COUNTRIES FOR STEP 3 (prioritized for USA, India, UK, Canada, Australia, Europe & Global GSC markets)
 const COUNTRIES = [
-  { code: "IN", name: "India", flag: "🇮🇳" },
   { code: "US", name: "United States", flag: "🇺🇸" },
+  { code: "IN", name: "India", flag: "🇮🇳" },
   { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
   { code: "CA", name: "Canada", flag: "🇨🇦" },
   { code: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "DE", name: "Germany", flag: "🇩🇪" },
+  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
+  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
+  { code: "PH", name: "Philippines", flag: "🇵🇭" },
   { code: "AE", name: "United Arab Emirates", flag: "🇦🇪" },
   { code: "SG", name: "Singapore", flag: "🇸🇬" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "NP", name: "Nepal", flag: "🇳🇵" },
+  { code: "BR", name: "Brazil", flag: "🇧🇷" },
   { code: "BD", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "VN", name: "Vietnam", flag: "🇻🇳" },
+  { code: "NP", name: "Nepal", flag: "🇳🇵" },
   { code: "PK", name: "Pakistan", flag: "🇵🇰" },
   { code: "ES", name: "Spain", flag: "🇪🇸" },
   { code: "FR", name: "France", flag: "🇫🇷" },
   { code: "IT", name: "Italy", flag: "🇮🇹" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷" },
   { code: "JP", name: "Japan", flag: "🇯🇵" },
   { code: "MX", name: "Mexico", flag: "🇲🇽" },
   { code: "ID", name: "Indonesia", flag: "🇮🇩" },
@@ -82,7 +87,7 @@ const ALL_PRIORITIES = [
   { id: "lose_fat", label: "Lose Fat", category: "fitness" },
   { id: "build_muscle", label: "Build Muscle", category: "fitness" },
   { id: "get_sixpack", label: "Get Six Pack", category: "fitness" },
-  { id: "earn_1l_month", label: "Earn ₹1L+ / month", category: "money" },
+  { id: "earn_1l_month", label: "Earn $5k+ / ₹1L+ per month", category: "money" },
   { id: "get_high_paying_job", label: "Get High Paying Job", category: "career" },
   { id: "get_promotion", label: "Get Promotion", category: "career" },
   { id: "build_startup", label: "Build Startup", category: "business" },
@@ -175,11 +180,22 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
 
   // Form states
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("India");
+  const [country, setCountry] = useState(() => getInitialCountryName());
   const [ageGroup, setAgeGroup] = useState("18–24");
   const [gender, setGender] = useState("Prefer not to say");
   const [selectedLifeAreas, setSelectedLifeAreas] = useState<string[]>(["fitness", "career", "money"]);
-  const [primaryPriority, setPrimaryPriority] = useState("Earn ₹1L+ / month");
+  const [primaryPriority, setPrimaryPriority] = useState("Earn $5k+ / ₹1L+ per month");
+
+  useEffect(() => {
+    let alive = true;
+    resolvePassiveGeo().then((geo) => {
+      if (alive && geo?.countryName) {
+        const exists = COUNTRIES.some((c) => c.name === geo.countryName);
+        setCountry(exists ? geo.countryName : "Global / Other");
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // Situation fields
   const [currentWeight, setCurrentWeight] = useState("72 kg");
@@ -630,7 +646,7 @@ export function ManifestOnboarding({ onComplete }: ManifestOnboardingProps) {
                     return (
                       <button
                         key={c.code}
-                        onClick={() => { setCountry(c.name); goNext(); }}
+                        onClick={() => { setCountry(c.name); saveCountryPreference(c.name); goNext(); }}
                         className="w-full p-3 rounded-xl flex items-center justify-between transition-colors"
                         style={{
                           backgroundColor: isSelected ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",

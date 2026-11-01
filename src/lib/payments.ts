@@ -151,11 +151,26 @@ export async function initiateSubscription(
 
       // 2. Write the PAYMENT RECORD FIRST (most reliable path).
       const paymentId = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      let attrMeta: Record<string, any> = { country: 'India', countryCode: 'IN' };
+      try {
+        const { getOrCreateAttribution } = await import('./seoAttribution');
+        const attr = getOrCreateAttribution();
+        attrMeta = {
+          country: 'India',
+          countryCode: 'IN',
+          acquisitionChannel: attr.channel,
+          isOrganicAcquisition: attr.isOrganic,
+          landingPage: attr.landingPage,
+          utmSource: attr.utmSource || null,
+          utmCampaign: attr.utmCampaign || null,
+        };
+      } catch {}
       const paymentRecord = {
         userId: user.uid, planType, amount: amountInRupees, currency: 'INR',
         paymentStatus: 'success',
         razorpayOrderId: response.razorpay_order_id,
         razorpayPaymentId: response.razorpay_payment_id,
+        ...attrMeta,
         createdAt: new Date().toISOString(),
       };
       try {
@@ -170,8 +185,18 @@ export async function initiateSubscription(
           amount: amountInRupees,
         });
 
-        // Track purchase in Meta Pixel
-        import('./pixel').then(function(m) { m.trackPurchase(planType, amountInRupees); });
+        // Track purchase in Meta Pixel + Country SEO Funnel
+        import('./pixel').then(function(m) { m.trackPurchase(planType, amountInRupees, 'INR', 'IN'); });
+        import('./seoAttribution').then(function(m) {
+          m.trackCountryPurchase({
+            userId: user.uid,
+            planType,
+            amount: amountInRupees,
+            currency: 'INR',
+            paymentId: response.razorpay_payment_id || paymentId,
+            countryOverride: 'India',
+          });
+        });
       } catch (payErr: any) {
         console.error('[Payments] ⚠️ Payment record write failed:', payErr?.code || payErr?.message);
       }
