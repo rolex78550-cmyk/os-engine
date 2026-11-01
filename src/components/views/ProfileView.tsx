@@ -1,3 +1,4 @@
+import DailyReminders from "../DailyReminders";
 import React, { useState, useRef, useEffect } from "react";
 import {
   ChevronRight,
@@ -694,38 +695,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               }}
             />
             <Divider />
-            {/* Notifications — actually toggles */}
-            <SettingsRow
-              icon={
-                pushPermission === "granted" ? (
-                  <Bell size={16} />
-                ) : (
-                  <BellOff size={16} />
-                )
-              }
-              label="Notifications"
-              value={
-                pushPermission === "granted"
-                  ? "On"
-                  : pushPermission === "denied"
-                  ? "Blocked"
-                  : "Off"
-              }
-              onClick={toggleNotifications}
-            />
-            {pushPermission === "granted" && sendTestPush && (
-              <>
-                <Divider />
-                <SettingsRow
-                  icon={<Award size={16} />}
-                  label="Send test push"
-                  onClick={() => {
-                    sendTestPush();
-                    showToast("Test push sent", "ok");
-                  }}
-                />
-              </>
-            )}
+            <DailyReminders />
             <Divider />
             {/* Manage subscription */}
             <SettingsRow

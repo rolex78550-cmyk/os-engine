@@ -1,3 +1,4 @@
+import { registerReminders } from "./server/reminders";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -2321,39 +2322,13 @@ async function verifyAdminToken(req: any): Promise<boolean> {
   } catch { return false; }
 }
 
+registerReminders(app, { getDb, getUid: getUidFromRequest, getIdentity: async (uid) => { ensureAdminApp(); return admin.auth().getUser(uid); } });
+
 // ── Legacy compat ──
 app.post('/api/notifications/admin-notify', async (req: any, res: any) => {
   return res.json({ sent: false, redirect: 'use /api/notifications/notify' });
 });
-app.post('/api/notifications/daily-reminder', async (req: any, res: any) => {
-  req.body.event = 'daily-reminder';
-  const db = getDb();
-  const key = RESEND_KEY();
-  if (!key) return res.json({ sent: 0, reason: 'RESEND_API_KEY not configured' });
-  const snap = await db.collection('users').get();
-  const recipients: any[] = [];
-  snap.docs.forEach(doc => {
-    const data = doc.data();
-    if (!data.email || data.notificationPrefs?.ritualRemindersEnabled === false) return;
-    recipients.push(data);
-  });
-  let sent = 0, failed = 0;
-  const batchSize = 5;
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(data => {
-      const streak = data.streak || 0;
-      return sendResendEmail(
-        data.email,
-        streak > 0 ? streak + '-day streak waiting!' : 'Your journey awaits',
-        '<div style="font-family:Inter;padding:32px;background:#0a0a0a;color:#fff;border-radius:24px"><h1>Streak calling</h1><p>Hi ' + (data.name || 'Seeker') + ', complete today\'s ritual.</p></div>',
-        'Complete today\'s ritual.'
-      );
-    }));
-    results.forEach(r => { if (r.status === 'fulfilled' && r.value.sent) sent++; else failed++; });
-  }
-  return res.json({ success: true, sent, failed, total: recipients.length });
-});
+app.post('/api/notifications/daily-reminder', (_req, res) => res.status(410).json({error:'Legacy broadcast disabled; use authenticated /api/reminders/run for opted-in users.'}));
 
 // ── UNIFIED NOTIFY ENDPOINT (all events) ──
 app.post('/api/notifications/notify', async (req: any, res: any) => {
@@ -2462,30 +2437,7 @@ app.post('/api/notifications/notify', async (req: any, res: any) => {
 
     // DAILY REMINDER — parallel batch sending
     if (event === 'daily-reminder') {
-      const db = getDb();
-      const snap = await db.collection('users').get();
-      const recipients: any[] = [];
-      snap.docs.forEach(doc => {
-        const data = doc.data();
-        if (!data.email || data.notificationPrefs?.ritualRemindersEnabled === false) return;
-        recipients.push(data);
-      });
-      let sent = 0, failed = 0;
-      const batchSize = 5;
-      for (let i = 0; i < recipients.length; i += batchSize) {
-        const batch = recipients.slice(i, i + batchSize);
-        const results = await Promise.allSettled(batch.map(data => {
-          const streak = data.streak || 0;
-          return sendResendEmail(
-            data.email,
-            streak > 0 ? streak + '-day streak waiting!' : 'Your journey awaits',
-            '<div style="font-family:Inter;padding:32px;background:#0a0a0a;color:#fff;border-radius:24px"><h1>Streak calling</h1><p>Hi ' + (data.name || 'Seeker') + ', complete today\'s ritual.</p></div>',
-            'Complete today\'s ritual.'
-          );
-        }));
-        results.forEach(r => { if (r.status === 'fulfilled' && r.value.sent) sent++; else failed++; });
-      }
-      return res.json({ success: true, sent, failed, total: recipients.length });
+      return res.status(410).json({error:'Legacy broadcast disabled; use /api/reminders/run'});
     }
 
     return res.json({ sent: false, error: 'Unknown event: ' + event });

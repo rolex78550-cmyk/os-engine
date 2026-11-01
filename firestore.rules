@@ -149,7 +149,7 @@ service cloud.firestore {
     // and match blocks are OR'd, so a catch-all here would re-open
     // task_claims / xp_seasons to every signed-in user.
     match /{document=**} {
-      allow read: if request.auth != null && document[0] != 'users';
+      allow read: if request.auth != null && !(document[0] in ['users', 'notification_settings', 'notification_deliveries', 'notification_push_owners']);
       allow write: if false;
     }
   }

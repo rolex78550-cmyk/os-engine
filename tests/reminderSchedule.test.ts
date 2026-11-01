@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { DEFAULT_TIMES, dueSlots, localClock } from '../server/reminderSchedule';
+assert.deepEqual(dueSlots(new Date('2026-11-01T01:30:00Z'),'Asia/Kolkata',DEFAULT_TIMES),['morning']);
+assert.deepEqual(dueSlots(new Date('2026-11-01T01:59:00Z'),'Asia/Kolkata',DEFAULT_TIMES),['morning']);
+assert.deepEqual(dueSlots(new Date('2026-11-01T02:00:00Z'),'Asia/Kolkata',DEFAULT_TIMES),[]);
+assert.deepEqual(dueSlots(new Date('2026-11-01T12:30:00Z'),'Asia/Kolkata',DEFAULT_TIMES),['evening']);
+assert.deepEqual(dueSlots(new Date('2026-11-01T16:30:00Z'),'Asia/Kolkata',DEFAULT_TIMES),['night']);
+assert.deepEqual(dueSlots(new Date('2026-11-01T12:00:00Z'),'America/New_York',DEFAULT_TIMES),['morning']);
+assert.deepEqual(dueSlots(new Date('2026-07-01T11:00:00Z'),'America/New_York',DEFAULT_TIMES),['morning']);
+assert.equal(localClock(new Date('2026-11-01T20:00:00Z'),'Asia/Kolkata').date,'2026-11-02');
+assert.deepEqual(dueSlots(new Date('2026-11-01T06:45:00Z'),'UTC',{...DEFAULT_TIMES,morning:'06:45'}),['morning']);
+assert.throws(()=>localClock(new Date(),'Invalid/Zone'));
+console.log('10 reminder schedule assertions passed (India, US DST, custom timing, date rollover, invalid zone).');

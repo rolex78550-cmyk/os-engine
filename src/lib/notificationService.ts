@@ -19,9 +19,8 @@
  * Notes:
  *  - iOS Safari only supports notifications when the PWA is added to
  *    the home screen (iOS 16.4+). We detect and surface a hint.
- *  - The service worker handles scheduling so notifications fire even
- *    if the app is backgrounded. Without a registered SW, only
- *    foreground notifications work.
+ *  - Local timers are best-effort only and do not reliably survive browser closure.
+ *    Closed-app reminders use server-side web push (/api/reminders), not these timers.
  */
 
 const STORAGE_KEY = "menifest_notification_schedule_v1";
