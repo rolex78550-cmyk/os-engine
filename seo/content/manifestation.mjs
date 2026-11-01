@@ -168,7 +168,7 @@ export default {
     { q: "Can I manifest more than one thing at a time?", a: "Hold several desires, but give one the daily practice for 30 days. Splitting focus is the most common reason nothing lands." },
     { q: "Is there a manifestation app that keeps me consistent?", a: "Menifest OS turns the practices in this guide into 11 daily quests with photo proof verified by AI, XP and levels. Plans are $4.99/month worldwide (₹99 first month in India)." },
   ],
-  related: ["manifestation-app", "ai-manifestation-planner", "identity-shifting", "369-method", "affirmations"],
+  related: ["manifestation-career-action-plan-example", "manifestation-app", "ai-manifestation-planner", "identity-shifting", "369-method", "affirmations"],
   cta: {
     heading: "Run the 30-day protocol with AI keeping you honest",
     text: "Menifest OS turns every step in this guide into a daily quest — affirmations, 369, gratitude, scripting and the workouts. Take a photo proof, Gemini AI verifies it, you earn XP and rank up. No fake completions, no skipped days you can hide from.",

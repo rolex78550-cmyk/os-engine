@@ -1,3 +1,5 @@
+import identityExample from "./identity-shifting-daily-routine-example.mjs";
+import careerExample from "./manifestation-career-action-plan-example.mjs";
 // Central SEO content registry. Each guide or commercial landing page targets one keyword cluster.
 // Add a new page = add a file + import it here. No app code involved.
 import manifestationApp from "./manifestation-app.mjs";
@@ -42,6 +44,8 @@ export const HUB = {
 };
 
 export const PAGES = [
+  identityExample,
+  careerExample,
   manifestationApp,
   aiPlanner,
   gamifiedHabitTracker,

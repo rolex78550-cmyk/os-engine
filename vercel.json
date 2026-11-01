@@ -9,6 +9,14 @@
   ],
   "rewrites": [
     {
+      "source": "/identity-shifting-daily-routine-example",
+      "destination": "/identity-shifting-daily-routine-example/index.html"
+    },
+    {
+      "source": "/manifestation-career-action-plan-example",
+      "destination": "/manifestation-career-action-plan-example/index.html"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api"
     },
@@ -176,7 +184,7 @@
       ]
     },
     {
-      "source": "/(learn|manifestation-app|ai-manifestation-planner|gamified-habit-tracker|how-to-manifest|law-of-attraction|identity-shifting|369-method|affirmations|how-to-become-a-better-version-of-yourself|neuroscience-of-manifestation|gamify-your-life-rpg|gratitude-journal|pricing)",
+      "source": "/(identity-shifting-daily-routine-example|manifestation-career-action-plan-example|learn|manifestation-app|ai-manifestation-planner|gamified-habit-tracker|how-to-manifest|law-of-attraction|identity-shifting|369-method|affirmations|how-to-become-a-better-version-of-yourself|neuroscience-of-manifestation|gamify-your-life-rpg|gratitude-journal|pricing)",
       "headers": [
         {
           "key": "Cache-Control",

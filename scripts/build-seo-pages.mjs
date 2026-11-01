@@ -367,9 +367,9 @@ function ctaHtml(page) {
 <h2>${esc(c.heading || "Do it daily inside Menifest OS")}</h2>
 <p>${inline(c.text || "Menifest OS turns this practice into a daily quest: you do the work, capture photo proof, Gemini AI verifies it, and you earn XP toward your next level. 11 quests a day, 30-day seasons, a global leaderboard — and zero fake completions.")}</p>
 <div data-cta-usd><a class="btn-lg" href="${href}">Start Menifest OS — $4.99/mo</a>
-<p class="small">$4.99/month or $49/year worldwide (India: ₹99 first month) · Cancel anytime · Finish 70% of your 66-day plan or get 100% of your money back.</p></div>
+<p class="small">$4.99/month or $49/year worldwide (India: ₹99 first month) · Cancel anytime ${c.transparent ? " · Review plan and payment terms before subscribing. Results depend on your actions." : " · Finish 70% of your 66-day plan or get 100% of your money back."}</p></div>
 <div data-cta-inr><a class="btn-lg" href="${href}">Start — first month ₹99</a>
-<p class="small">Then ₹415/month · Yearly ₹1,999 (Outside India: $4.99/mo) · Cancel anytime · Finish 70% of your 66-day plan or get 100% of your money back.</p></div>
+<p class="small">Then ₹415/month · Yearly ₹1,999 (Outside India: $4.99/mo) · Cancel anytime ${c.transparent ? " · Review plan and payment terms before subscribing. Results depend on your actions." : " · Finish 70% of your 66-day plan or get 100% of your money back."}</p></div>
 </aside>`;
 }
 
@@ -490,10 +490,10 @@ function renderGuide(page) {
     headerHtml() +
     `<main class="wrap"><nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/learn">Guides</a> › ${esc(page.navTitle || page.h1)}</nav>
 <article><div class="eyebrow">${esc(page.eyebrow || "Guide")}</div><h1>${inline(page.h1)}</h1>
-<div class="meta">${mins} min read · Updated ${TODAY} · By the Menifest OS team</div>
+<div class="meta">${mins} min read · Updated ${page.updated || TODAY} · By the Menifest OS team</div>
 ${page.intro.map((t, i) => `<p class="${i === 0 ? "lead" : ""}">${inline(t)}</p>`).join("")}
 <div class="toc"><b>In this guide</b><ol>${toc}${page.faqs?.length ? '<li><a href="#faq">FAQ</a></li>' : ""}</ol></div>
-${page.sections.map(renderSection).join("")}
+${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? ctaHtml(page) : "")).join("")}
 ${ctaHtml(page)}
 ${faqHtml(page)}
 ${relatedHtml(page)}
@@ -520,7 +520,7 @@ ${page.intro.map((t, i) => `<p class="${i === 0 ? "lead" : ""}">${inline(t)}</p>
   <span data-cta-inr><a class="btn-lg" href="${href}" style="margin-top:0">Start Now — ₹99 First Month</a></span>
   <span class="small">Web, iOS &amp; Android (PWA) · 66-day money-back guarantee</span>
 </div>
-${page.sections.map(renderSection).join("")}
+${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? ctaHtml(page) : "")).join("")}
 <section id="plans"><h2>Simple global &amp; regional plans</h2>
 <p>One membership unlocks all 11 AI-verified daily quests, the 90-day AI blueprint, vision board, alignment journal, and 30-day leaderboard seasons.</p>
 ${pricingCardsHtml(page.slug)}
@@ -594,7 +594,7 @@ function renderPricing(page) {
 <div class="eyebrow">Global &amp; India Pricing</div><h1>${esc(page.h1)}</h1>
 ${page.intro.map((t, i) => `<p class="${i === 0 ? "lead" : ""}">${inline(t)}</p>`).join("")}
 ${pricingCardsHtml("pricing")}
-${page.sections.map(renderSection).join("")}
+${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? ctaHtml(page) : "")).join("")}
 ${faqHtml(page)}
 ${relatedHtml(page)}
 </main>` +
