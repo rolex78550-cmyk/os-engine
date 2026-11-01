@@ -1,3 +1,4 @@
+import { EXPANDED_AFFIRMATIONS } from "../../data/affirmationsExpansion";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Heart, X, BookOpen } from "lucide-react";
@@ -19,6 +20,9 @@ const IOS_GREEN = "#34c759";
 // ===================================================================
 type Affirmation = {
   text: string;
+  image?: string;
+  theme?: string;
+  id?: string;
   author?: string;
   category: "i-am" | "stoic" | "nietzsche" | "rumi" | "buddha" | "growth" | "shadow" | "success" | "motivation" | "philosophy";
 };
@@ -551,6 +555,7 @@ const AFFIRMATIONS: Affirmation[] = [
   { text: "I am the master of my fate: I am the captain of my soul.", author: "William Ernest Henley", category: "philosophy" },
   { text: "The unexamined life is not worth living.", author: "Socrates", category: "philosophy" },
   { text: "An unexamined goal is just a wish.", category: "philosophy" },
+  ...EXPANDED_AFFIRMATIONS,
 ];
 
 
@@ -729,7 +734,7 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
   };
 
   const current = AFFIRMATIONS[currentIdx];
-  const cardImage = CARD_IMAGES[cardImageIdx];
+  const cardImage = current.image || CARD_IMAGES[cardImageIdx];
   const isLiked = likedSet.has(currentIdx);
 
   return (
@@ -990,7 +995,7 @@ export const AffirmationHub: React.FC<AffirmationHubProps> = (props) => {
               className="text-[12.5px] mb-4 leading-relaxed"
               style={{ color: TEXT_SECONDARY }}
             >
-              {AFFIRMATIONS.length} declarations from world-class philosophers,
+              {AFFIRMATIONS.length} affirmations and reflections, including original writing and
               warriors, and awakened masters. Tap the card to receive the next
               truth the universe has for you.
             </p>
