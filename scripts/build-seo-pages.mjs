@@ -479,6 +479,40 @@ function commercialJsonLd(page, url, image) {
   return { "@context": "https://schema.org", "@graph": [orgJsonLd(), ...g] };
 }
 
+function reelHtml(page) {
+  const id = page.instagramReel;
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return "";
+  const url = `https://www.instagram.com/reel/${id}/`;
+  return `<section class="card" aria-labelledby="reel-heading">
+<h2 id="reel-heading">Watch the Menifest OS promotional video</h2>
+<p>A short promotional Reel shared by the Menifest OS team. Explore the app, then review the features and plan details before subscribing.</p>
+<div data-reel-container style="max-width:420px;margin:20px auto;border:1px solid #333;border-radius:16px;overflow:hidden;background:#111">
+<div data-reel-placeholder style="padding:36px 24px;text-align:center">
+<p style="font-size:36px;margin:0" aria-hidden="true">▶</p>
+<button type="button" class="btn-lg" data-load-reel>Load Instagram video</button>
+<p class="small">Loads content from Instagram only after you click. Instagram may receive your IP address and use cookies. Playback may require login or may be unavailable in your region.</p>
+</div></div>
+<p class="small"><a href="${url}" target="_blank" rel="noopener noreferrer">Watch directly on Instagram ↗</a> · <a href="/pricing">Compare subscription plans</a></p>
+<script>
+(function(){
+ var script=document.currentScript,section=script.closest('section');
+ var button=section.querySelector('[data-load-reel]');
+ button.addEventListener('click',function(){
+  var frame=document.createElement('iframe');
+  frame.title='Menifest OS promotional Reel on Instagram';
+  frame.src='${url}embed/';
+  frame.width='420';frame.height='720';
+  frame.style.cssText='display:block;width:100%;height:720px;border:0;background:#fff';
+  frame.allow='encrypted-media; picture-in-picture; fullscreen';
+  frame.setAttribute('allowfullscreen','');
+  frame.referrerPolicy='strict-origin-when-cross-origin';
+  section.querySelector('[data-reel-container]').replaceChildren(frame);
+ });
+})();
+</script>
+</section>`;
+}
+
 function renderGuide(page) {
   const url = `${SITE.url}/${page.slug}`;
   const image = `${SITE.url}/og/${page.slug}.jpg`;
@@ -493,7 +527,7 @@ function renderGuide(page) {
 <div class="meta">${mins} min read · Updated ${page.updated || TODAY} · By the Menifest OS team</div>
 ${page.intro.map((t, i) => `<p class="${i === 0 ? "lead" : ""}">${inline(t)}</p>`).join("")}
 <div class="toc"><b>In this guide</b><ol>${toc}${page.faqs?.length ? '<li><a href="#faq">FAQ</a></li>' : ""}</ol></div>
-${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? ctaHtml(page) : "")).join("")}
+${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? reelHtml(page) + ctaHtml(page) : "")).join("")}
 ${ctaHtml(page)}
 ${faqHtml(page)}
 ${relatedHtml(page)}
@@ -520,7 +554,8 @@ ${page.intro.map((t, i) => `<p class="${i === 0 ? "lead" : ""}">${inline(t)}</p>
   <span data-cta-inr><a class="btn-lg" href="${href}" style="margin-top:0">Start Now — ₹99 First Month</a></span>
   <span class="small">Web, iOS &amp; Android (PWA) · 66-day money-back guarantee</span>
 </div>
-${page.sections.map((section, index) => renderSection(section) + (page.slug === "identity-shifting" && index === 3 ? ctaHtml(page) : "")).join("")}
+${reelHtml(page)}
+${page.sections.map(renderSection).join("")}
 <section id="plans"><h2>Simple global &amp; regional plans</h2>
 <p>One membership unlocks all 11 AI-verified daily quests, the 90-day AI blueprint, vision board, alignment journal, and 30-day leaderboard seasons.</p>
 ${pricingCardsHtml(page.slug)}

@@ -1,4 +1,5 @@
 export default {
+  instagramReel: "DdGV7ikNdxy",
   type: "commercial",
   slug: "manifestation-app",
   eyebrow: "Manifestation RPG App",
